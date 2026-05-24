@@ -1,0 +1,298 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  BarChart3,
+  Calculator,
+  Package,
+  ShoppingCart,
+  Store,
+  TrendingUp,
+  Truck,
+  Users,
+  Loader2,
+} from "lucide-react";
+import type { DateRange } from "rsuite/DateRangePicker";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DataTable } from "@/components/ui/data-table";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
+import { cn } from "@/lib/utils";
+import {
+  fetchReport,
+  type ReportPayload,
+  type ReportTab,
+} from "@/services/reportsService";
+
+type Preset = "7d" | "30d" | "month" | "year";
+
+function toISO(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function rangeFor(preset: Preset): [Date, Date] {
+  const now = new Date();
+  if (preset === "7d") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 6);
+    return [d, now];
+  }
+  if (preset === "30d") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 29);
+    return [d, now];
+  }
+  if (preset === "month") {
+    return [new Date(now.getFullYear(), now.getMonth(), 1), now];
+  }
+  return [new Date(now.getFullYear(), 0, 1), now];
+}
+
+const TABS: {
+  key: ReportTab;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { key: "customers", icon: Users },
+  { key: "suppliers", icon: Truck },
+  { key: "sales", icon: BarChart3 },
+  { key: "purchases", icon: ShoppingCart },
+  { key: "inventory", icon: Package },
+  { key: "financials", icon: Calculator },
+];
+
+const PRESETS: [Preset, string][] = [
+  ["7d", "Last 7 Days"],
+  ["30d", "Last 30 Days"],
+  ["month", "This Month"],
+  ["year", "This Year"],
+];
+
+export default function StatisticsView() {
+  const { t } = useTranslation();
+  const [dateRange, setDateRange] = useState<DateRange | null>(rangeFor("30d"));
+  const [activePreset, setActivePreset] = useState<Preset>("30d");
+  const [tab, setTab] = useState<ReportTab>("customers");
+  const [data, setData] = useState<ReportPayload | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const from = dateRange ? toISO(dateRange[0]) : "";
+  const to = dateRange ? toISO(dateRange[1]) : "";
+  const canFetch = useMemo(() => Boolean(from && to && from <= to), [from, to]);
+
+  const load = useCallback(
+    async (which: ReportTab) => {
+      if (!canFetch) return;
+      setLoading(true);
+      try {
+        const r = await fetchReport(which, { dateFrom: from, dateTo: to });
+        setData(r);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [canFetch, from, to]
+  );
+
+  useEffect(() => {
+    void load(tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const applyPreset = (p: Preset) => {
+    setActivePreset(p);
+    setDateRange(rangeFor(p));
+  };
+
+  return (
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Page header */}
+      <header className="flex items-center gap-3">
+        <div className="rounded-xl bg-primary/10 p-3 text-primary ring-1 ring-primary/20">
+          <Store className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl">
+            {t("reports.title", "Reports Overview")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "reports.subtitle",
+              "Comprehensive analytics across your business"
+            )}
+          </p>
+        </div>
+      </header>
+
+      {/* Filter card */}
+      <Card className="overflow-hidden border-border shadow-sm">
+        <CardContent className="space-y-5 p-5 sm:p-6">
+          {/* Quick presets */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("reports.quick", "Quick")}:
+            </span>
+            {PRESETS.map(([k, label]) => (
+              <Button
+                key={k}
+                size="sm"
+                variant={activePreset === k ? "default" : "outline"}
+                className={cn(
+                  "rounded-full transition-all",
+                  activePreset === k && "shadow-sm shadow-primary/30"
+                )}
+                onClick={() => applyPreset(k)}
+              >
+                {t(
+                  `reports.${k === "7d" ? "last7" : k === "30d" ? "last30" : k === "month" ? "thisMonth" : "thisYear"}`,
+                  label
+                )}
+              </Button>
+            ))}
+          </div>
+
+          {/* Date range picker + fetch button */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1 space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                {t("reports.dateRange", "Date Range")}
+              </label>
+              <SharedDateRangePicker
+                value={dateRange}
+                onChange={(val) => {
+                  setDateRange(val);
+                  setActivePreset("" as Preset);
+                }}
+              />
+            </div>
+            <Button
+              disabled={!canFetch || loading}
+              onClick={() => load(tab)}
+              className="h-10 gap-2 px-6 shadow-sm shadow-primary/20"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <TrendingUp className="h-4 w-4" />
+              )}
+              {t("reports.fetch", "Fetch Reports")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60 shadow-sm">
+        <CardContent className="p-0">
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as ReportTab)}
+          >
+            <div className="border-b px-2 sm:px-4">
+              <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0">
+                {TABS.map(({ key, icon: Icon }) => (
+                  <TabsTrigger
+                    key={key}
+                    value={key}
+                    className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-4 py-3 text-sm font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {t(
+                      `reports.tabs.${key}`,
+                      key.charAt(0).toUpperCase() + key.slice(1)
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {loading ? (
+                <div className="flex h-64 items-center justify-center text-muted-foreground">
+                  <Loader2 className="me-2 h-5 w-5 animate-spin" />
+                  {t("reports.loading", "Loading…")}
+                </div>
+              ) : !data ? (
+                <EmptyState
+                  title={t(
+                    "reports.emptyTitle",
+                    "Select a date range to view reports"
+                  )}
+                  description={t(
+                    "reports.emptyDesc",
+                    "Choose start and end dates, then click Fetch Reports"
+                  )}
+                />
+              ) : (
+                <ReportContent data={data} />
+              )}
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ReportContent({ data }: { data: ReportPayload }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {data.metrics.map((m) => (
+          <div
+            key={m.label}
+            className="rounded-lg border bg-card p-4 transition-shadow hover:shadow-sm"
+          >
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {m.label}
+            </div>
+            <div className="mt-2 text-2xl font-bold tabular-nums">
+              {m.value}
+            </div>
+            {typeof m.trend === "number" && (
+              <div
+                className={cn(
+                  "mt-1 inline-flex items-center gap-1 text-xs font-medium",
+                  m.trend >= 0 ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                <TrendingUp className="h-3 w-3" />
+                {m.trend >= 0 ? "+" : ""}
+                {m.trend}%
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <DataTable
+        data={data.rows.map((r, i) => ({ id: i, ...r }))}
+        emptyMessage="No data"
+        columns={data.columns.map((c) => ({
+          key: c.key,
+          header: c.label,
+          render: (row: any) => row[c.key] ?? "—",
+        }))}
+      />
+    </div>
+  );
+}
+
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 bg-muted/30">
+        <TrendingUp className="h-8 w-8 text-muted-foreground/60" />
+      </div>
+      <p className="text-base font-semibold">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}

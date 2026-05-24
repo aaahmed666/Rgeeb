@@ -1,0 +1,243 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useTranslation } from "react-i18next";
+import { Search, ChevronDown, ChevronUp, Brain } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ALL_SERVICES } from "@/views/ai-services/aiServicesData";
+import { dashboardService } from "@/services/dashboardService";
+import type { AIServiceItem } from "@/services/dashboardService";
+
+const TABS = [
+  { id: "all", label: "All" },
+  { id: "safety", label: "Safety" },
+  { id: "analytics", label: "Analytics" },
+  { id: "operations", label: "Operations" },
+  { id: "monitoring", label: "Monitoring" },
+] as const;
+
+type Tab = (typeof TABS)[number]["id"];
+
+const CATEGORY_PATH: Record<string, string> = {
+  Safety: "safety",
+  Analytics: "analytics",
+  Operations: "operations",
+  Monitoring: "monitoring",
+};
+
+const INITIAL_VISIBLE = 18;
+
+// Map API service key -> static service id for detection count overlay
+const KEY_TO_ID: Record<string, string> = {
+  age_gender: "age-gender",
+  attendance: "face-attendance",
+  behavior: "behavior-analysis",
+  cash_register: "cash-register",
+  clean_tables: "clean-tables",
+  cup_counting: "cup-counting",
+  customer_traffic: "customer-traffic",
+  delivery_tracking: "delivery-tracking",
+  drive_thru: "drive-thru",
+  face_detection: "face-detection",
+  fire_detection: "smoke-fire",
+  gate_monitoring: "gate-monitoring",
+  helmet: "helmet-detection",
+  kitchen_ppe: "kitchen-ppe",
+  license_plate: "license-plate",
+  mask: "mask-detection",
+  motion: "motion-detection",
+  object: "object-detection",
+  overcrowd: "overcrowd-violation",
+  people_counting: "people-counting",
+  person: "person-detection",
+  queue: "queue-management",
+  receipt: "receipt-detection",
+  restricted: "restricted-area",
+  sandwich: "sandwich-counting",
+  smoking: "smoking-detection",
+  spill: "spill-detection",
+  vehicle: "vehicle-tracking",
+  waiting: "waiting-customer",
+};
+
+export default function AiServicesView() {
+  const { t } = useTranslation();
+  const [tab, setTab] = React.useState<Tab>("all");
+  const [query, setQuery] = React.useState("");
+  const [showAll, setShowAll] = React.useState(false);
+  // live detection counts from API keyed by static service id
+  const [liveCounts, setLiveCounts] = React.useState<Record<string, number>>(
+    {}
+  );
+
+  React.useEffect(() => {
+    dashboardService
+      .listAIServices({})
+      .then((items: AIServiceItem[]) => {
+        const map: Record<string, number> = {};
+        items.forEach((item) => {
+          const staticId = KEY_TO_ID[item.key];
+          if (staticId && item.detections) map[staticId] = item.detections;
+        });
+        setLiveCounts(map);
+      })
+      .catch(() => {
+        /* silent */
+      });
+  }, []);
+
+  const filtered = ALL_SERVICES.filter((s) => {
+    const matchTab = tab === "all" || s.category.toLowerCase() === tab;
+    const matchQuery =
+      !query || s.label.toLowerCase().includes(query.toLowerCase());
+    return matchTab && matchQuery;
+  });
+
+  const counts: Record<string, number> = { all: ALL_SERVICES.length };
+  ALL_SERVICES.forEach((s) => {
+    counts[s.category.toLowerCase()] =
+      (counts[s.category.toLowerCase()] ?? 0) + 1;
+  });
+
+  const visible = showAll ? filtered : filtered.slice(0, INITIAL_VISIBLE);
+  const hasMore = filtered.length > INITIAL_VISIBLE;
+
+  return (
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Header card */}
+      <div className="rounded-2xl border bg-card shadow-sm p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <Brain className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold sm:text-2xl">
+                  {t("aiServices.title", "AI Services Hub")}
+                </h1>
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs"
+                >
+                  {ALL_SERVICES.length} Active
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t(
+                "aiServices.searchPlaceholder",
+                "Search services..."
+              )}
+              className="pl-9"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowAll(true);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-4 flex gap-1 border-b overflow-x-auto">
+          {TABS.map((t2) => (
+            <button
+              key={t2.id}
+              onClick={() => {
+                setTab(t2.id);
+                setShowAll(false);
+              }}
+              className={cn(
+                "shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                tab === t2.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+              )}
+            >
+              {t2.label}
+              <span className="ms-1.5 text-xs opacity-60">
+                ({counts[t2.id] ?? 0})
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Services Grid */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {visible.map((svc) => {
+          const Icon = svc.icon;
+          const href = `/dashboard/ai-services/${CATEGORY_PATH[svc.category]}/${svc.id}`;
+          const liveCount = liveCounts[svc.id] ?? 0;
+          const displayCount =
+            liveCount > 0 ? liveCount : svc.stats.todayDetections;
+          return (
+            <Link
+              key={svc.id}
+              href={href}
+              className="group flex flex-col items-center gap-3 rounded-xl border bg-card p-4 text-center shadow-sm transition-all hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
+            >
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-transform group-hover:scale-110"
+                style={{ backgroundColor: svc.bgColor }}
+              >
+                <Icon
+                  className="h-6 w-6"
+                  style={{ color: svc.color }}
+                />
+              </div>
+              <div className="w-full">
+                <p className="text-xs font-semibold leading-snug text-foreground line-clamp-2">
+                  {svc.label}
+                </p>
+                <p className="mt-1 text-[10px] text-emerald-600 font-medium">
+                  Active
+                </p>
+                {displayCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="mt-1.5 h-4 px-1.5 text-[10px]"
+                  >
+                    {displayCount.toLocaleString()}
+                  </Badge>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Show More / Less */}
+      {hasMore && !query && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setShowAll((v) => !v)}
+          >
+            {showAll ? (
+              <>
+                <ChevronUp className="h-4 w-4" /> Show Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" /> Show All {filtered.length}{" "}
+                services
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

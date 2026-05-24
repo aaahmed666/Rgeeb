@@ -1,0 +1,363 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Briefcase,
+  Plus,
+  Loader2,
+  Pencil,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  AdminPageHeader,
+  StatusPill,
+} from "@/components/admin/AdminPageHeader";
+import { AdminService, fetchAdminServices } from "@/services/adminService";
+import { api } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
+
+// ─── CRUD helpers (POST-based, mirrors Postman collection) ─────────────────────
+async function createService(input: {
+  name: string;
+  description?: string;
+  price?: string | number;
+  status?: string;
+}) {
+  return api.post(endpoints.admin.serviceCreate, input);
+}
+
+async function updateService(
+  input: { id: string } & Partial<{
+    name: string;
+    description?: string;
+    price?: string | number;
+    status?: string;
+  }>
+) {
+  return api.post(endpoints.admin.serviceUpdate, input);
+}
+
+async function deleteService(id: string) {
+  return api.post(endpoints.admin.serviceDelete, { id });
+}
+
+// ─── Dialog ────────────────────────────────────────────────────────────────────
+function ServiceDialog({
+  open,
+  onOpenChange,
+  service,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  service: AdminService | null;
+}) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const isEdit = !!service;
+
+  const [name, setName] = useState(service?.name ?? "");
+  const [description, setDescription] = useState(service?.description ?? "");
+  const [price, setPrice] = useState(String(service?.price ?? ""));
+  const [status, setStatus] = useState(service?.status ?? "active");
+
+  const handleOpen = (v: boolean) => {
+    if (v) {
+      setName(service?.name ?? "");
+      setDescription(service?.description ?? "");
+      setPrice(String(service?.price ?? ""));
+      setStatus(service?.status ?? "active");
+    }
+    onOpenChange(v);
+  };
+
+  const mut = useMutation({
+    mutationFn: () =>
+      isEdit
+        ? updateService({
+            id: service!.id,
+            name,
+            description,
+            price: price ? Number(price) : undefined,
+            status,
+          })
+        : createService({
+            name,
+            description,
+            price: price ? Number(price) : undefined,
+            status,
+          }),
+    onSuccess: () => {
+      toast.success(isEdit ? "Service updated" : "Service created");
+      qc.invalidateQueries({ queryKey: ["admin", "services"] });
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={handleOpen}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5 text-primary" />
+            {isEdit ? "Edit Service" : "Create Service"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Name *</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Service name"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Description</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Service description"
+              rows={3}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Price</Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("common.status", "Status")}</Label>
+            <Select
+              value={status}
+              onValueChange={setStatus}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">
+                  {t("common.active", "Active")}
+                </SelectItem>
+                <SelectItem value="inactive">
+                  {t("common.inactive", "Inactive")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("common.cancel", "Cancel")}
+          </Button>
+          <Button
+            disabled={!name || mut.isPending}
+            onClick={() => mut.mutate()}
+            className="gap-2"
+          >
+            {mut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {t("common.save", "Save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main view ─────────────────────────────────────────────────────────────────
+export default function AdminServicesView() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminService | null>(null);
+  const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<AdminService | null>(null);
+
+  const {
+    data: services = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["admin", "services"],
+    queryFn: fetchAdminServices,
+  });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter((s) =>
+      [s.name, s.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [services, search]);
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteService(id),
+    onSuccess: () => {
+      toast.success("Service deleted");
+      qc.invalidateQueries({ queryKey: ["admin", "services"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <AdminPageHeader
+        titleKey="admin.services"
+        Icon={Briefcase}
+        onRefresh={() =>
+          qc.invalidateQueries({ queryKey: ["admin", "services"] })
+        }
+        isRefreshing={isLoading}
+        right={
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+            className="gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            Add Service
+          </Button>
+        }
+      />
+
+      <DataTable
+        data={filtered}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage={error instanceof Error ? error.message : "Failed to load"}
+        emptyMessage="No services found"
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search services…"
+        columns={[
+          {
+            key: "name",
+            header: "Name",
+            render: (s) => <span className="font-medium">{s.name}</span>,
+          },
+          {
+            key: "description",
+            header: "Description",
+            cellClassName: "max-w-xs truncate text-muted-foreground",
+            render: (s) => s.description ?? "—",
+          },
+          {
+            key: "price",
+            header: "Price",
+            render: (s) => <span>{s.price != null ? `$${s.price}` : "—"}</span>,
+          },
+          {
+            key: "status",
+            header: "Status",
+            render: (s) => <StatusPill status={s.status} />,
+          },
+          {
+            key: "actions",
+            header: "",
+            headClassName: "w-12",
+            render: (s) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditing(s);
+                      setOpen(true);
+                    }}
+                    className="gap-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    {t("common.edit", "Edit")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setDeleteTarget(s);
+                    }}
+                    className="gap-2 text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t("common.delete", "Delete")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          },
+        ]}
+      />
+
+      <ServiceDialog
+        open={open}
+        onOpenChange={setOpen}
+        service={editing}
+      />
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+        title="Delete Service"
+        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => { if (deleteTarget) delMut.mutate(deleteTarget.id); setDeleteTarget(null); }}
+      />
+    </div>
+  );
+}

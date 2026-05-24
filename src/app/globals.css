@@ -1,0 +1,639 @@
+@import "tailwindcss" source(none);
+@source "../";
+@import "tw-animate-css";
+
+/* Load rsuite inside a cascade layer so it has the lowest specificity.        */
+/* This means ALL app styles (Tailwind, our CSS vars, sidebar) automatically   */
+/* win over rsuite's resets without needing !important on every rule.          */
+@layer rsuite {
+  @import "rsuite/dist/rsuite.min.css";
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Brand colors derived from the company logo:
+ *   - Primary: warm orange (logo accent)
+ *   - Secondary: deep navy blue (logo wordmark)
+ * Tokens are exposed both as semantic shadcn variables and as
+ * raw brand variables for gradients/hero treatments.
+ */
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.875rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-navy: var(--brand-navy);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Brand */
+  --brand-orange: oklch(0.78 0.175 60); /* ~#FF9500 */
+  --brand-orange-dark: oklch(0.72 0.18 50); /* ~#FF7A00 */
+  --brand-navy: oklch(0.32 0.06 255); /* ~#1F3A5F */
+  --brand-navy-light: oklch(0.42 0.08 255); /* ~#2D5A8C */
+
+  /* Light theme — neutral surfaces, navy text, orange primary */
+  --background: oklch(0.99 0.005 80);
+  --foreground: oklch(0.22 0.04 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.04 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.04 255);
+
+  --primary: var(--brand-orange);
+  --primary-foreground: oklch(0.18 0.03 255);
+
+  --secondary: oklch(0.96 0.01 250);
+  --secondary-foreground: var(--brand-navy);
+
+  --muted: oklch(0.96 0.008 250);
+  --muted-foreground: oklch(0.5 0.03 255);
+
+  --accent: oklch(0.94 0.04 65);
+  --accent-foreground: var(--brand-navy);
+
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.91 0.012 250);
+  --input: oklch(0.91 0.012 250);
+  --ring: var(--brand-orange);
+
+  --chart-1: var(--brand-orange);
+  --chart-2: var(--brand-navy-light);
+  --chart-3: oklch(0.65 0.15 200);
+  --chart-4: oklch(0.7 0.16 145);
+  --chart-5: oklch(0.65 0.2 25);
+
+  --sidebar: var(--brand-navy);
+  --sidebar-foreground: oklch(0.97 0.005 250);
+  --sidebar-primary: var(--brand-orange);
+  --sidebar-primary-foreground: oklch(0.18 0.03 255);
+  --sidebar-accent: color-mix(
+    in oklch,
+    var(--brand-orange) 18%,
+    oklch(0.32 0.05 255)
+  );
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.4 0.05 255);
+  --sidebar-ring: var(--brand-orange);
+}
+
+.dark {
+  --background: oklch(0.18 0.025 255); /* deep navy-tinted slate */
+  --foreground: oklch(0.97 0.005 80);
+  --card: oklch(0.23 0.03 255);
+  --card-foreground: oklch(0.97 0.005 80);
+  --popover: oklch(0.23 0.03 255);
+  --popover-foreground: oklch(0.97 0.005 80);
+
+  --primary: var(--brand-orange);
+  --primary-foreground: oklch(0.18 0.03 255);
+
+  --secondary: oklch(0.28 0.04 255);
+  --secondary-foreground: oklch(0.97 0.005 80);
+
+  --muted: oklch(0.27 0.03 255);
+  --muted-foreground: oklch(0.72 0.025 250);
+
+  --accent: oklch(0.32 0.06 65);
+  --accent-foreground: oklch(0.97 0.005 80);
+
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.32 0.04 255);
+  --input: oklch(0.32 0.04 255);
+  --ring: var(--brand-orange);
+
+  --chart-1: var(--brand-orange);
+  --chart-2: oklch(0.68 0.12 220);
+  --chart-3: oklch(0.7 0.16 145);
+  --chart-4: oklch(0.65 0.2 25);
+  --chart-5: oklch(0.65 0.15 295);
+
+  --sidebar: oklch(0.14 0.025 255);
+  --sidebar-foreground: oklch(0.97 0.005 80);
+  --sidebar-primary: var(--brand-orange);
+  --sidebar-primary-foreground: oklch(0.18 0.03 255);
+  --sidebar-accent: color-mix(
+    in oklch,
+    var(--brand-orange) 15%,
+    oklch(0.22 0.04 255)
+  );
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.28 0.04 255);
+  --sidebar-ring: var(--brand-orange);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* RTL flips for icon-bound utilities */
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
+/* ── RSuite DateRangePicker — light & dark theme overrides ─────────────────── */
+/* All rules scoped to .rs-picker-wrap (trigger) or .rs-picker-wrap (dropdown) */
+/* so rsuite's global CSS never bleeds into the sidebar or other components.   */
+
+/* ── Neutralize rsuite's global element resets that bleed outside the picker ── */
+/* rsuite sets `a { color: var(--rs-text-link) }` globally — reset it back     */
+a:not(.rs-btn):not([class*="rs-"]) {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/* Map rsuite tokens to our design system — only safe neutral ones at :root    */
+:root {
+  --rs-text-primary: var(--foreground);
+  --rs-text-secondary: var(--muted-foreground);
+  --rs-body: var(--background);
+  --rs-border-primary: var(--border);
+  --rs-bg-well: var(--card);
+  --rs-bg-overlay: var(--card);
+  --rs-color-focus-ring: color-mix(in oklch, var(--primary) 25%, transparent);
+  --rs-state-focus-shadow: 0 0 0 3px
+    color-mix(in oklch, var(--primary) 25%, transparent);
+  --rs-state-focus-outline: none;
+  /* Keep rs-text-link neutral so it doesn't turn all portal text orange */
+  --rs-text-link: var(--foreground);
+}
+
+/* Picker input trigger */
+.rs-picker-wrap .rs-picker-daterange .rs-picker-toggle,
+.rs-picker-wrap .rs-picker-daterange .rs-picker-toggle:hover,
+.rs-picker-wrap .rs-picker-daterange .rs-picker-toggle:focus {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+  border-radius: var(--radius) !important;
+}
+
+.rs-picker-wrap
+  .rs-picker-daterange
+  .rs-picker-toggle
+  .rs-picker-toggle-placeholder {
+  color: var(--muted-foreground) !important;
+}
+
+.rs-picker-wrap .rs-picker-daterange .rs-picker-toggle .rs-picker-toggle-value {
+  color: var(--foreground) !important;
+}
+
+.rs-picker-wrap .rs-picker-daterange .rs-picker-toggle .rs-picker-toggle-caret,
+.rs-picker-wrap .rs-picker-daterange .rs-picker-toggle .rs-picker-toggle-clean {
+  color: var(--muted-foreground) !important;
+}
+
+/* Dropdown panel — rsuite appends this to <body> with .rs-picker-popup */
+.rs-picker-popup-daterange {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 8px 32px oklch(0 0 0 / 0.12) !important;
+  color: var(--foreground) !important;
+}
+
+/* Predefined ranges sidebar */
+.rs-picker-popup-daterange .rs-picker-daterange-predefined {
+  background-color: var(--card) !important;
+  border-inline-end: 1px solid var(--border) !important;
+}
+
+.rs-picker-popup-daterange .rs-picker-daterange-predefined .rs-btn {
+  color: var(--primary) !important;
+  background: transparent !important;
+  font-weight: 500;
+}
+
+.rs-picker-popup-daterange .rs-picker-daterange-predefined .rs-btn:hover {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 10%,
+    transparent
+  ) !important;
+  color: var(--primary) !important;
+}
+
+/* Calendar header */
+.rs-picker-popup-daterange .rs-calendar-header-title,
+.rs-picker-popup-daterange .rs-calendar-header-title:hover {
+  color: var(--foreground) !important;
+  background: transparent !important;
+}
+
+.rs-picker-popup-daterange .rs-calendar-header-backward,
+.rs-picker-popup-daterange .rs-calendar-header-forward {
+  color: var(--muted-foreground) !important;
+}
+
+.rs-picker-popup-daterange .rs-calendar-header-backward:hover,
+.rs-picker-popup-daterange .rs-calendar-header-forward:hover {
+  color: var(--foreground) !important;
+  background-color: var(--accent) !important;
+}
+
+/* Day names row */
+.rs-picker-popup-daterange
+  .rs-calendar-table-header-row
+  .rs-calendar-table-header-cell-content {
+  color: var(--muted-foreground) !important;
+}
+
+/* Day cells — explicit foreground color so rs-text-link doesn't bleed in */
+.rs-picker-popup-daterange .rs-calendar-table-cell-content {
+  color: var(--foreground) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.rs-picker-popup-daterange .rs-calendar-table-cell-content:hover {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 12%,
+    transparent
+  ) !important;
+  color: var(--foreground) !important;
+}
+
+/* Days from adjacent months */
+.rs-picker-popup-daterange
+  .rs-calendar-table-cell-un-same-month
+  .rs-calendar-table-cell-content {
+  color: var(--muted-foreground) !important;
+  opacity: 0.45;
+}
+
+/* In-range: soft primary tint, keep text readable */
+.rs-picker-popup-daterange
+  .rs-calendar-table-cell-in-range
+  .rs-calendar-table-cell-content {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 15%,
+    transparent
+  ) !important;
+  color: var(--foreground) !important;
+}
+
+.rs-picker-popup-daterange .rs-calendar-table-cell-in-range::before {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 15%,
+    transparent
+  ) !important;
+}
+
+.rs-picker-popup-daterange .rs-calendar-table-cell-selected::before {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 15%,
+    transparent
+  ) !important;
+}
+
+/* Selected start/end cells — force orange bg + white text */
+.rs-picker-popup-daterange
+  .rs-calendar-table-cell-selected
+  .rs-calendar-table-cell-content {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.rs-picker-popup-daterange
+  .rs-calendar-table-cell-selected
+  .rs-calendar-table-cell-content:hover {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  opacity: 0.9;
+}
+
+/* Today cell */
+.rs-picker-popup-daterange
+  .rs-calendar-table-cell-is-today
+  .rs-calendar-table-cell-content {
+  border: 2px solid var(--primary) !important;
+  box-shadow: none !important;
+}
+
+/* Toolbar / Submit button */
+.rs-picker-popup-daterange .rs-picker-toolbar {
+  background-color: var(--card) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+.rs-picker-popup-daterange .rs-picker-toolbar-right .rs-btn,
+.rs-picker-popup-daterange .rs-picker-toolbar-right .rs-btn-primary,
+.rs-picker-popup-daterange .rs-picker-toolbar .rs-btn-primary {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border-color: var(--primary) !important;
+  border-radius: var(--radius) !important;
+  font-weight: 600 !important;
+}
+
+.rs-picker-popup-daterange .rs-picker-toolbar-right .rs-btn:hover,
+.rs-picker-popup-daterange .rs-picker-toolbar .rs-btn-primary:hover {
+  opacity: 0.88 !important;
+}
+
+/* Date input fields header */
+.rs-picker-popup-daterange .rs-picker-daterange-header {
+  background-color: var(--card) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.rs-picker-popup-daterange .rs-picker-daterange-header-separator {
+  color: var(--muted-foreground) !important;
+}
+
+/* Active date input underline */
+.rs-picker-popup-daterange .rs-picker-daterange-header-end,
+.rs-picker-popup-daterange .rs-picker-daterange-header-start {
+  border-bottom-color: var(--border) !important;
+}
+
+.rs-picker-popup-daterange .rs-picker-daterange-header-start.active,
+.rs-picker-popup-daterange .rs-picker-daterange-header-end.active {
+  border-bottom-color: var(--primary) !important;
+}
+
+/* Dark mode */
+.dark .rs-picker-popup-daterange .rs-picker-daterange-panel,
+.dark .rs-picker-popup-daterange .rs-picker-popup {
+  background-color: var(--card) !important;
+  box-shadow: 0 8px 40px oklch(0 0 0 / 0.5) !important;
+}
+
+.dark .rs-picker-popup-daterange .rs-picker-daterange-predefined {
+  background-color: var(--card) !important;
+}
+
+.dark .rs-picker-popup-daterange .rs-calendar-table-cell-content {
+  color: var(--foreground) !important;
+}
+
+.dark
+  .rs-picker-popup-daterange
+  .rs-calendar-table-cell-un-same-month
+  .rs-calendar-table-cell-content,
+.dark
+  .rs-picker-popup-daterange
+  .rs-calendar-table-cell-disabled
+  .rs-calendar-table-cell-content {
+  color: var(--muted-foreground) !important;
+  opacity: 0.5;
+}
+
+/* Override rsuite's --rs-primary-* tokens only inside portal/picker scope */
+.rs-picker-popup-daterange,
+.rs-picker-wrap {
+  --rs-primary-500: var(--primary);
+  --rs-primary-600: var(--primary);
+  --rs-primary-700: var(--primary);
+  --rs-input-focus-border-color: var(--primary);
+  --rs-calendar-cell-selected-hover-bg: var(--primary);
+  --rs-state-focus-shadow: 0 0 0 3px
+    color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+/* Dark mode — deeper overrides since rsuite has no dark mode by default */
+.dark .rs-picker-daterange .rs-picker-toggle {
+  background-color: var(--background) !important;
+}
+
+.dark .rs-picker-daterange-panel,
+.dark .rs-picker-popup {
+  background-color: var(--card) !important;
+  box-shadow: 0 8px 40px oklch(0 0 0 / 0.5) !important;
+}
+
+.dark .rs-picker-daterange-predefined {
+  background-color: var(--card) !important;
+}
+
+.dark .rs-calendar-table-cell-content {
+  color: var(--foreground) !important;
+}
+
+.dark .rs-calendar-table-cell-un-same-month .rs-calendar-table-cell-content {
+  color: var(--muted-foreground) !important;
+}
+
+.dark .rs-calendar-table-cell-disabled .rs-calendar-table-cell-content {
+  color: var(--muted-foreground) !important;
+  opacity: 0.4;
+}
+
+/* ── RTL (Arabic) global direction ──────────────────────── */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Sidebar sub-menu: swap border and padding to right side */
+[dir="rtl"] [data-sidebar="menu-sub"] {
+  margin-inline-start: unset;
+  padding-inline-start: unset;
+  border-inline-start: none;
+  margin-inline-end: 0.5rem;
+  padding-inline-end: 0.5rem;
+  border-inline-end: 1px solid hsl(var(--sidebar-border, 215 27.9% 20%));
+}
+
+/* Sidebar group labels: always right-aligned in RTL */
+[dir="rtl"] [data-sidebar="group-label"] {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+/* Ensure sidebar header row aligns correctly */
+[dir="rtl"] [data-sidebar="header"] {
+  flex-direction: row-reverse;
+}
+
+/* ms-auto (logical margin) works in both directions natively — no override needed */
+
+/* ── Button border-radius — force design system token on all buttons ───────── */
+button,
+[role="button"],
+.btn,
+[data-slot="button"] {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Override Tailwind v4's built-in rounded-* values with design system tokens */
+.rounded-sm {
+  border-radius: var(--radius-sm) !important;
+}
+.rounded-md {
+  border-radius: var(--radius-md) !important;
+}
+.rounded-lg {
+  border-radius: var(--radius-lg) !important;
+}
+.rounded-xl {
+  border-radius: var(--radius-xl) !important;
+}
+.rounded-2xl {
+  border-radius: var(--radius-2xl) !important;
+}
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+/* ── Sidebar sub-item: polished hover + active states ─────────────────────── */
+
+/* Sub-menu container: tighter, no left border (we use border-l on items) */
+[data-sidebar="menu-sub"] {
+  border-left: none !important;
+  margin-left: 0.75rem !important;
+  padding-left: 0 !important;
+  gap: 0.125rem !important;
+}
+
+/* Sub-button base: rest state */
+[data-sidebar="menu-sub-button"] {
+  color: oklch(0.8 0.01 250) !important;
+  border-left: 2px solid transparent !important;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
+  padding-left: 0.75rem !important;
+  margin-left: 0 !important;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease !important;
+}
+
+/* Sub-button hover */
+[data-sidebar="menu-sub-button"]:hover {
+  background-color: color-mix(
+    in oklch,
+    var(--sidebar-primary) 12%,
+    transparent
+  ) !important;
+  color: oklch(0.97 0.005 80) !important;
+  border-left-color: var(--sidebar-primary) !important;
+}
+
+/* Sub-button hover icon */
+[data-sidebar="menu-sub-button"]:hover svg {
+  color: var(--sidebar-primary) !important;
+  opacity: 1 !important;
+}
+
+/* Sub-button active/selected */
+[data-sidebar="menu-sub-button"][data-active="true"] {
+  background-color: color-mix(
+    in oklch,
+    var(--sidebar-primary) 18%,
+    transparent
+  ) !important;
+  color: var(--sidebar-primary) !important;
+  border-left-color: var(--sidebar-primary) !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklch, var(--sidebar-primary) 20%, transparent) !important;
+}
+
+[data-sidebar="menu-sub-button"][data-active="true"] svg {
+  color: var(--sidebar-primary) !important;
+  opacity: 1 !important;
+}
+
+/* Top-level menu button active: orange text + subtle left glow */
+[data-sidebar="menu-button"][data-active="true"] {
+  background-color: color-mix(
+    in oklch,
+    var(--sidebar-primary) 18%,
+    transparent
+  ) !important;
+  color: var(--sidebar-primary) !important;
+  font-weight: 600 !important;
+  box-shadow: inset 3px 0 0 var(--sidebar-primary) !important;
+}
+
+[data-sidebar="menu-button"][data-active="true"] svg {
+  color: var(--sidebar-primary) !important;
+}
+
+/* RTL: flip the left-border accent to the right side */
+[dir="rtl"] [data-sidebar="menu-sub-button"],
+[dir="rtl"] [data-sidebar="menu-button"][data-active="true"] {
+  border-left: none !important;
+  border-right: 2px solid transparent !important;
+  border-radius: var(--radius-md) 0 0 var(--radius-md) !important;
+}
+
+[dir="rtl"] [data-sidebar="menu-sub-button"]:hover,
+[dir="rtl"] [data-sidebar="menu-sub-button"][data-active="true"] {
+  border-right-color: var(--sidebar-primary) !important;
+}
+
+[dir="rtl"] [data-sidebar="menu-button"][data-active="true"] {
+  border-right-color: var(--sidebar-primary) !important;
+  box-shadow: inset -3px 0 0 var(--sidebar-primary) !important;
+}
+
+[dir="rtl"] [data-sidebar="menu-sub"] {
+  margin-left: 0 !important;
+  margin-right: 0.75rem !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+}
