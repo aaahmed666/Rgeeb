@@ -231,6 +231,9 @@ export const tasksService = {
       inProgress: 0,
       completed: 0,
       overdue: 0,
+      byStatus: {},
+      byType: {},
+      byPriority: {},
     };
     const fallback: TasksResponse = {
       items: [],
@@ -264,11 +267,23 @@ export const tasksService = {
         (raw?.stats as Record<string, unknown>) ??
         (dataMeta.summary as Record<string, unknown>) ??
         {};
+      const toNumMap = (o: unknown): Record<string, number> => {
+        if (!o || typeof o !== "object") return {};
+        return Object.fromEntries(
+          Object.entries(o as Record<string, unknown>).map(([k, v]) => [
+            k,
+            num(v),
+          ])
+        );
+      };
       const summary: TaskSummary = {
         total: num(summaryRaw.total ?? total, total),
         inProgress: num(summaryRaw.in_progress ?? summaryRaw.inProgress),
         completed: num(summaryRaw.completed),
         overdue: num(summaryRaw.overdue),
+        byStatus: toNumMap(summaryRaw.by_status ?? summaryRaw.byStatus),
+        byType: toNumMap(summaryRaw.by_type ?? summaryRaw.byType),
+        byPriority: toNumMap(summaryRaw.by_priority ?? summaryRaw.byPriority),
       };
       return { items, total, page, perPage, summary };
     } catch {

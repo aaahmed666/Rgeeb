@@ -23,7 +23,7 @@ import {
   downloadTaskReport,
   type TaskReportType,
 } from "@/services/taskReportsService";
-import SharedDateRangePicker from "@/components/SharedDateRangePicker";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 
 type ReportCardDef = {
   type: TaskReportType;
@@ -190,7 +190,9 @@ export default function TaskReportsView() {
               <div className="flex-1">
                 <SharedDateRangePicker
                   value={dateRange}
-                  onChange={(val) => setDateRange(val as [Date, Date] | null)}
+                  onChange={(val) =>
+                    setDateRange(val ? (val as unknown as [Date, Date]) : null)
+                  }
                   placeholder={t(
                     "taskReports.selectDateRange",
                     "Select Date Range"

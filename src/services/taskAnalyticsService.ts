@@ -3,6 +3,7 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
+import { pickArray, str, type RawObject } from "@/lib/raw-response";
 
 export interface SlaMetrics {
   compliance: number;
@@ -198,15 +199,17 @@ export interface VerificationRecord {
   reviewedAt?: string;
 }
 
-function mapVerification(r: any): VerificationRecord {
+function mapVerification(r: RawObject): VerificationRecord {
+  const task = r.task as RawObject | undefined;
+  const reviewedBy = r.reviewed_by as RawObject | undefined;
   return {
     id: String(r.id ?? ""),
-    taskId: String(r.task_id ?? r.task?.id ?? ""),
-    taskTitle: r.task?.title ?? r.task_title,
+    taskId: String(r.task_id ?? task?.id ?? ""),
+    taskTitle: (task && str(task, "title")) ?? str(r, "task_title"),
     action: r.action === "reject" ? "reject" : "verify",
-    notes: r.notes ?? r.reason,
-    reviewedBy: r.reviewed_by?.name ?? r.reviewer_name,
-    reviewedAt: r.reviewed_at ?? r.created_at,
+    notes: str(r, "notes", "reason"),
+    reviewedBy: (reviewedBy && str(reviewedBy, "name")) ?? str(r, "reviewer_name"),
+    reviewedAt: str(r, "reviewed_at", "created_at"),
   };
 }
 
@@ -220,6 +223,5 @@ export async function rejectTask(taskId: string, notes?: string): Promise<void> 
 
 export async function fetchVerificationHistory(): Promise<VerificationRecord[]> {
   const raw = await api.get<unknown>(endpoints.taskAnalytics.verifications);
-  const list: any[] = Array.isArray(raw) ? raw : ((raw as any)?.data ?? []);
-  return list.map(mapVerification);
+  return pickArray(raw).map(mapVerification);
 }

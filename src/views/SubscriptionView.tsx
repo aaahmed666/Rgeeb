@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { DataTable } from "@/components/ui/data-table";
 import {
   Table,
   TableBody,
@@ -25,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import {
   fetchSubscription,
   fetchUsage,
@@ -48,6 +50,7 @@ function StatusPill({ status }: { status: string }) {
 export default function SubscriptionView() {
   const { t, i18n } = useTranslation();
   const isAr = i18n.dir() === "rtl";
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
 
   const sub = useQuery({ queryKey: ["subscription"], queryFn: fetchSubscription });
   const usage = useQuery({ queryKey: ["subscription-usage"], queryFn: fetchUsage });

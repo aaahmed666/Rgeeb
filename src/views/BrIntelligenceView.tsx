@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Activity,
@@ -53,149 +53,72 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-import { analyticsService, type Branch } from "@/services/analyticsService";
+import { getAuthToken } from "@/lib/api";
 import {
-  intelligenceService,
-  type AiInsight,
-  type Anomaly,
-  type BranchHealth,
-  type EfficiencyRow,
-  type HeatmapPayload,
-  type HourlyPeak,
-  type PeriodComparison,
-  type Rankings,
-  type ServiceMatrixCell,
-  type TrendForecast,
+  useBrIntelligenceData,
+  useBrIntelligenceSummary,
+  type BrIntelligenceFilters,
+} from "@/components/br-intelligence/useBrIntelligence";
+import {
+  statusTone,
+  type RangeKey,
+  rangeFor,
+} from "@/components/br-intelligence/utils";
+import type {
+  HourlyPeak,
+  EfficiencyRow,
+  HeatmapPayload,
+  TrendForecast,
+  AiInsight,
+  BranchHealth,
+  ServiceMatrixCell,
 } from "@/services/intelligenceService";
-
-type RangeKey = "7" | "14" | "30" | "custom";
-function rangeFor(k: RangeKey, customFrom?: string, customTo?: string) {
-  if (k === "custom" && customFrom && customTo) {
-    return { from: customFrom, to: customTo };
-  }
-  const to = new Date();
-  const from = new Date();
-  from.setDate(from.getDate() - (Number(k) - 1));
-  return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
-  };
-}
-
-function statusTone(s: string) {
-  if (s === "Outstanding") return "text-emerald-600 bg-emerald-50";
-  if (s === "On Target") return "text-sky-600 bg-sky-50";
-  if (s === "Needs Attention") return "text-amber-600 bg-amber-50";
-  return "text-rose-600 bg-rose-50";
-}
 
 export default function BrIntelligenceView() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
+
+  // UI state
   const [range, setRange] = useState<RangeKey>("7");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [branchId, setBranchId] = useState("all");
-  const [branches, setBranches] = useState<Branch[]>([]);
-
-  const [efficiency, setEfficiency] = useState<EfficiencyRow[]>([]);
-  const [rankings, setRankings] = useState<Rankings | null>(null);
-  const [heatmap, setHeatmap] = useState<HeatmapPayload | null>(null);
-  const [health, setHealth] = useState<BranchHealth[]>([]);
-  const [matrix, setMatrix] = useState<ServiceMatrixCell[]>([]);
-  const [insights, setInsights] = useState<AiInsight[]>([]);
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
-  const [forecast, setForecast] = useState<TrendForecast | null>(null);
-  const [hourly, setHourly] = useState<HourlyPeak[]>([]);
-  const [comparison, setComparison] = useState<PeriodComparison[]>([]);
-  const [services, setServices] = useState<string[]>(["All"]);
   const [activeService, setActiveService] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [rankTop, setRankTop] = useState<3 | 5 | 10>(3);
   const [openSection, setOpenSection] = useState<string | null>("efficiency");
 
+  // Data fetching via custom hook
+  const filters: BrIntelligenceFilters = {
+    range,
+    customFrom,
+    customTo,
+    branchId,
+    activeService,
+    rankTop,
+  };
+
+  const {
+    efficiency,
+    rankings,
+    heatmap,
+    health,
+    matrix,
+    insights,
+    anomalies,
+    forecast,
+    hourly,
+    comparison,
+    services,
+    branches,
+    loading,
+    updatedAt,
+  } = useBrIntelligenceData(filters);
+
+  const summary = useBrIntelligenceSummary(efficiency);
   const { from, to } = useMemo(
     () => rangeFor(range, customFrom, customTo),
     [range, customFrom, customTo]
   );
-  const filters = useMemo(
-    () => ({
-      dateFrom: from,
-      dateTo: to,
-      branchId: branchId === "all" ? undefined : branchId,
-    }),
-    [from, to, branchId]
-  );
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [eff, rnk, hm, hl, mx, ins, an, fc, hr, cp] = await Promise.all([
-      intelligenceService.efficiency(filters),
-      intelligenceService.rankings(filters, rankTop),
-      intelligenceService.heatmap(
-        filters,
-        activeService === "All" ? undefined : activeService
-      ),
-      intelligenceService.branchHealth(filters),
-      intelligenceService.serviceMatrix(filters),
-      intelligenceService.aiInsights(filters),
-      intelligenceService.anomalies(filters),
-      intelligenceService.forecast(filters),
-      intelligenceService.hourly(filters),
-      intelligenceService.comparison(filters),
-    ]);
-    setEfficiency(Array.isArray(eff) ? eff : []);
-    setRankings(
-      rnk && typeof rnk === "object" && !Array.isArray(rnk) ? rnk : null
-    );
-    setHeatmap(hm ?? null);
-    setHealth(Array.isArray(hl) ? hl : []);
-    setMatrix(Array.isArray(mx) ? mx : []);
-    setInsights(Array.isArray(ins) ? ins : []);
-    setAnomalies(Array.isArray(an) ? an : []);
-    setForecast(fc && typeof fc === "object" && !Array.isArray(fc) ? fc : null);
-    setHourly(Array.isArray(hr) ? hr : []);
-    setComparison(Array.isArray(cp) ? cp : []);
-    setUpdatedAt(new Date());
-    setLoading(false);
-  }, [filters, rankTop, activeService]);
-
-  useEffect(() => {
-    void analyticsService.getBranches().then(setBranches);
-    void intelligenceService.availableServices().then((data) => {
-      // API may return objects {id, name_en, name_ar} or plain strings
-      const normalized = (data as unknown[])
-        .map((s) => {
-          if (typeof s === "string") return s;
-          if (s && typeof s === "object") {
-            const o = s as Record<string, unknown>;
-            return String(o.name_en ?? o.name_ar ?? o.name ?? o.id ?? "");
-          }
-          return String(s);
-        })
-        .filter(Boolean);
-      setServices(normalized.length ? normalized : ["All"]);
-    });
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const summary = useMemo(() => {
-    const avg = efficiency.length
-      ? efficiency.reduce((a, b) => a + b.score, 0) / efficiency.length
-      : 0;
-    const outstanding = efficiency.filter(
-      (e) => e.status === "Outstanding"
-    ).length;
-    const needs = efficiency.filter(
-      (e) => e.status === "Needs Attention"
-    ).length;
-    const critical = efficiency.filter((e) => e.status === "Critical").length;
-    return { avg, outstanding, needs, critical };
-  }, [efficiency]);
 
   if (!hasPermission("analytics.read")) {
     return (
@@ -296,10 +219,7 @@ export default function BrIntelligenceView() {
             </div>
             <button
               onClick={() => {
-                const token =
-                  typeof window !== "undefined"
-                    ? window.localStorage.getItem("app.auth.token")
-                    : "";
+                const token = getAuthToken();
                 const url = `https://api.dev.rgeeb.com/api/customer/branch-intelligence/export-report?date_from=${from}&date_to=${to}&type=full&token=${token ?? ""}`;
                 window.open(url, "_blank");
               }}
@@ -1335,55 +1255,6 @@ function HourlyChart({ data }: { data: HourlyPeak[] }) {
   );
 }
 
-function ForecastChart({ forecast }: { forecast: TrendForecast | null }) {
-  if (!forecast) return <Skeleton className="h-40 w-full" />;
-  const all = forecast.points.flatMap((p) => [p.actual ?? 0, p.forecast ?? 0]);
-  const max = Math.max(1, ...all);
-  return (
-    <div className="relative h-48 w-full">
-      <svg
-        viewBox={`0 0 ${forecast.points.length * 40} 200`}
-        className="h-full w-full"
-      >
-        {/* actual */}
-        <polyline
-          fill="none"
-          stroke="hsl(220 70% 50%)"
-          strokeWidth="2"
-          points={forecast.points
-            .map((p, i) =>
-              p.actual !== undefined
-                ? `${i * 40 + 20},${200 - (p.actual / max) * 180}`
-                : ""
-            )
-            .filter(Boolean)
-            .join(" ")}
-        />
-        {/* forecast */}
-        <polyline
-          fill="none"
-          stroke="hsl(330 70% 50%)"
-          strokeWidth="2"
-          strokeDasharray="4 4"
-          points={forecast.points
-            .map((p, i) =>
-              p.forecast !== undefined
-                ? `${i * 40 + 20},${200 - (p.forecast / max) * 180}`
-                : ""
-            )
-            .filter(Boolean)
-            .join(" ")}
-        />
-      </svg>
-      <div className="absolute inset-x-0 bottom-0 flex justify-between px-1 text-[10px] text-muted-foreground">
-        {forecast.points.map((p) => (
-          <span key={p.date}>{p.date}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function RadarSection({ rows }: { rows: EfficiencyRow[] }) {
   if (rows.length === 0) return <Skeleton className="h-40 w-full" />;
   const metrics = [
@@ -1443,7 +1314,13 @@ function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
   const branchB =
     rows.find((r) => r.branch === selectedB) ?? rows[1] ?? rows[0];
 
-  const metrics = [
+  const metrics: {
+    key: "score" | "compliance" | "violation_rate" | "task_rate";
+    label: string;
+    max: number;
+    unit: string;
+    invert?: boolean;
+  }[] = [
     { key: "score", label: "Score", max: 100, unit: "" },
     { key: "compliance", label: "Compliance", max: 100, unit: "%" },
     {
@@ -1454,7 +1331,7 @@ function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
       invert: true,
     },
     { key: "task_rate", label: "Task Completion", max: 100, unit: "%" },
-  ] as const;
+  ];
 
   return (
     <div className="space-y-4">

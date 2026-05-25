@@ -9,17 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 
@@ -50,25 +64,36 @@ function listFrom(res: unknown): any[] {
 
 export default function AdminCitiesView() {
   const qc = useQueryClient();
-  const [search, setSearch] = React.useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<City | null>(null);
-  const [form, setForm] = React.useState({ name: "", name_ar: "", country_id: "" });
+  const [form, setForm] = React.useState({
+    name: "",
+    name_ar: "",
+    country_id: "",
+  });
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["admin", "cities"],
-    queryFn: async () => listFrom(await api.get(endpoints.admin.cities)).map(mapCity),
+    queryFn: async () =>
+      listFrom(await api.get(endpoints.admin.cities)).map(mapCity),
   });
 
   const filtered = React.useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = debouncedSearch.trim().toLowerCase();
     return s
       ? (q.data ?? []).filter((c) =>
           [c.name, c.nameAr, c.countryName].join(" ").toLowerCase().includes(s)
         )
       : (q.data ?? []);
-  }, [q.data, search]);
+  }, [q.data, debouncedSearch]);
 
   const saveMut = useMutation({
     mutationFn: async (data: typeof form) => {
@@ -93,8 +118,20 @@ export default function AdminCitiesView() {
     onError: () => toast.error("Delete failed"),
   });
 
-  function openCreate() { setEditing(null); setForm({ name: "", name_ar: "", country_id: "" }); setOpen(true); }
-  function openEdit(c: City) { setEditing(c); setForm({ name: c.name, name_ar: c.nameAr ?? "", country_id: c.countryId ?? "" }); setOpen(true); }
+  function openCreate() {
+    setEditing(null);
+    setForm({ name: "", name_ar: "", country_id: "" });
+    setOpen(true);
+  }
+  function openEdit(c: City) {
+    setEditing(c);
+    setForm({
+      name: c.name,
+      name_ar: c.nameAr ?? "",
+      country_id: c.countryId ?? "",
+    });
+    setOpen(true);
+  }
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -104,7 +141,10 @@ export default function AdminCitiesView() {
         onRefresh={() => q.refetch()}
         isRefreshing={q.isFetching}
         right={
-          <Button size="sm" onClick={openCreate}>
+          <Button
+            size="sm"
+            onClick={openCreate}
+          >
             <Plus className="mr-1.5 h-4 w-4" /> Add City
           </Button>
         }
@@ -117,10 +157,13 @@ export default function AdminCitiesView() {
         errorMessage="Failed to load cities"
         emptyMessage="No cities found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search cities…"
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button
+            size="sm"
+            onClick={openCreate}
+          >
             <Plus className="mr-1.5 h-4 w-4" /> Add City
           </Button>
         }
@@ -147,19 +190,25 @@ export default function AdminCitiesView() {
             render: (c) => (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => openEdit(c)}>
-                    <Pencil className="mr-2 h-4 w-4" />Edit
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => setDeleteId(c.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />Delete
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -168,28 +217,72 @@ export default function AdminCitiesView() {
         ]}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? "Edit City" : "Add City"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit City" : "Add City"}</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5"><Label>Name (EN) *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
-            <div className="grid gap-1.5"><Label>Name (AR)</Label><Input dir="rtl" value={form.name_ar} onChange={(e) => setForm((f) => ({ ...f, name_ar: e.target.value }))} /></div>
-            <div className="grid gap-1.5"><Label>Country ID</Label><Input value={form.country_id} onChange={(e) => setForm((f) => ({ ...f, country_id: e.target.value }))} placeholder="Country ID" /></div>
+            <div className="grid gap-1.5">
+              <Label>Name (EN) *</Label>
+              <Input
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Name (AR)</Label>
+              <Input
+                dir="rtl"
+                value={form.name_ar}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name_ar: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Country ID</Label>
+              <Input
+                value={form.country_id}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, country_id: e.target.value }))
+                }
+                placeholder="Country ID"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveMut.mutate(form)} disabled={saveMut.isPending || !form.name.trim()}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => saveMut.mutate(form)}
+              disabled={saveMut.isPending || !form.name.trim()}
+            >
               {saveMut.isPending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete City?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

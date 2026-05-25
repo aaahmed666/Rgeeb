@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DataTable } from "@/components/ui/data-table";
 import {
   Table,
   TableBody,
@@ -33,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import {
   escalationService,
   type EscalationLogItem,
@@ -44,6 +46,7 @@ export default function EscalationAlertsView() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const qc = useQueryClient();
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
 
   const rulesQ = useQuery({
     queryKey: ["escalation", "rules"],

@@ -5,6 +5,7 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
+import { pickArray as _pickArr, str, bool, id, type RawObject } from "@/lib/raw-response";
 
 export interface EscalationRule {
   id: string;
@@ -37,57 +38,60 @@ export interface EscalationLogItem {
   recipient?: string;
 }
 
-function pickArray(raw: unknown): any[] {
-  if (Array.isArray(raw)) return raw;
-  const r = raw as any;
-  if (Array.isArray(r?.data)) return r.data;
-  if (Array.isArray(r?.data?.data)) return r.data.data;
-  if (Array.isArray(r?.items)) return r.items;
-  if (Array.isArray(r?.results)) return r.results;
+function pickArray(raw: unknown): RawObject[] {
+  // Supplement the shared helper with the notifications-specific key.
+  if (Array.isArray(raw)) return raw as RawObject[];
+  const r = raw as RawObject | undefined;
+  if (!r) return [];
+  if (Array.isArray(r.data)) return r.data as RawObject[];
+  const nested = r.data as RawObject | undefined;
+  if (nested && Array.isArray(nested.data)) return nested.data as RawObject[];
+  if (Array.isArray(r.items)) return r.items as RawObject[];
+  if (Array.isArray(r.results)) return r.results as RawObject[];
   // /customer/task-notifications returns { notifications: [], unread_count: N }
-  if (Array.isArray(r?.notifications)) return r.notifications;
-  return [];
+  if (Array.isArray(r.notifications)) return r.notifications as RawObject[];
+  return _pickArr(raw);
 }
 
-function mapRule(r: any): EscalationRule {
-  const minutes =
-    r.trigger_minutes ?? r.triggerMinutes ?? r.minutes ?? r.delay_minutes;
+function mapRule(r: RawObject): EscalationRule {
+  const minutes = r.trigger_minutes ?? r.triggerMinutes ?? r.minutes ?? r.delay_minutes;
   const trigger =
-    r.trigger ??
-    (minutes != null ? `+${minutes} min` : (r.trigger_label ?? ""));
+    str(r, "trigger") ??
+    (minutes != null ? `+${minutes} min` : (str(r, "trigger_label") ?? ""));
   return {
-    id: String(r.id ?? r._id ?? crypto.randomUUID()),
-    level: r.level ?? r.severity ?? "L1",
-    name: r.name ?? r.title ?? r.description ?? "",
+    id: id(r),
+    level: str(r, "level", "severity") ?? "L1",
+    name: str(r, "name", "title", "description") ?? "",
     trigger,
-    action: r.action_label ?? r.actionLabel ?? r.action ?? r.action_type ?? "",
-    actionType: r.action_type ?? r.actionType,
-    active: Boolean(r.active ?? r.is_active ?? r.enabled ?? false),
+    action: str(r, "action_label", "actionLabel", "action", "action_type") ?? "",
+    actionType: str(r, "action_type", "actionType"),
+    active: bool(r, "active", "is_active", "enabled"),
   };
 }
 
-function mapNotification(n: any): NotificationItem {
+function mapNotification(n: RawObject): NotificationItem {
   return {
-    id: String(n.id ?? n._id ?? crypto.randomUUID()),
-    title: n.title ?? n.subject ?? n.message ?? "Notification",
-    body: n.body ?? n.message ?? n.description ?? "",
-    level: n.level ?? n.severity ?? n.priority,
+    id: id(n),
+    title: str(n, "title", "subject", "message") ?? "Notification",
+    body: str(n, "body", "message", "description") ?? "",
+    level: str(n, "level", "severity", "priority"),
     read: Boolean(n.read ?? n.is_read ?? n.read_at),
-    createdAt: n.created_at ?? n.createdAt ?? n.timestamp,
-    type: n.type,
+    createdAt: str(n, "created_at", "createdAt", "timestamp"),
+    type: str(n, "type"),
   };
 }
 
-function mapLog(l: any): EscalationLogItem {
+function mapLog(l: RawObject): EscalationLogItem {
+  const task = l.task as RawObject | undefined;
   return {
-    id: String(l.id ?? l._id ?? crypto.randomUUID()),
-    taskId: l.task_id ?? l.taskId,
-    taskTitle: l.task_title ?? l.taskTitle ?? l.task?.title,
-    level: l.level ?? l.severity,
-    action: l.action ?? l.action_label,
-    triggeredAt: l.triggered_at ?? l.created_at ?? l.createdAt,
-    status: l.status,
-    recipient: l.recipient ?? l.assigned_to ?? l.user,
+    id: id(l),
+    taskId: str(l, "task_id", "taskId"),
+    taskTitle: str(l, "task_title", "taskTitle") ?? (task && str(task, "title")),
+    level: str(l, "level", "severity"),
+    action: str(l, "action", "action_label"),
+    triggeredAt: str(l, "triggered_at", "created_at", "createdAt"),
+    status: str(l, "status"),
+    recipient: str(l, "recipient", "assigned_to", "user"),
   };
 }
 
@@ -109,8 +113,13 @@ export const escalationService = {
     return pickArray(r).map(mapNotification);
   },
   async unreadCount(): Promise<number> {
-    const r = await api.get<any>(endpoints.escalation.unreadCount);
-    return Number(r?.count ?? r?.data?.count ?? r?.unread ?? 0);
+    const r = await api.get<unknown>(endpoints.escalation.unreadCount);
+    if (typeof r === "object" && r !== null) {
+      const obj = r as Record<string, unknown>;
+      const nested = obj.data as Record<string, unknown> | undefined;
+      return Number(obj.count ?? nested?.count ?? obj.unread ?? 0);
+    }
+    return 0;
   },
   async log(): Promise<EscalationLogItem[]> {
     const r = await api.get<unknown>(endpoints.escalation.log);

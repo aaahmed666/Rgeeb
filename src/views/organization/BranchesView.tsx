@@ -13,7 +13,6 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  X,
   Upload,
   FileText,
 } from "lucide-react";
@@ -47,13 +46,18 @@ import {
   fetchBranches,
   updateBranch,
 } from "@/services/organizationService";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 export default function BranchesView() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Branch | null>(null);
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
 
   const {
@@ -63,11 +67,11 @@ export default function BranchesView() {
     error,
   } = useQuery({
     queryKey: ["org", "branches"],
-    queryFn: fetchBranches,
+    queryFn: () => fetchBranches(),
   });
 
   const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = debouncedSearch.trim().toLowerCase();
     if (!s) return branches;
     return branches.filter((b) =>
       [b.name, b.nameAr, b.phone, b.address]
@@ -76,7 +80,7 @@ export default function BranchesView() {
         .toLowerCase()
         .includes(s)
     );
-  }, [branches, search]);
+  }, [branches, debouncedSearch]);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteBranch(id),
@@ -123,7 +127,7 @@ export default function BranchesView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage={t("branches.empty", "No branches yet")}
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder={t("branches.searchPlaceholder", "Search branches…")}
         actions={
           <Button
@@ -266,7 +270,7 @@ export default function BranchesView() {
         title={t("branches.confirmDeleteTitle", "Delete Branch")}
         description={t(
           "branches.confirmDeleteDesc",
-          `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`
+          "Are you sure you want to delete this branch? This action cannot be undone."
         )}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}

@@ -44,6 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import {
   Role,
   createRole,
@@ -170,12 +171,16 @@ export default function RolesView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Role | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
 
   const { data: roles = [], isLoading } = useQuery({
     queryKey: ["roles"],
-    queryFn: fetchRoles,
+    queryFn: () => fetchRoles(),
   });
   const { data: allPerms = [] } = useQuery({
     queryKey: ["roles", "permissions"],
@@ -189,10 +194,10 @@ export default function RolesView() {
   );
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return roles;
     return roles.filter((r) => r.name.toLowerCase().includes(q));
-  }, [roles, search]);
+  }, [roles, debouncedSearch]);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteRole(id),
@@ -292,7 +297,7 @@ export default function RolesView() {
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t("roles.searchPlaceholder", "Search roles...")}
                 className="w-64 ps-9"
               />
@@ -394,7 +399,7 @@ export default function RolesView() {
         title={t("roles.confirmDeleteTitle", "Delete Role")}
         description={t(
           "roles.confirmDeleteDesc",
-          `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`
+          "Are you sure you want to delete this role? This action cannot be undone."
         )}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}
@@ -891,7 +896,7 @@ function RoleDialog({
                 {t("common.cancel", "Cancel")}
               </Button>
               <Button
-                disabled={selected.size === 0 || mut.isPending}
+                disabled={!name.trim() || mut.isPending}
                 onClick={handleSave}
                 className="gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:opacity-95"
               >

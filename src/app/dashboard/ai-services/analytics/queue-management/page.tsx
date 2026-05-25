@@ -1,5 +1,6 @@
 "use client";
 
+
 import AIServiceDetailView from "@/views/ai-services/AIServiceDetailView";
 import { SERVICE_MAP } from "@/views/ai-services/aiServicesData";
 

@@ -1,19 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DataTable } from "@/components/ui/data-table";
-import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader";
+import {
+  AdminPageHeader,
+  StatusPill,
+} from "@/components/admin/AdminPageHeader";
 import { fetchAdminUsers } from "@/services/adminService";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 export default function AdminClientsView() {
-  const [search, setSearch] = useState("");
-  const q = useQuery({ queryKey: ["admin", "users"], queryFn: fetchAdminUsers });
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
+  const q = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: fetchAdminUsers,
+  });
 
   const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = debouncedSearch.trim().toLowerCase();
     if (!s) return q.data ?? [];
     return (q.data ?? []).filter((u) =>
       [u.name, u.email, u.phone, u.country, u.city]
@@ -22,7 +35,7 @@ export default function AdminClientsView() {
         .toLowerCase()
         .includes(s)
     );
-  }, [q.data, search]);
+  }, [q.data, debouncedSearch]);
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -36,10 +49,12 @@ export default function AdminClientsView() {
         data={filtered}
         isLoading={q.isLoading}
         isError={q.isError}
-        errorMessage={q.error instanceof Error ? q.error.message : "Failed to load"}
+        errorMessage={
+          q.error instanceof Error ? q.error.message : "Failed to load"
+        }
         emptyMessage="No clients found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search clients…"
         columns={[
           {
@@ -48,13 +63,20 @@ export default function AdminClientsView() {
             render: (u) => (
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                  {u.avatar ? <AvatarImage src={u.avatar} alt={u.name} /> : null}
+                  {u.avatar ? (
+                    <AvatarImage
+                      src={u.avatar}
+                      alt={u.name}
+                    />
+                  ) : null}
                   <AvatarFallback>{u.name?.slice(0, 1) ?? "?"}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="font-medium">{u.name}</div>
                   {u.email ? (
-                    <div className="text-xs text-muted-foreground">{u.email}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {u.email}
+                    </div>
                   ) : null}
                 </div>
               </div>

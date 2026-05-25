@@ -1,12 +1,17 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  // Enable React strict mode
-  reactStrictMode: true,
+const BACKEND_URL = "https://api.dev.rgeeb.com";
 
-  // Environment variables exposed to the browser
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "https://api.dev.rgeeb.com/api",
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        // Proxy all /api/* requests to the backend — eliminates CORS entirely
+        // since the browser sees same-origin requests to localhost:3001/api/...
+        source: "/api/:path*",
+        destination: `${BACKEND_URL}/api/:path*`,
+      },
+    ];
   },
 };
 

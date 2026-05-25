@@ -2,6 +2,8 @@
  * Auth service – wraps the rgeeb auth endpoints.
  * Backend returns envelopes of the form { status, message, data } where
  * data carries the token on login and the created user on register.
+ *
+ * Tokens are now managed via secure httpOnly cookies set by the backend.
  */
 import { apiFetch, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
@@ -28,7 +30,7 @@ export interface AuthUserRaw {
 }
 
 export interface LoginResult {
-  token: string;
+  token: string | null;
   user: AuthUserRaw | null;
   raw: unknown;
 }
@@ -74,20 +76,18 @@ function pickUser(env: Envelope | null | undefined): AuthUserRaw | null {
 
 export async function loginRequest(
   email: string,
-  password: string
+  password: string,
+  rememberMe = false
 ): Promise<LoginResult> {
   const raw = await apiFetch<Envelope>(endpoints.auth.login, {
     method: "POST",
-    body: { email, password },
+    body: { email, password, remember_me: rememberMe },
+    // Skip global 401 redirect — the user isn't authenticated yet.
+    skipAuthRedirect: true,
   });
+  // Extract token from response envelope — supports both httpOnly cookie
+  // flows (token: null) and Bearer token flows (token: string).
   const token = pickToken(raw);
-  if (!token) {
-    throw new ApiError(
-      200,
-      raw?.message || "Login succeeded but no token was returned",
-      raw
-    );
-  }
   return { token, user: pickUser(raw), raw };
 }
 
@@ -113,6 +113,7 @@ export async function registerRequest(
   const raw = await apiFetch<Envelope>(endpoints.auth.register, {
     method: "POST",
     body: payload,
+    skipAuthRedirect: true,
   });
   const token = pickToken(raw);
   return { token: token ?? "", user: pickUser(raw), raw };
@@ -124,6 +125,7 @@ export async function sendOtpRequest(
   const raw = await apiFetch<Envelope>(endpoints.auth.sendOtp, {
     method: "POST",
     body: { email },
+    skipAuthRedirect: true,
   });
   return { message: raw?.message ?? "Verification code sent." };
 }
@@ -134,16 +136,10 @@ export async function faceLoginRequest(
   const raw = await apiFetch<Envelope>(endpoints.auth.face, {
     method: "POST",
     body: { image: imageDataUrl },
+    skipAuthRedirect: true,
   });
-  const token = pickToken(raw);
-  if (!token) {
-    throw new ApiError(
-      200,
-      raw?.message || "Face login succeeded but no token was returned",
-      raw
-    );
-  }
-  return { token, user: pickUser(raw), raw };
+  // With httpOnly cookies, the token is managed by the backend.
+  return { token: null, user: pickUser(raw), raw };
 }
 
 export async function forgotPasswordRequest(
@@ -152,6 +148,7 @@ export async function forgotPasswordRequest(
   const raw = await apiFetch<Envelope>(endpoints.auth.forgotPassword, {
     method: "POST",
     body: { email },
+    skipAuthRedirect: true,
   });
   return { message: raw?.message ?? "Password reset link sent." };
 }
@@ -169,6 +166,7 @@ export async function resetPasswordRequest(
   const raw = await apiFetch<Envelope>(endpoints.auth.resetPassword, {
     method: "POST",
     body: payload,
+    skipAuthRedirect: true,
   });
   return { message: raw?.message ?? "Password reset successful." };
 }

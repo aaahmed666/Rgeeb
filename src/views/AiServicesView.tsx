@@ -148,6 +148,43 @@ export default function AiServicesView() {
         </div>
 
         {/* Tabs */}
+        <style>{`
+          @keyframes slideUnderline {
+            from {
+              width: 0;
+              left: 0;
+            }
+            to {
+              width: 100%;
+              left: 0;
+            }
+          }
+          
+          .tab-item {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          
+          .tab-item::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: currentColor;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          
+          .tab-item.active::after {
+            width: 100%;
+          }
+          
+          .tab-item:not(.active):hover::after {
+            width: 100%;
+            opacity: 0.4;
+          }
+        `}</style>
         <div className="mt-4 flex gap-1 border-b overflow-x-auto">
           {TABS.map((t2) => (
             <button
@@ -157,10 +194,10 @@ export default function AiServicesView() {
                 setShowAll(false);
               }}
               className={cn(
-                "shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                "tab-item shrink-0 px-4 py-2.5 text-sm font-medium transition-all duration-300 ease-out",
                 tab === t2.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+                  ? "active text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               {t2.label}

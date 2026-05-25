@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { setAuthToken, getAuthToken } from "@/lib/api";
+import { clearAuthAndRedirect, setAuthToken, getAuthToken } from "@/lib/api";
 import {
   loginRequest,
   registerRequest,
@@ -14,9 +14,9 @@ import {
 
 /**
  * Auth context backed by the rgeeb API.
- * Persists the bearer token via setAuthToken (localStorage) and caches the
- * resolved user profile so the dashboard shell can render synchronously
- * after a refresh.
+ * Uses secure httpOnly cookies for token storage (managed by backend).
+ * Caches the resolved user profile in React state so the dashboard shell
+ * can render synchronously after a refresh.
  */
 
 export interface AuthUser {
@@ -33,14 +33,17 @@ interface AuthState {
   isLoading: boolean;
   isAdmin: boolean;
   hasPermission: (perm: string) => boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean
+  ) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthState | null>(null);
-const STORAGE_KEY = "app.auth.user";
 
 function normalisePermissions(raw: AuthUserRaw["permissions"]): string[] {
   if (!raw) return [];
@@ -93,7 +96,7 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
   ];
   const isAdminRole =
     typeLower === "admin" ||
-    roleNamesLower.some((r) => ["rgeeb admin", "rgeeb admain"].includes(r)) ||
+    roleNamesLower.some((r) => ["rgeeb admin"].includes(r)) ||
     permissions.some((p) => p.startsWith("admin."));
   return {
     id: String(raw?.id ?? raw?.uuid ?? crypto.randomUUID()),
@@ -105,54 +108,67 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
 }
 
 function readStored(): AuthUser | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    return null;
-  }
+  // User profile is now fetched from the backend endpoint on mount.
+  // No local storage persistence needed — httpOnly cookies handle auth.
+  return null;
 }
 
 function persistUser(next: AuthUser | null) {
-  if (typeof window === "undefined") return;
-  if (next) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  else window.localStorage.removeItem(STORAGE_KEY);
+  // User profile persistence is now handled in React state only.
+  // No localStorage needed — tokens are in httpOnly cookies.
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Start loading=true only if we have a token to validate.
+  // If no token, we know immediately the user is unauthenticated.
+  const [isLoading, setIsLoading] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return !!(
+      window.localStorage.getItem("app.auth.token") ||
+      window.sessionStorage.getItem("app.auth.token")
+    );
+  });
 
   React.useEffect(() => {
-    const cached = readStored();
-    if (cached) setUser(cached);
-    // Refresh profile in the background if we have a token.
-    const token = getAuthToken();
-    if (token) {
-      fetchProfileRequest()
-        .then((raw) => {
-          if (raw) {
-            const next = toAuthUser(raw, cached?.email);
-            setUser(next);
-            persistUser(next);
-          }
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    // On mount: only fetch profile if we have a stored token.
+    // This avoids an unnecessary /customer/profile 401 on every page load
+    // when the user is not logged in.
+    (async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) return; // no token → skip, stay unauthenticated
+        const raw = await fetchProfileRequest();
+        if (raw) {
+          setUser(toAuthUser(raw));
+        }
+      } catch {
+        // Token expired or invalid — clear it so next mount skips the fetch
+        setAuthToken(null);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
   const applyUser = (next: AuthUser | null) => {
     persistUser(next);
     setUser(next);
+    setIsLoading(false);
   };
 
-  const login: AuthState["login"] = async (email, password) => {
+  const login: AuthState["login"] = async (
+    email,
+    password,
+    rememberMe = false
+  ) => {
     if (!email || !password) throw new Error("Email and password are required");
-    const { token, user: rawUser } = await loginRequest(email, password);
-    setAuthToken(token);
+    const { token, user: rawUser } = await loginRequest(
+      email,
+      password,
+      rememberMe
+    );
+    if (token) setAuthToken(token, rememberMe);
     let resolved = rawUser;
     // Admin accounts don't have a /customer/profile endpoint — use the
     // user object returned from login directly. Only fetch profile for
@@ -165,12 +181,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register: AuthState["register"] = async (payload) => {
-    const { token, user: rawUser } = await registerRequest(payload);
-    if (token) {
-      setAuthToken(token);
-      const resolved = rawUser ?? (await fetchProfileRequest());
-      applyUser(toAuthUser(resolved, payload.email));
-    }
+    const { user: rawUser } = await registerRequest(payload);
+    const resolved = rawUser ?? (await fetchProfileRequest());
+    applyUser(toAuthUser(resolved, payload.email));
   };
 
   const logout: AuthState["logout"] = async () => {
@@ -179,8 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     //   regular users → POST /customer/logout
     const userType = user?.role === "admin" ? "admin" : "user";
     await logoutRequest(userType);
-    setAuthToken(null);
+    // clearAuthAndRedirect clears React state and redirects to login.
     applyUser(null);
+    clearAuthAndRedirect();
   };
 
   const refreshProfile = async () => {

@@ -559,19 +559,19 @@ function KanbanPageRoute() {
   // Lookups (loaded once, used by form)
   const { data: branches = [] } = useQuery({
     queryKey: ["lookup", "branches"],
-    queryFn: tasksService.listBranches,
+    queryFn: () => tasksService.listBranches(),
   });
   const { data: employees = [] } = useQuery({
     queryKey: ["lookup", "employees"],
-    queryFn: tasksService.listEmployees,
+    queryFn: () => tasksService.listEmployees(),
   });
   const { data: departments = [] } = useQuery({
     queryKey: ["lookup", "departments"],
-    queryFn: tasksService.listDepartments,
+    queryFn: () => tasksService.listDepartments(),
   });
   const { data: projects = [] } = useQuery({
     queryKey: ["lookup", "projects"],
-    queryFn: tasksService.listProjects,
+    queryFn: () => tasksService.listProjects(),
   });
 
   const pages = q.data?.pages ?? [];
@@ -602,7 +602,8 @@ function KanbanPageRoute() {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [q.hasNextPage, q.isFetchingNextPage, q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.hasNextPage, q.isFetchingNextPage]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["kanban"] });
 
@@ -871,7 +872,7 @@ function KanbanPageRoute() {
           mode="edit"
           initial={editTask}
           {...sharedFormProps}
-          onSubmit={(p) => updateM.mutate({ ...p, id: editTask.id })}
+          onSubmit={(p) => updateM.mutate(p as TaskPayload & { id: string })}
           onClose={() => setEditTask(null)}
           isSubmitting={updateM.isPending}
         />

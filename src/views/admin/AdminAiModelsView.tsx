@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Plus, Loader2, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,7 +203,13 @@ export default function AdminAiModelsView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminAiModel | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminAiModel | null>(null);
 
   const {
@@ -216,7 +223,7 @@ export default function AdminAiModelsView() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return models;
     return models.filter((m) =>
       [m.name, m.version, m.modelPath, m.services]
@@ -225,7 +232,7 @@ export default function AdminAiModelsView() {
         .toLowerCase()
         .includes(q)
     );
-  }, [models, search]);
+  }, [models, debouncedSearch]);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAiModel(id),
@@ -267,7 +274,7 @@ export default function AdminAiModelsView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage="No AI models found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search AI models…"
         columns={[
           {
@@ -353,7 +360,10 @@ export default function AdminAiModelsView() {
         description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={() => { if (deleteTarget) delMut.mutate(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={() => {
+          if (deleteTarget) delMut.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

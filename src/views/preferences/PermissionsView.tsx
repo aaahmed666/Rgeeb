@@ -39,6 +39,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { fetchAllPermissions, fetchRoles } from "@/services/rolesService";
 import type { Permission, Role } from "@/services/rolesService";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -437,6 +438,7 @@ function RolePermissionMatrix({
 export default function PermissionsView() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
+  const [flatSearch, setFlatSearch] = useState("");
 
   const { data: permissions = [], isLoading: loadingPerms } = useQuery({
     queryKey: ["roles", "permissions"],
@@ -445,7 +447,7 @@ export default function PermissionsView() {
 
   const { data: roles = [], isLoading: loadingRoles } = useQuery({
     queryKey: ["roles"],
-    queryFn: fetchRoles,
+    queryFn: () => fetchRoles(),
   });
 
   const grouped = useMemo(() => {
@@ -612,8 +614,8 @@ export default function PermissionsView() {
           <PermissionsTable
             permissions={permissions}
             roles={roles}
-            search={search}
-            onSearchChange={setSearch}
+            search={flatSearch}
+            onSearchChange={setFlatSearch}
           />
         </TabsContent>
 

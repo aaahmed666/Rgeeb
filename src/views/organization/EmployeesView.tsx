@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import {
   Employee,
   EmployeeInput,
@@ -143,7 +144,11 @@ export default function EmployeesView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
   const {
@@ -153,11 +158,11 @@ export default function EmployeesView() {
     error,
   } = useQuery({
     queryKey: ["org", "employees"],
-    queryFn: fetchEmployees,
+    queryFn: () => fetchEmployees(),
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return employees;
     return employees.filter((e) =>
       [e.name, e.email, e.phone, e.branchName, e.departmentName]
@@ -166,7 +171,7 @@ export default function EmployeesView() {
         .toLowerCase()
         .includes(q)
     );
-  }, [employees, search]);
+  }, [employees, debouncedSearch]);
 
   const total = employees.length;
   const active = employees.filter((e) => e.active).length;
@@ -231,7 +236,7 @@ export default function EmployeesView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage={t("employees.empty", "No employees found")}
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder={t(
           "employees.searchPlaceholder",
           "Search employees..."
@@ -380,7 +385,7 @@ export default function EmployeesView() {
         title={t("employees.confirmDeleteTitle", "Delete Employee")}
         description={t(
           "employees.confirmDeleteDesc",
-          `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`
+          "Are you sure you want to delete this employee? This action cannot be undone."
         )}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}
@@ -455,17 +460,17 @@ function EmployeeDrawer({
 
   const { data: branches = [] } = useQuery({
     queryKey: ["org", "branches"],
-    queryFn: fetchBranches,
+    queryFn: () => fetchBranches(),
     enabled: open,
   });
   const { data: departments = [] } = useQuery({
     queryKey: ["org", "departments"],
-    queryFn: fetchDepartments,
+    queryFn: () => fetchDepartments(),
     enabled: open,
   });
   const { data: roles = [] } = useQuery({
     queryKey: ["roles"],
-    queryFn: fetchRoles,
+    queryFn: () => fetchRoles(),
     enabled: open,
   });
 
@@ -480,11 +485,11 @@ function EmployeeDrawer({
         password: "",
         branch_id: employee?.branchId ?? "",
         department_id: employee?.departmentId ?? "",
-        role_id: "",
+        role_id: employee?.roleId ?? "",
         active: employee?.active ?? true,
-        is_main_admin: false,
-        national_id: "",
-        employee_code: "",
+        is_main_admin: employee?.isMainAdmin ?? false,
+        national_id: employee?.nationalId ?? "",
+        employee_code: employee?.employeeCode ?? "",
         certificate_number: "",
         certificate_end_date: "",
         certificate_image: null,

@@ -3,18 +3,7 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-
-function s(v: unknown): string | undefined {
-  return typeof v === "string" && v ? v : typeof v === "number" ? String(v) : undefined;
-}
-function listFrom(res: unknown): Record<string, unknown>[] {
-  if (Array.isArray(res)) return res as Record<string, unknown>[];
-  const d = (res as { data?: unknown })?.data;
-  if (Array.isArray(d)) return d as Record<string, unknown>[];
-  const nested = (d as { data?: unknown })?.data;
-  if (Array.isArray(nested)) return nested as Record<string, unknown>[];
-  return [];
-}
+import { pickArray, pickObject, str, num, bool, type RawObject } from "@/lib/raw-response";
 
 export interface AttendanceRecord {
   id: string;
@@ -38,22 +27,23 @@ export interface AttendanceDashboard {
   lateToday: number;
   avgDuration: number;
   recentRecords: AttendanceRecord[];
-  raw: unknown;
 }
 
-function mapAttendance(r: Record<string, unknown>): AttendanceRecord {
+function mapAttendance(r: RawObject): AttendanceRecord {
+  const employee = r.employee as RawObject | undefined;
+  const branch = r.branch as RawObject | undefined;
   return {
     id: String(r.id ?? ""),
-    employeeId: s(r.employee_id) ?? s((r.employee as any)?.id),
-    employeeName: s((r.employee as any)?.name) ?? s(r.employee_name) ?? s(r.name),
-    branchId: s(r.branch_id) ?? s((r.branch as any)?.id),
-    branchName: s((r.branch as any)?.name) ?? s(r.branch_name),
-    checkIn: s(r.check_in ?? r.checked_in_at),
-    checkOut: s(r.check_out ?? r.checked_out_at),
-    duration: typeof r.duration === "number" ? r.duration : undefined,
-    status: s(r.status),
-    date: s(r.date),
-    notes: s(r.notes),
+    employeeId: str(r, "employee_id") ?? (employee && str(employee, "id")),
+    employeeName: (employee && str(employee, "name")) ?? str(r, "employee_name", "name"),
+    branchId: str(r, "branch_id") ?? (branch && str(branch, "id")),
+    branchName: (branch && str(branch, "name")) ?? str(r, "branch_name"),
+    checkIn: str(r, "check_in", "checked_in_at"),
+    checkOut: str(r, "check_out", "checked_out_at"),
+    duration: num(r, "duration"),
+    status: str(r, "status"),
+    date: str(r, "date"),
+    notes: str(r, "notes"),
     faceVerified: typeof r.face_verified === "boolean" ? r.face_verified : undefined,
   };
 }
@@ -68,25 +58,30 @@ export interface AttendanceFilters {
   per_page?: number;
 }
 
-export async function fetchAttendances(filters?: AttendanceFilters): Promise<AttendanceRecord[]> {
-  const raw = await api.get<unknown>(endpoints.attendance.list, { query: filters as any });
-  return listFrom(raw).map(mapAttendance);
+export async function fetchAttendances(
+  filters?: AttendanceFilters,
+): Promise<AttendanceRecord[]> {
+  const raw = await api.get<unknown>(endpoints.attendance.list, {
+    query: filters as Record<string, string | number | boolean | undefined | null>,
+  });
+  return pickArray(raw).map(mapAttendance);
 }
 
 export async function fetchAttendanceDashboard(params?: {
   branch_id?: string;
   date?: string;
 }): Promise<AttendanceDashboard> {
-  const raw = await api.get<unknown>(endpoints.attendance.dashboard, { query: params as any });
-  const d = (raw as any)?.data ?? raw ?? {};
+  const raw = await api.get<unknown>(endpoints.attendance.dashboard, {
+    query: params as Record<string, string | undefined>,
+  });
+  const d = pickObject(raw);
   return {
-    totalEmployees: Number(d.total_employees ?? d.total ?? 0),
-    presentToday: Number(d.present ?? d.present_today ?? 0),
-    absentToday: Number(d.absent ?? d.absent_today ?? 0),
-    lateToday: Number(d.late ?? d.late_today ?? 0),
-    avgDuration: Number(d.avg_duration ?? 0),
-    recentRecords: listFrom(d.recent ?? d.records ?? []).map(mapAttendance),
-    raw: d,
+    totalEmployees: num(d, "total_employees", "total") ?? 0,
+    presentToday: num(d, "present", "present_today") ?? 0,
+    absentToday: num(d, "absent", "absent_today") ?? 0,
+    lateToday: num(d, "late", "late_today") ?? 0,
+    avgDuration: num(d, "avg_duration") ?? 0,
+    recentRecords: pickArray(d.recent ?? d.records ?? []).map(mapAttendance),
   };
 }
 
@@ -97,8 +92,7 @@ export async function checkIn(data: {
   notes?: string;
 }): Promise<AttendanceRecord> {
   const raw = await api.post<unknown>(endpoints.attendance.checkIn, data);
-  const r = ((raw as any)?.data ?? raw) as Record<string, unknown>;
-  return mapAttendance(r);
+  return mapAttendance(pickObject(raw));
 }
 
 export async function checkOut(data: {
@@ -107,6 +101,5 @@ export async function checkOut(data: {
   notes?: string;
 }): Promise<AttendanceRecord> {
   const raw = await api.post<unknown>(endpoints.attendance.checkOut, data);
-  const r = ((raw as any)?.data ?? raw) as Record<string, unknown>;
-  return mapAttendance(r);
+  return mapAttendance(pickObject(raw));
 }

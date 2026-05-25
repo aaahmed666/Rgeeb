@@ -57,6 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import {
   fetchReportTemplates,
@@ -316,6 +317,7 @@ function ScheduleDialog({
 export default function ReportCenterView() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
 
   const [dateRange, setDateRange] = useState<DateRange | null>([
     weekAgo,

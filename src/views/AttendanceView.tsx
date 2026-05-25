@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable } from "@/components/ui/data-table";
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 import {
   fetchAttendances,
@@ -38,7 +40,7 @@ const PER_PAGE = 15;
 
 export default function AttendanceView() {
   const { hasPermission } = useAuth();
-  const [search, setSearch] = React.useState("");
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
   const [page, setPage] = React.useState(1);
   const [dateFrom, setDateFrom] = React.useState("");
   const [dateTo, setDateTo] = React.useState("");
@@ -58,7 +60,7 @@ export default function AttendanceView() {
 
   const records = listQ.data ?? [];
   const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return records;
     return records.filter((r) =>
       [r.employeeName, r.branchName, r.status, r.date]
@@ -67,7 +69,7 @@ export default function AttendanceView() {
         .toLowerCase()
         .includes(q)
     );
-  }, [records, search]);
+  }, [records, debouncedSearch]);
 
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
@@ -206,7 +208,7 @@ export default function AttendanceView() {
                 placeholder="Search employee, branch..."
                 value={search}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  handleSearchChange(e.target.value);
                   setPage(1);
                 }}
               />

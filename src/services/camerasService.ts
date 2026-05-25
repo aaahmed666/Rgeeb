@@ -3,24 +3,7 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-
-function s(v: unknown): string | undefined {
-  return typeof v === "string" && v ? v : typeof v === "number" ? String(v) : undefined;
-}
-function b(v: unknown): boolean {
-  if (typeof v === "boolean") return v;
-  if (typeof v === "number") return v !== 0;
-  if (typeof v === "string") return v === "1" || v.toLowerCase() === "true" || v.toLowerCase() === "active";
-  return false;
-}
-function listFrom(res: unknown): Record<string, unknown>[] {
-  if (Array.isArray(res)) return res as Record<string, unknown>[];
-  const d = (res as { data?: unknown })?.data;
-  if (Array.isArray(d)) return d as Record<string, unknown>[];
-  const nested = (d as { data?: unknown })?.data;
-  if (Array.isArray(nested)) return nested as Record<string, unknown>[];
-  return [];
-}
+import { pickArray, pickObject, str, bool, type RawObject } from "@/lib/raw-response";
 
 export interface Camera {
   id: string;
@@ -48,52 +31,53 @@ export interface CameraInput {
   active?: boolean;
 }
 
-function mapCamera(r: Record<string, unknown>): Camera {
+function mapCamera(r: RawObject): Camera {
+  const branch = r.branch as RawObject | undefined;
   return {
     id: String(r.id ?? ""),
-    name: s(r.name) ?? s(r.label) ?? "Camera",
-    streamUrl: s(r.stream_url) ?? s(r.rtsp_url) ?? s(r.url),
-    location: s(r.location) ?? s(r.address),
-    branchId: s(r.branch_id) ?? s((r.branch as any)?.id),
-    branchName: s((r.branch as any)?.name) ?? s(r.branch_name),
-    status: s(r.status),
-    active: b(r.is_active ?? r.active ?? r.status),
-    isOnline: b(r.is_online ?? r.online),
-    lastSeen: s(r.last_seen ?? r.last_heartbeat),
-    ipAddress: s(r.ip_address ?? r.ip),
-    model: s(r.model ?? r.camera_model),
-    createdAt: s(r.created_at),
+    name: str(r, "name", "label") ?? "Camera",
+    streamUrl: str(r, "stream_url", "rtsp_url", "url"),
+    location: str(r, "location", "address"),
+    branchId: str(r, "branch_id") ?? (branch && str(branch, "id")),
+    branchName: (branch && str(branch, "name")) ?? str(r, "branch_name"),
+    status: str(r, "status"),
+    active: bool(r, "is_active", "active") || str(r, "status") === "active",
+    isOnline: bool(r, "is_online", "online"),
+    lastSeen: str(r, "last_seen", "last_heartbeat"),
+    ipAddress: str(r, "ip_address", "ip"),
+    model: str(r, "model", "camera_model"),
+    createdAt: str(r, "created_at"),
   };
 }
 
 export async function fetchCameras(): Promise<Camera[]> {
   const raw = await api.get<unknown>(endpoints.cameras.list);
-  return listFrom(raw).map(mapCamera);
+  return pickArray(raw).map(mapCamera);
 }
 
-export async function fetchCameraById(id: string): Promise<Camera> {
-  const raw = await api.get<unknown>(endpoints.cameras.single, { query: { id } });
-  const r = ((raw as any)?.data ?? raw) as Record<string, unknown>;
-  return mapCamera(r);
+export async function fetchCameraById(cameraId: string): Promise<Camera> {
+  const raw = await api.get<unknown>(endpoints.cameras.single, { query: { id: cameraId } });
+  return mapCamera(pickObject(raw));
 }
 
 export async function checkCamerasOnline(): Promise<Record<string, boolean>> {
   const raw = await api.post<unknown>(endpoints.cameras.checkOnline);
-  return (raw as any) ?? {};
+  return (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, boolean>;
 }
 
 export async function createCamera(input: CameraInput): Promise<Camera> {
   const raw = await api.post<unknown>(endpoints.cameras.create, input);
-  const r = ((raw as any)?.data ?? raw) as Record<string, unknown>;
-  return mapCamera(r);
+  return mapCamera(pickObject(raw));
 }
 
-export async function updateCamera(id: string, input: Partial<CameraInput>): Promise<Camera> {
-  const raw = await api.post<unknown>(endpoints.cameras.update, { id, ...input });
-  const r = ((raw as any)?.data ?? raw) as Record<string, unknown>;
-  return mapCamera(r);
+export async function updateCamera(
+  cameraId: string,
+  input: Partial<CameraInput>,
+): Promise<Camera> {
+  const raw = await api.post<unknown>(endpoints.cameras.update, { id: cameraId, ...input });
+  return mapCamera(pickObject(raw));
 }
 
-export async function deleteCamera(id: string): Promise<void> {
-  await api.post(endpoints.cameras.delete, { id });
+export async function deleteCamera(cameraId: string): Promise<void> {
+  await api.post(endpoints.cameras.delete, { id: cameraId });
 }

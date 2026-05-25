@@ -53,6 +53,7 @@ import {
   updateAdminUser,
   deleteAdminUser,
 } from "@/services/adminService";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -269,7 +270,13 @@ export default function AdminUsersView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
   const {
@@ -283,7 +290,7 @@ export default function AdminUsersView() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) =>
       [u.name, u.email, u.phone, u.country, u.city]
@@ -383,7 +390,7 @@ export default function AdminUsersView() {
         }
         emptyMessage={t("users.noResults", "No users found")}
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder={t("users.searchPlaceholder", "Search users…")}
         actions={
           <Button
@@ -486,10 +493,16 @@ export default function AdminUsersView() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title={t("users.confirmDeleteTitle", "Delete User")}
-        description={t("users.confirmDeleteDesc", `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`)}
+        description={t(
+          "users.confirmDeleteDesc",
+          `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`
+        )}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}
-        onConfirm={() => { if (deleteTarget) delMut.mutate(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={() => {
+          if (deleteTarget) delMut.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

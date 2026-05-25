@@ -47,6 +47,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { DataTable } from "@/components/ui/data-table";
 import { fetchAiServices } from "@/services/taskRulesService";
 import {
   createTaskRule,
@@ -62,15 +64,20 @@ import {
 
 const PRIORITY_TONE: Record<RulePriority, string> = {
   low: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50",
-  medium: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50",
+  medium:
+    "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50",
   high: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/50",
-  critical: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/50",
+  critical:
+    "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/50",
 };
 
 const TASK_TYPE_TONE: Record<string, string> = {
-  ai_generated: "border-cyan-200 text-cyan-700 dark:border-cyan-900/50 dark:text-cyan-300",
-  violation_response: "border-red-200 text-red-700 dark:border-red-900/50 dark:text-red-300",
-  manual: "border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-300",
+  ai_generated:
+    "border-cyan-200 text-cyan-700 dark:border-cyan-900/50 dark:text-cyan-300",
+  violation_response:
+    "border-red-200 text-red-700 dark:border-red-900/50 dark:text-red-300",
+  manual:
+    "border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-300",
 };
 
 export default function AiTaskRulesView() {
@@ -78,13 +85,33 @@ export default function AiTaskRulesView() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<TaskRule | "new" | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRule | null>(null);
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
 
-  const rulesQ = useQuery({ queryKey: ["task-rules"], queryFn: fetchTaskRules });
-  const statsQ = useQuery({ queryKey: ["task-rules-stats"], queryFn: fetchTaskRuleStats });
-  const servicesQ = useQuery({ queryKey: ["ai-services"], queryFn: fetchAiServices });
+  const rulesQ = useQuery({
+    queryKey: ["task-rules"],
+    queryFn: fetchTaskRules,
+  });
+  const statsQ = useQuery({
+    queryKey: ["task-rules-stats"],
+    queryFn: fetchTaskRuleStats,
+  });
+  const servicesQ = useQuery({
+    queryKey: ["ai-services"],
+    queryFn: fetchAiServices,
+  });
 
   const rules = rulesQ.data ?? [];
   const stats = statsQ.data;
+
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    if (!q) return rules;
+    return rules.filter((r) => r.serviceName.toLowerCase().includes(q));
+  }, [rules, debouncedSearch]);
 
   const toggle = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
@@ -117,7 +144,7 @@ export default function AiTaskRulesView() {
           <p className="text-sm text-muted-foreground">
             {t(
               "rules.subtitle",
-              "Configure which AI detections automatically create tasks. Each rule maps a service to task creation settings.",
+              "Configure which AI detections automatically create tasks. Each rule maps a service to task creation settings."
             )}
           </p>
         </div>
@@ -176,28 +203,42 @@ export default function AiTaskRulesView() {
                   <TableRow className="text-xs uppercase tracking-wider text-muted-foreground">
                     <TableHead>{t("rules.col.enabled", "Enabled")}</TableHead>
                     <TableHead>{t("rules.col.service", "Service")}</TableHead>
-                    <TableHead>{t("rules.col.taskType", "Task Type")}</TableHead>
+                    <TableHead>
+                      {t("rules.col.taskType", "Task Type")}
+                    </TableHead>
                     <TableHead>{t("rules.col.priority", "Priority")}</TableHead>
                     <TableHead>{t("rules.col.sla", "SLA (min)")}</TableHead>
                     <TableHead>{t("rules.col.dedup", "Dedup (min)")}</TableHead>
-                    <TableHead>{t("rules.col.autoAssign", "Auto-Assign")}</TableHead>
-                    <TableHead className="text-end">{t("rules.col.actions", "Actions")}</TableHead>
+                    <TableHead>
+                      {t("rules.col.autoAssign", "Auto-Assign")}
+                    </TableHead>
+                    <TableHead className="text-end">
+                      {t("rules.col.actions", "Actions")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rules.length === 0 ? (
+                  {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                      <TableCell
+                        colSpan={8}
+                        className="py-12 text-center text-sm text-muted-foreground"
+                      >
                         {t("rules.empty", "No rules yet")}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rules.map((r) => (
-                      <TableRow key={r.id} className="hover:bg-muted/40">
+                    filtered.map((r) => (
+                      <TableRow
+                        key={r.id}
+                        className="hover:bg-muted/40"
+                      >
                         <TableCell>
                           <Switch
                             checked={r.enabled}
-                            onCheckedChange={(v) => toggle.mutate({ id: r.id, enabled: v })}
+                            onCheckedChange={(v) =>
+                              toggle.mutate({ id: r.id, enabled: v })
+                            }
                           />
                         </TableCell>
                         <TableCell>
@@ -211,7 +252,8 @@ export default function AiTaskRulesView() {
                             variant="outline"
                             className={cn(
                               "rounded-full font-mono text-xs",
-                              TASK_TYPE_TONE[r.taskType] ?? TASK_TYPE_TONE.manual,
+                              TASK_TYPE_TONE[r.taskType] ??
+                                TASK_TYPE_TONE.manual
                             )}
                           >
                             {r.taskType}
@@ -220,13 +262,20 @@ export default function AiTaskRulesView() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={cn("rounded-full capitalize", PRIORITY_TONE[r.priority])}
+                            className={cn(
+                              "rounded-full capitalize",
+                              PRIORITY_TONE[r.priority]
+                            )}
                           >
                             {r.priority}
                           </Badge>
                         </TableCell>
-                        <TableCell className="tabular-nums">{r.slaMinutes} min</TableCell>
-                        <TableCell className="tabular-nums">{r.dedupMinutes} min</TableCell>
+                        <TableCell className="tabular-nums">
+                          {r.slaMinutes} min
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {r.dedupMinutes} min
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -234,10 +283,12 @@ export default function AiTaskRulesView() {
                               "rounded-full",
                               r.autoAssign
                                 ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-300"
-                                : "border-slate-200 text-slate-500 dark:border-slate-700",
+                                : "border-slate-200 text-slate-500 dark:border-slate-700"
                             )}
                           >
-                            {r.autoAssign ? t("common.yes", "Yes") : t("common.no", "No")}
+                            {r.autoAssign
+                              ? t("common.yes", "Yes")
+                              : t("common.no", "No")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-end">
@@ -276,11 +327,13 @@ export default function AiTaskRulesView() {
         <CardContent className="flex gap-3 p-4 sm:p-5">
           <Info className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <div>
-            <div className="text-sm font-semibold">{t("rules.howTitle", "How it works")}</div>
+            <div className="text-sm font-semibold">
+              {t("rules.howTitle", "How it works")}
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {t(
                 "rules.howDesc",
-                "When an AI worker sends a detection event, the system checks if a rule exists for that service. If enabled, a task is automatically created with the configured priority, SLA deadline, and assignee. Deduplication prevents duplicate tasks within the configured time window.",
+                "When an AI worker sends a detection event, the system checks if a rule exists for that service. If enabled, a task is automatically created with the configured priority, SLA deadline, and assignee. Deduplication prevents duplicate tasks within the configured time window."
               )}
             </p>
           </div>
@@ -298,10 +351,16 @@ export default function AiTaskRulesView() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title={t("rules.confirmDeleteTitle", "Delete Rule")}
-        description={t("rules.confirmDeleteDesc", "Are you sure you want to delete this rule? This action cannot be undone.")}
+        description={t(
+          "rules.confirmDeleteDesc",
+          "Are you sure you want to delete this rule? This action cannot be undone."
+        )}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}
-        onConfirm={() => { if (deleteTarget) del.mutate(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={() => {
+          if (deleteTarget) del.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );
@@ -321,7 +380,12 @@ function StatCard({
   return (
     <Card className="border-border/60 shadow-sm">
       <CardContent className="flex items-center gap-3 p-4">
-        <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", tone)}>
+        <div
+          className={cn(
+            "flex h-11 w-11 items-center justify-center rounded-xl",
+            tone
+          )}
+        >
           <Icon className="h-5 w-5" />
         </div>
         <div>
@@ -355,16 +419,25 @@ function RuleDialog({
   }));
 
   const mut = useMutation({
-    mutationFn: () => (rule ? updateTaskRule(rule.id, form) : createTaskRule(form)),
+    mutationFn: () =>
+      rule ? updateTaskRule(rule.id, form) : createTaskRule(form),
     onSuccess: () => {
-      toast.success(rule ? t("rules.updated", "Rule updated") : t("rules.created", "Rule created"));
+      toast.success(
+        rule
+          ? t("rules.updated", "Rule updated")
+          : t("rules.created", "Rule created")
+      );
       qc.invalidateQueries({ queryKey: ["task-rules"] });
       onClose();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const taskTypes: RuleTaskType[] = ["ai_generated", "violation_response", "manual"];
+  const taskTypes: RuleTaskType[] = [
+    "ai_generated",
+    "violation_response",
+    "manual",
+  ];
   const priorities: RulePriority[] = ["low", "medium", "high", "critical"];
 
   const serviceOptions = useMemo(() => {
@@ -376,11 +449,16 @@ function RuleDialog({
   }, [services, rule]);
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog
+      open
+      onOpenChange={onClose}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {rule ? t("rules.editTitle", "Edit Rule") : t("rules.newTitle", "New Rule")}
+            {rule
+              ? t("rules.editTitle", "Edit Rule")
+              : t("rules.newTitle", "New Rule")}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
@@ -390,10 +468,19 @@ function RuleDialog({
               value={form.service_id}
               onValueChange={(v) => setForm({ ...form, service_id: v })}
             >
-              <SelectTrigger><SelectValue placeholder={t("rules.pickService", "Pick a service")} /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={t("rules.pickService", "Pick a service")}
+                />
+              </SelectTrigger>
               <SelectContent>
                 {serviceOptions.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  <SelectItem
+                    key={s.id}
+                    value={s.id}
+                  >
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -404,12 +491,21 @@ function RuleDialog({
               <Label>{t("rules.col.taskType", "Task Type")}</Label>
               <Select
                 value={form.task_type}
-                onValueChange={(v) => setForm({ ...form, task_type: v as RuleTaskType })}
+                onValueChange={(v) =>
+                  setForm({ ...form, task_type: v as RuleTaskType })
+                }
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {taskTypes.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem
+                      key={p}
+                      value={p}
+                    >
+                      {p}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -418,12 +514,22 @@ function RuleDialog({
               <Label>{t("rules.col.priority", "Priority")}</Label>
               <Select
                 value={form.priority}
-                onValueChange={(v) => setForm({ ...form, priority: v as RulePriority })}
+                onValueChange={(v) =>
+                  setForm({ ...form, priority: v as RulePriority })
+                }
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {priorities.map((p) => (
-                    <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
+                    <SelectItem
+                      key={p}
+                      value={p}
+                      className="capitalize"
+                    >
+                      {p}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -437,7 +543,9 @@ function RuleDialog({
                 type="number"
                 min={0}
                 value={form.sla_minutes}
-                onChange={(e) => setForm({ ...form, sla_minutes: Number(e.target.value) })}
+                onChange={(e) =>
+                  setForm({ ...form, sla_minutes: Number(e.target.value) })
+                }
               />
             </div>
             <div className="space-y-1.5">
@@ -446,16 +554,23 @@ function RuleDialog({
                 type="number"
                 min={0}
                 value={form.dedup_minutes}
-                onChange={(e) => setForm({ ...form, dedup_minutes: Number(e.target.value) })}
+                onChange={(e) =>
+                  setForm({ ...form, dedup_minutes: Number(e.target.value) })
+                }
               />
             </div>
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
-              <Label className="text-sm">{t("rules.col.autoAssign", "Auto-Assign")}</Label>
+              <Label className="text-sm">
+                {t("rules.col.autoAssign", "Auto-Assign")}
+              </Label>
               <p className="text-xs text-muted-foreground">
-                {t("rules.autoAssignHint", "Assign to the best available worker")}
+                {t(
+                  "rules.autoAssignHint",
+                  "Assign to the best available worker"
+                )}
               </p>
             </div>
             <Switch
@@ -465,7 +580,9 @@ function RuleDialog({
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
-            <Label className="text-sm">{t("rules.col.enabled", "Enabled")}</Label>
+            <Label className="text-sm">
+              {t("rules.col.enabled", "Enabled")}
+            </Label>
             <Switch
               checked={form.enabled}
               onCheckedChange={(v) => setForm({ ...form, enabled: v })}
@@ -473,7 +590,10 @@ function RuleDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
             {t("common.cancel", "Cancel")}
           </Button>
           <Button

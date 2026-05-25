@@ -47,6 +47,7 @@ import {
 import { AdminPackage, fetchAdminPackages } from "@/services/adminService";
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── CRUD helpers ──────────────────────────────────────────────────────────────
 async function createPackage(input: {
@@ -245,7 +246,13 @@ export default function AdminPackagesView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminPackage | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminPackage | null>(null);
 
   const {
@@ -259,7 +266,7 @@ export default function AdminPackagesView() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return packages;
     return packages.filter((p) =>
       [p.nameEn, p.nameAr, p.description, p.category]
@@ -310,7 +317,7 @@ export default function AdminPackagesView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage="No packages found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search packages…"
         columns={[
           {
@@ -427,7 +434,10 @@ export default function AdminPackagesView() {
         description={`Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={() => { if (deleteTarget) delMut.mutate(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={() => {
+          if (deleteTarget) delMut.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

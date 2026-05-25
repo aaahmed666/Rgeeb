@@ -2,24 +2,37 @@
 
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Globe, Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Globe, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
-
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { DataTable } from "@/components/ui/data-table";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DataTable } from "@/components/ui/data-table";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 
@@ -39,7 +52,8 @@ function mapCountry(r: any): Country {
     nameAr: r.name_ar,
     code: r.code ?? r.iso_code ?? r.iso,
     flag: r.flag ?? r.flag_url,
-    citiesCount: typeof r.cities_count === "number" ? r.cities_count : undefined,
+    citiesCount:
+      typeof r.cities_count === "number" ? r.cities_count : undefined,
   };
 }
 function listFrom(res: unknown): any[] {
@@ -52,7 +66,13 @@ function listFrom(res: unknown): any[] {
 
 export default function AdminCountriesView() {
   const qc = useQueryClient();
-  const [search, setSearch] = React.useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Country | null>(null);
   const [form, setForm] = React.useState({ name: "", name_ar: "", code: "" });
@@ -60,19 +80,23 @@ export default function AdminCountriesView() {
 
   const q = useQuery({
     queryKey: ["admin", "countries"],
-    queryFn: async () => listFrom(await api.get(endpoints.admin.countries)).map(mapCountry),
+    queryFn: async () =>
+      listFrom(await api.get(endpoints.admin.countries)).map(mapCountry),
   });
 
   const filtered = React.useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = debouncedSearch.trim().toLowerCase();
     return s
-      ? (q.data ?? []).filter((c) => [c.name, c.nameAr, c.code].join(" ").toLowerCase().includes(s))
+      ? (q.data ?? []).filter((c) =>
+          [c.name, c.nameAr, c.code].join(" ").toLowerCase().includes(s)
+        )
       : (q.data ?? []);
-  }, [q.data, search]);
+  }, [q.data, debouncedSearch]);
 
   const saveMut = useMutation({
     mutationFn: async (data: typeof form) => {
-      if (editing) return api.put(endpoints.admin.countryUpdate(editing.id), data);
+      if (editing)
+        return api.put(endpoints.admin.countryUpdate(editing.id), data);
       return api.post(endpoints.admin.countryCreate, data);
     },
     onSuccess: () => {
@@ -93,8 +117,16 @@ export default function AdminCountriesView() {
     onError: () => toast.error("Delete failed"),
   });
 
-  function openCreate() { setEditing(null); setForm({ name: "", name_ar: "", code: "" }); setOpen(true); }
-  function openEdit(c: Country) { setEditing(c); setForm({ name: c.name, name_ar: c.nameAr ?? "", code: c.code ?? "" }); setOpen(true); }
+  function openCreate() {
+    setEditing(null);
+    setForm({ name: "", name_ar: "", code: "" });
+    setOpen(true);
+  }
+  function openEdit(c: Country) {
+    setEditing(c);
+    setForm({ name: c.name, name_ar: c.nameAr ?? "", code: c.code ?? "" });
+    setOpen(true);
+  }
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -104,7 +136,10 @@ export default function AdminCountriesView() {
         onRefresh={() => q.refetch()}
         isRefreshing={q.isFetching}
         right={
-          <Button size="sm" onClick={openCreate}>
+          <Button
+            size="sm"
+            onClick={openCreate}
+          >
             <Plus className="mr-1.5 h-4 w-4" /> Add Country
           </Button>
         }
@@ -117,10 +152,13 @@ export default function AdminCountriesView() {
         errorMessage="Failed to load countries"
         emptyMessage="No countries found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search countries…"
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button
+            size="sm"
+            onClick={openCreate}
+          >
             <Plus className="mr-1.5 h-4 w-4" /> Add Country
           </Button>
         }
@@ -131,7 +169,11 @@ export default function AdminCountriesView() {
             headClassName: "w-16",
             render: (c) =>
               c.flag ? (
-                <img src={c.flag} alt="" className="h-5 w-7 rounded-sm object-cover" />
+                <img
+                  src={c.flag}
+                  alt=""
+                  className="h-5 w-7 rounded-sm object-cover"
+                />
               ) : (
                 <span>🌍</span>
               ),
@@ -150,7 +192,9 @@ export default function AdminCountriesView() {
             key: "code",
             header: "Code",
             render: (c) => (
-              <span className="font-mono text-xs uppercase">{c.code ?? "—"}</span>
+              <span className="font-mono text-xs uppercase">
+                {c.code ?? "—"}
+              </span>
             ),
           },
           {
@@ -165,19 +209,25 @@ export default function AdminCountriesView() {
             render: (c) => (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => openEdit(c)}>
-                    <Pencil className="mr-2 h-4 w-4" />Edit
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => setDeleteId(c.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />Delete
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -186,28 +236,75 @@ export default function AdminCountriesView() {
         ]}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? "Edit Country" : "Add Country"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? "Edit Country" : "Add Country"}
+            </DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5"><Label>Name (EN) *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
-            <div className="grid gap-1.5"><Label>Name (AR)</Label><Input dir="rtl" value={form.name_ar} onChange={(e) => setForm((f) => ({ ...f, name_ar: e.target.value }))} /></div>
-            <div className="grid gap-1.5"><Label>ISO Code</Label><Input value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="SA, US, EG..." maxLength={3} /></div>
+            <div className="grid gap-1.5">
+              <Label>Name (EN) *</Label>
+              <Input
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Name (AR)</Label>
+              <Input
+                dir="rtl"
+                value={form.name_ar}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name_ar: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>ISO Code</Label>
+              <Input
+                value={form.code}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))
+                }
+                placeholder="SA, US, EG..."
+                maxLength={3}
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveMut.mutate(form)} disabled={saveMut.isPending || !form.name.trim()}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => saveMut.mutate(form)}
+              disabled={saveMut.isPending || !form.name.trim()}
+            >
               {saveMut.isPending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Country?</AlertDialogTitle>
-            <AlertDialogDescription>This will also remove all associated cities.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This will also remove all associated cities.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

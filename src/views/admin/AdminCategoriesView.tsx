@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tag, Plus, Loader2, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,7 +206,13 @@ export default function AdminCategoriesView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminCategory | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
 
   const {
@@ -219,7 +226,7 @@ export default function AdminCategoriesView() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return categories;
     return categories.filter((c) =>
       [c.nameEn, c.nameAr, c.description]
@@ -228,7 +235,7 @@ export default function AdminCategoriesView() {
         .toLowerCase()
         .includes(q)
     );
-  }, [categories, search]);
+  }, [categories, debouncedSearch]);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteCategory(id),
@@ -270,7 +277,7 @@ export default function AdminCategoriesView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage={t("categories.noResults", "No categories found")}
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder={t(
           "categories.searchPlaceholder",
           "Search categories…"
@@ -366,7 +373,10 @@ export default function AdminCategoriesView() {
         description={`Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={() => { if (deleteTarget) delMut.mutate(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={() => {
+          if (deleteTarget) delMut.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

@@ -49,13 +49,18 @@ import {
   fetchBranches,
   fetchEmployees,
 } from "@/services/organizationService";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 export default function DepartmentsView() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Department | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
 
   const {
@@ -65,16 +70,16 @@ export default function DepartmentsView() {
     error,
   } = useQuery({
     queryKey: ["org", "departments"],
-    queryFn: fetchDepartments,
+    queryFn: () => fetchDepartments(),
   });
 
   const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = debouncedSearch.trim().toLowerCase();
     if (!s) return departments;
     return departments.filter((d) =>
       [d.nameEn, d.nameAr].filter(Boolean).join(" ").toLowerCase().includes(s)
     );
-  }, [departments, search]);
+  }, [departments, debouncedSearch]);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteDepartment(id),
@@ -121,7 +126,7 @@ export default function DepartmentsView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage={t("departments.empty", "No departments yet")}
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder={t(
           "departments.searchPlaceholder",
           "Search departments…"
@@ -219,7 +224,7 @@ export default function DepartmentsView() {
         title={t("departments.confirmDeleteTitle", "Delete Department")}
         description={t(
           "departments.confirmDeleteDesc",
-          `Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`
+          "Are you sure you want to delete this department? This action cannot be undone."
         )}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}
@@ -258,13 +263,13 @@ function DepartmentDrawer({
 
   const { data: branches = [] } = useQuery({
     queryKey: ["org", "branches"],
-    queryFn: fetchBranches,
+    queryFn: () => fetchBranches(),
     enabled: open,
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ["org", "employees"],
-    queryFn: fetchEmployees,
+    queryFn: () => fetchEmployees(),
     enabled: open,
   });
 
@@ -274,8 +279,8 @@ function DepartmentDrawer({
         name_en: dept?.nameEn ?? "",
         name_ar: dept?.nameAr ?? "",
         active: dept?.active ?? true,
-        manager_id: "",
-        branch_id: "",
+        manager_id: dept?.managerId ?? "",
+        branch_id: dept?.branchId ?? "",
       });
     }
   }, [open, dept]);

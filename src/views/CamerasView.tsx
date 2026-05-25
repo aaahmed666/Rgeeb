@@ -57,6 +57,7 @@ import {
   type CameraInput,
 } from "@/services/camerasService";
 import { DataTable } from "@/components/ui/data-table";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 const EMPTY: CameraInput = {
   name: "",
@@ -67,7 +68,7 @@ const EMPTY: CameraInput = {
 
 export default function CamerasView() {
   const qc = useQueryClient();
-  const [search, setSearch] = React.useState("");
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange, clearSearch, isSearching } = useDebounceSearch("", 300);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<CameraType | null>(null);
   const [form, setForm] = React.useState<CameraInput>(EMPTY);
@@ -84,7 +85,7 @@ export default function CamerasView() {
   });
 
   const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return cameras;
     return cameras.filter((c) =>
       [c.name, c.location, c.branchName, c.ipAddress, c.model]
@@ -93,7 +94,7 @@ export default function CamerasView() {
         .toLowerCase()
         .includes(q)
     );
-  }, [cameras, search]);
+  }, [cameras, debouncedSearch]);
 
   const online = cameras.filter((c) => c.isOnline).length;
   const total = cameras.length;
@@ -242,7 +243,7 @@ export default function CamerasView() {
         isLoading={isLoading}
         emptyMessage="No cameras found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search cameras…"
         columns={[
           {

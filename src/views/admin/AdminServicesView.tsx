@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -46,6 +46,7 @@ import {
 import { AdminService, fetchAdminServices } from "@/services/adminService";
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── CRUD helpers (POST-based, mirrors Postman collection) ─────────────────────
 async function createService(input: {
@@ -91,13 +92,16 @@ function ServiceDialog({
   const [price, setPrice] = useState(String(service?.price ?? ""));
   const [status, setStatus] = useState(service?.status ?? "active");
 
-  const handleOpen = (v: boolean) => {
-    if (v) {
+  useEffect(() => {
+    if (open) {
       setName(service?.name ?? "");
       setDescription(service?.description ?? "");
       setPrice(String(service?.price ?? ""));
       setStatus(service?.status ?? "active");
     }
+  }, [open, service]);
+
+  const handleOpen = (v: boolean) => {
     onOpenChange(v);
   };
 
@@ -213,7 +217,13 @@ export default function AdminServicesView() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminService | null>(null);
-  const [search, setSearch] = useState("");
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminService | null>(null);
 
   const {
@@ -223,11 +233,11 @@ export default function AdminServicesView() {
     error,
   } = useQuery({
     queryKey: ["admin", "services"],
-    queryFn: fetchAdminServices,
+    queryFn: () => fetchAdminServices(),
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return services;
     return services.filter((s) =>
       [s.name, s.description]
@@ -236,7 +246,7 @@ export default function AdminServicesView() {
         .toLowerCase()
         .includes(q)
     );
-  }, [services, search]);
+  }, [services, debouncedSearch]);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteService(id),
@@ -278,7 +288,7 @@ export default function AdminServicesView() {
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
         emptyMessage="No services found"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search services…"
         columns={[
           {
@@ -356,7 +366,10 @@ export default function AdminServicesView() {
         description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={() => { if (deleteTarget) delMut.mutate(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={() => {
+          if (deleteTarget) delMut.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );
