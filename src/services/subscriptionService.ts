@@ -68,10 +68,14 @@ function daysBetween(start: string, end: string): number {
 
 export async function fetchSubscription(): Promise<SubscriptionDetails | null> {
   try {
-    const res = await apiFetch<Record<string, unknown>>(endpoints.subscription.current);
+    const res = await apiFetch<Record<string, unknown>>(
+      endpoints.subscription.current
+    );
     const data = (res?.data as Record<string, unknown>) ?? res;
     if (!data) return null;
-    const services = Array.isArray(data.services) ? (data.services as unknown[]) : [];
+    const services = Array.isArray(data.services)
+      ? (data.services as unknown[])
+      : [];
     return {
       id: String(data.id ?? ""),
       package_name: String(data.package_name ?? data.name ?? "—"),
@@ -82,18 +86,26 @@ export async function fetchSubscription(): Promise<SubscriptionDetails | null> {
       start_date: String(data.start_date ?? data.starts_at ?? ""),
       end_date: String(data.end_date ?? data.expires_at ?? ""),
       days_remaining: asNumber(
-        data.days_remaining ?? daysBetween(String(data.start_date ?? ""), String(data.end_date ?? "")),
+        data.days_remaining ??
+          daysBetween(
+            String(data.start_date ?? ""),
+            String(data.end_date ?? "")
+          )
       ),
       services: services.map((s) =>
         typeof s === "string"
           ? s
-          : String((s as Record<string, unknown>)?.name ?? (s as Record<string, unknown>)?.title ?? ""),
+          : String(
+              (s as Record<string, unknown>)?.name ??
+                (s as Record<string, unknown>)?.title ??
+                ""
+            )
       ),
       service_names_ar: services
         .map((s) =>
           typeof s === "object" && s
             ? String((s as Record<string, unknown>)?.name_ar ?? "")
-            : "",
+            : ""
         )
         .filter(Boolean),
     };
@@ -104,16 +116,27 @@ export async function fetchSubscription(): Promise<SubscriptionDetails | null> {
 
 export async function fetchUsage(): Promise<ResourceUsage> {
   try {
-    const res = await apiFetch<Record<string, unknown>>(endpoints.subscription.usage);
+    const res = await apiFetch<Record<string, unknown>>(
+      endpoints.subscription.usage
+    );
     const data = (res?.data as Record<string, unknown>) ?? res ?? {};
     const cameras = (data.cameras ?? {}) as Record<string, unknown>;
     const branches = (data.branches ?? {}) as Record<string, unknown>;
     return {
-      cameras: { used: asNumber(cameras.used), total: asNumber(cameras.total ?? cameras.limit, 50) },
-      branches: { used: asNumber(branches.used), total: asNumber(branches.total ?? branches.limit, 50) },
+      cameras: {
+        used: asNumber(cameras.used),
+        total: asNumber(cameras.total ?? cameras.limit, 50),
+      },
+      branches: {
+        used: asNumber(branches.used),
+        total: asNumber(branches.total ?? branches.limit, 50),
+      },
     };
   } catch {
-    return { cameras: { used: 0, total: 50 }, branches: { used: 0, total: 50 } };
+    return {
+      cameras: { used: 0, total: 50 },
+      branches: { used: 0, total: 50 },
+    };
   }
 }
 
@@ -127,7 +150,9 @@ export async function fetchTransactions(): Promise<BillingTransaction[]> {
       id: String(t.id ?? ""),
       date: String(t.date ?? t.created_at ?? ""),
       type: (t.type as BillingTransaction["type"]) ?? "payment",
-      package_name: String(t.package_name ?? t.package?.["name" as keyof typeof t.package] ?? "—"),
+      package_name: String(
+        t.package_name ?? t.package?.["name" as keyof typeof t.package] ?? "—"
+      ),
       amount: asNumber(t.amount ?? t.total ?? 0),
       currency: String(t.currency ?? "SAR"),
       status: (t.status as BillingTransaction["status"]) ?? "pending",
@@ -142,9 +167,12 @@ export async function fetchTransactions(): Promise<BillingTransaction[]> {
 
 export async function fetchAvailableServices(): Promise<AvailableService[]> {
   try {
-    const res = await apiFetch<unknown>(endpoints.subscription.availableServices, {
-      query: { all: 1 },
-    });
+    const res = await apiFetch<unknown>(
+      endpoints.subscription.availableServices,
+      {
+        query: { all: 1 },
+      }
+    );
     const list = unwrap<Array<Record<string, unknown>>>(res, []);
     return list.map((s) => ({
       id: String(s.id ?? ""),
@@ -168,4 +196,35 @@ export async function addServices(serviceIds: string[]): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export interface SubscribeResult {
+  payment_link: string | null;
+}
+
+/**
+ * POST /customer/subscriptions/subscribe { package_id }
+ *
+ * Mirrors the old project's subscribeToPackage thunk.
+ * The API returns the subscription object which may include a `payment_link`
+ * (Fatoorah checkout URL). When present the caller should open it in a new
+ * tab (window.open) so the user can complete payment, then redirect to /dashboard.
+ */
+export async function subscribeToPackage(
+  packageId: string
+): Promise<SubscribeResult> {
+  const raw = await apiFetch<Record<string, unknown>>(
+    endpoints.subscription.subscribe,
+    {
+      method: "POST",
+      body: { package_id: packageId },
+    }
+  );
+  const data = (raw?.data ?? raw) as Record<string, unknown> | null;
+  const payment_link =
+    (data?.payment_link as string) ??
+    (data?.payment_url as string) ??
+    (data?.checkout_url as string) ??
+    null;
+  return { payment_link };
 }

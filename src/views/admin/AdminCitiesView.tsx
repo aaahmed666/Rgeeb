@@ -34,8 +34,7 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import { fetchAdminCities, createAdminCity, updateAdminCity, deleteAdminCity, fetchAdminCountries } from "@/services/adminService";
 
 interface City {
   id: string;
@@ -83,7 +82,7 @@ export default function AdminCitiesView() {
   const q = useQuery({
     queryKey: ["admin", "cities"],
     queryFn: async () =>
-      listFrom(await api.get(endpoints.admin.cities)).map(mapCity),
+      fetchAdminCities(),
   });
 
   const filtered = React.useMemo(() => {
@@ -98,7 +97,7 @@ export default function AdminCitiesView() {
   const saveMut = useMutation({
     mutationFn: async (data: typeof form) => {
       if (editing) return api.put(endpoints.admin.cityUpdate(editing.id), data);
-      return api.post(endpoints.admin.cityCreate, data);
+      return createAdminCity(data as any);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "cities"] });

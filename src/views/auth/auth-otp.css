@@ -1,0 +1,124 @@
+/* ─── auth-otp.css ───────────────────────────────────────────────────────────
+   Styles specific to OtpView (standalone verification page).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.otp-card {
+  width: 100%;
+  max-width: 460px;
+  border-radius: 28px;
+  padding: 44px 44px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.35s ease;
+}
+
+/* ── Step progress indicator ────────────────────────────────────────────────── */
+
+.otp-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.otp-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.otp-step-dot {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.otp-step-line {
+  height: 2px;
+  width: 32px;
+  border-radius: 1px;
+}
+
+/* ── Shield icon ────────────────────────────────────────────────────────────── */
+
+.otp-shield-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.otp-shield-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 22px;
+  border: 2px solid rgba(249,115,22,0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: authGlow 4s ease-in-out infinite;
+}
+
+/* ── Title / subtitle ───────────────────────────────────────────────────────── */
+
+.otp-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+
+.otp-subtitle {
+  font-size: 13.5px;
+  margin-top: 8px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+/* ── Digits ─────────────────────────────────────────────────────────────────── */
+
+.otp-digits-wrap {
+  margin-bottom: 10px;
+}
+
+/* ── Expiry timer ───────────────────────────────────────────────────────────── */
+
+.otp-expiry {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.otp-expiry-text {
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Error message ──────────────────────────────────────────────────────────── */
+
+.otp-error-row {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.otp-error-text {
+  font-size: 13px;
+  color: #EF4444;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* ── Resend ─────────────────────────────────────────────────────────────────── */
+
+.otp-resend-row {
+  text-align: center;
+}

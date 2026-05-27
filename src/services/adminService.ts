@@ -1,36 +1,94 @@
 /**
- * Admin service — wraps /admin/* endpoints used by the admin section.
- * Endpoints are auth-protected; responses are normalized into resilient shapes.
+ * Admin service — wraps all /admin/* endpoints.
+ * Every entity has full CRUD so views never call api.post inline.
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { pickArray, pickObject, str, num, bool, id, type RawObject } from "@/lib/raw-response";
+import {
+  pickArray,
+  pickObject,
+  str,
+  num,
+  bool,
+  id,
+  type RawObject,
+} from "@/lib/raw-response";
 
-// ---------------- Dashboard ----------------
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function unwrap(raw: unknown): RawObject {
+  const obj = pickObject(raw);
+  // Many endpoints wrap in { data: ... }
+  if (obj.data && typeof obj.data === "object") return obj.data as RawObject;
+  return obj;
+}
+
+function unwrapArray(raw: unknown): RawObject[] {
+  const arr = pickArray(raw);
+  if (arr.length > 0) return arr;
+  // Try { data: [...] }
+  const obj = raw as Record<string, unknown>;
+  if (obj?.data && Array.isArray(obj.data)) return obj.data as RawObject[];
+  return [];
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 export interface AdminDashboardStats {
-  totals: Record<string, number | string>;
+  clients: number;
+  categories: number;
+  services: number;
+  packages: number;
+  aiModels: number;
+  subscriptions: number;
+  activeSubscriptions: number;
 }
 
+/**
+ * Builds stats by running parallel count queries on the list endpoints.
+ * /admin/dashboard-stats may not exist in all envs — this is resilient.
+ */
 export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
-  const raw = await api.get<unknown>(endpoints.admin.dashboardStats);
-  const data = pickObject(raw);
-  const totals: Record<string, number | string> = {};
-  Object.entries(data).forEach(([k, v]) => {
-    if (typeof v === "number" || typeof v === "string") totals[k] = v;
-  });
-  return { totals };
+  const results = await Promise.allSettled([
+    api.get<unknown>(endpoints.admin.users),
+    api.get<unknown>(endpoints.admin.categories),
+    api.get<unknown>(endpoints.admin.services),
+    api.get<unknown>(endpoints.admin.packages),
+    api.get<unknown>(endpoints.admin.aiModels),
+    api.get<unknown>(endpoints.admin.subscriptions),
+    api.get<unknown>(endpoints.admin.subscriptionsActive),
+  ]);
+
+  const count = (r: PromiseSettledResult<unknown>) =>
+    r.status === "fulfilled" ? unwrapArray(r.value).length : 0;
+
+  return {
+    clients: count(results[0]),
+    categories: count(results[1]),
+    services: count(results[2]),
+    packages: count(results[3]),
+    aiModels: count(results[4]),
+    subscriptions: count(results[5]),
+    activeSubscriptions: count(results[6]),
+  };
 }
 
-// ---------------- Users (Clients) ----------------
+// ─── Users (admin user accounts) ─────────────────────────────────────────────
+
 export interface AdminUser {
   id: string;
+  nameAr?: string;
+  nameEn?: string;
   name: string;
   email?: string;
   phone?: string;
+  active?: boolean;
+  mainAdmin?: boolean;
+  clientId?: string;
   country?: string;
   city?: string;
-  status?: string;
   avatar?: string | null;
+  createdAt?: string;
 }
 
 function mapUser(u: RawObject): AdminUser {
@@ -38,288 +96,654 @@ function mapUser(u: RawObject): AdminUser {
   const city = u.city as RawObject | undefined;
   return {
     id: id(u),
-    name: str(u, "name", "full_name", "username") ?? "—",
+    nameAr: str(u, "name_ar"),
+    nameEn: str(u, "name_en"),
+    name: str(u, "name_en", "name_ar", "name") ?? "—",
     email: str(u, "email"),
-    phone: str(u, "phone", "mobile"),
-    country: (country && str(country, "name")) ?? str(u, "country_name", "country"),
-    city: (city && str(city, "name")) ?? str(u, "city_name", "city"),
-    status:
-      str(u, "status") ??
-      (bool(u, "is_active") ? "active" : u.active === false ? "inactive" : "active"),
-    avatar: (str(u, "avatar", "image") ?? null),
+    phone: str(u, "phone"),
+    active: bool(u, "active"),
+    mainAdmin: bool(u, "main_admin"),
+    clientId: str(u, "client_id"),
+    country:
+      (country && str(country, "name_en", "name")) ?? str(u, "country_name"),
+    city: (city && str(city, "name_en", "name")) ?? str(u, "city_name"),
+    avatar: str(u, "avatar") ?? null,
+    createdAt: str(u, "created_at"),
   };
 }
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
-  const raw = await api.get<unknown>(endpoints.admin.users);
-  return pickArray(raw).map(mapUser);
+  return unwrapArray(await api.get<unknown>(endpoints.admin.users)).map(
+    mapUser
+  );
 }
 
-// ---------------- Categories ----------------
-export interface AdminCategory {
-  id: string;
-  nameAr?: string;
-  nameEn?: string;
-  description?: string;
-  image?: string | null;
-  status?: string;
+export async function fetchAdminUserSingle(
+  userId: string | number
+): Promise<AdminUser> {
+  return mapUser(
+    unwrap(
+      await api.get<unknown>(endpoints.admin.userSingle, {
+        query: { id: userId },
+      })
+    )
+  );
 }
-
-function mapCategory(c: RawObject): AdminCategory {
-  const name = c.name as RawObject | undefined;
-  return {
-    id: id(c),
-    nameAr: str(c, "name_ar", "nameAr", "arabic_name") ?? (name && str(name, "ar")),
-    nameEn: str(c, "name_en", "nameEn", "english_name") ?? (name && str(name, "en")) ?? str(c, "name"),
-    description: str(c, "description_en", "description", "desc"),
-    image: str(c, "image", "logo", "icon") ?? null,
-    status: str(c, "status") ?? (bool(c, "is_active") ? "active" : "inactive"),
-  };
-}
-
-export async function fetchAdminCategories(): Promise<AdminCategory[]> {
-  const raw = await api.get<unknown>(endpoints.admin.categories);
-  return pickArray(raw).map(mapCategory);
-}
-
-// ---------------- Services ----------------
-export interface AdminService {
-  id: string;
-  name: string;
-  description?: string;
-  price?: number | string;
-  status?: string;
-}
-
-function mapService(s: RawObject): AdminService {
-  return {
-    id: id(s),
-    name: str(s, "name_en", "name", "title") ?? "—",
-    description: str(s, "description_ar", "description", "desc"),
-    price: num(s, "price", "cost") ?? str(s, "price", "cost"),
-    status: str(s, "status") ?? (bool(s, "is_active") ? "active" : "inactive"),
-  };
-}
-
-/**
- * Fetches admin services for the data table.
- * Supports optional pagination params (page, per_page, keyword) for
- * programmatic use. Without params it uses all=1 (backward compatible).
- *
- * For SELECT DROPDOWNS use AsyncPaginatedSelect instead:
- *   <AsyncPaginatedSelect endpoint="/admin/services" ... />
- */
-export async function fetchAdminServices(params?: {
-  page?: number;
-  per_page?: number;
-  keyword?: string;
-}): Promise<AdminService[]> {
-  const query = params?.page
-    ? {
-        page: params.page,
-        per_page: params.per_page ?? 20,
-        ...(params.keyword ? { keyword: params.keyword } : {}),
-      }
-    : { all: 1 };
-  const raw = await api.get<unknown>(endpoints.admin.services, { query });
-  return pickArray(raw).map(mapService);
-}
-
-// ---------------- Packages ----------------
-export interface AdminPackage {
-  id: string;
-  category?: string;
-  nameAr?: string;
-  nameEn?: string;
-  description?: string;
-  price?: number | string;
-  duration?: string;
-  services: string[];
-  status?: string;
-}
-
-function mapPackage(p: RawObject): AdminPackage {
-  const services = Array.isArray(p.services)
-    ? (p.services as RawObject[])
-        .map((s) => str(s, "name_en", "name", "title") ?? String(s))
-        .filter(Boolean)
-    : [];
-  const months = num(p, "duration_months", "months");
-  const years = num(p, "duration_years", "years");
-  let duration = str(p, "duration") ?? "";
-  if (!duration) {
-    const parts: string[] = [];
-    if (years) parts.push(`${years}y`);
-    if (months) parts.push(`${months}m`);
-    duration = parts.join(" ");
-  }
-  const category = p.category as RawObject | undefined;
-  return {
-    id: id(p),
-    category:
-      (category && (str(category, "name_en", "name"))) ??
-      str(p, "category_name"),
-    nameAr: str(p, "name_ar", "arabic_name"),
-    nameEn: str(p, "name_en", "english_name", "name"),
-    description: str(p, "description_en", "description"),
-    price: num(p, "price") ?? str(p, "price"),
-    duration,
-    services,
-    status: str(p, "status") ?? (bool(p, "is_active") ? "active" : "inactive"),
-  };
-}
-
-export async function fetchAdminPackages(): Promise<AdminPackage[]> {
-  const raw = await api.get<unknown>(endpoints.admin.packages);
-  return pickArray(raw).map(mapPackage);
-}
-
-// ---------------- AI Models ----------------
-export interface AdminAiModel {
-  id: string;
-  name: string;
-  version?: string;
-  modelPath?: string;
-  services?: string;
-  status?: string;
-}
-
-function mapAiModel(m: RawObject): AdminAiModel {
-  return {
-    id: id(m),
-    name: str(m, "name") ?? "—",
-    version: str(m, "version"),
-    modelPath: str(m, "model_path", "path"),
-    services: Array.isArray(m.services)
-      ? (m.services as RawObject[])
-          .map((s) => str(s, "name", "name_en") ?? String(s))
-          .join(", ")
-      : (str(m, "services") ?? "-"),
-    status: str(m, "status") ?? (bool(m, "is_active") ? "active" : "inactive"),
-  };
-}
-
-export async function fetchAdminAiModels(): Promise<AdminAiModel[]> {
-  const raw = await api.get<unknown>(endpoints.admin.aiModels);
-  return pickArray(raw).map(mapAiModel);
-}
-
-// ---------------- Settings ----------------
-export interface AdminSettings {
-  general: {
-    appName?: string;
-    appDescription?: string;
-    contactEmail?: string;
-    supportPhone?: string;
-  };
-  legal: {
-    privacyPolicy?: string;
-    termsOfService?: string;
-    cookiePolicy?: string;
-  };
-  notifications: {
-    notificationEmail?: string;
-    emailSignature?: string;
-  };
-}
-
-export async function fetchAdminSettings(): Promise<AdminSettings> {
-  const raw = await api.get<unknown>(endpoints.admin.settings);
-  const d = pickObject(raw);
-  return {
-    general: {
-      appName: str(d, "app_name", "application_name", "name"),
-      appDescription: str(d, "app_description", "application_description", "description"),
-      contactEmail: str(d, "contact_email"),
-      supportPhone: str(d, "support_phone"),
-    },
-    legal: {
-      privacyPolicy: str(d, "privacy_policy"),
-      termsOfService: str(d, "terms_of_service", "terms"),
-      cookiePolicy: str(d, "cookie_policy"),
-    },
-    notifications: {
-      notificationEmail: str(d, "notification_email"),
-      emailSignature: str(d, "email_signature"),
-    },
-  };
-}
-
-// ---------------- Subscriptions ----------------
-export interface AdminSubscription {
-  id: string;
-  user?: string;
-  amount?: number | string;
-  notes?: string;
-  package?: string;
-  status?: string;
-  type?: string;
-  startDate?: string;
-  endDate?: string;
-  createdAt?: string;
-}
-
-function mapSubscription(s: RawObject): AdminSubscription {
-  const user = s.user as RawObject | undefined;
-  const customer = s.customer as RawObject | undefined;
-  const pkg = s.package as RawObject | undefined;
-  return {
-    id: id(s),
-    user:
-      (user && str(user, "name")) ??
-      str(s, "user_name") ??
-      (customer && str(customer, "name")) ??
-      "—",
-    amount: num(s, "amount", "price") ?? str(s, "amount", "price"),
-    notes: str(s, "notes", "note"),
-    package: (pkg && str(pkg, "name_en", "name")) ?? str(s, "package_name"),
-    status: str(s, "status", "payment_status"),
-    type: str(s, "type") ?? "Subscribe",
-    startDate: str(s, "start_date", "starts_at"),
-    endDate: str(s, "end_date", "ends_at"),
-    createdAt: str(s, "created_at", "createdAt"),
-  };
-}
-
-export async function fetchAdminSubscriptions(): Promise<AdminSubscription[]> {
-  const raw = await api.get<unknown>(endpoints.admin.subscriptions);
-  return pickArray(raw).map(mapSubscription);
-}
-
-// =================== USERS — full CRUD ===================
 
 export interface AdminUserInput {
-  name: string;
+  name_ar: string;
+  name_en: string;
   email: string;
-  phone?: string;
   password?: string;
-  country_id?: string | number;
-  city_id?: string | number;
-  status?: string;
+  phone?: string;
+  active?: boolean;
+  main_admin?: boolean;
+  client_id?: string | number;
 }
 
 export async function createAdminUser(
   input: AdminUserInput
 ): Promise<AdminUser> {
-  const raw = await api.post<unknown>(endpoints.admin.userCreate, input);
-  return mapUser(pickObject(raw));
+  return mapUser(
+    unwrap(await api.post<unknown>(endpoints.admin.userCreate, input))
+  );
 }
 
 export async function updateAdminUser(
   userId: string | number,
   input: Partial<AdminUserInput>
 ): Promise<AdminUser> {
-  const raw = await api.post<unknown>(endpoints.admin.userUpdate, { id: userId, ...input });
-  return mapUser(pickObject(raw));
+  return mapUser(
+    unwrap(
+      await api.post<unknown>(endpoints.admin.userUpdate, {
+        id: userId,
+        ...input,
+      })
+    )
+  );
 }
 
 export async function deleteAdminUser(userId: string | number): Promise<void> {
   await api.post<unknown>(endpoints.admin.userDelete, { id: userId });
 }
 
-export async function fetchAdminUserSingle(
-  userId: string | number
-): Promise<AdminUser> {
-  const raw = await api.get<unknown>(endpoints.admin.userSingle, { query: { id: userId } });
-  return mapUser(pickObject(raw));
+// ─── Categories ───────────────────────────────────────────────────────────────
+
+export interface AdminCategory {
+  id: string;
+  nameAr?: string;
+  nameEn?: string;
+  description?: string;
+  image?: string | null;
+  active?: boolean;
+}
+
+function mapCategory(c: RawObject): AdminCategory {
+  return {
+    id: id(c),
+    nameAr: str(c, "name_ar"),
+    nameEn: str(c, "name_en", "name"),
+    description: str(c, "description"),
+    image: str(c, "image", "category_image") ?? null,
+    active: bool(c, "active"),
+  };
+}
+
+export async function fetchAdminCategories(): Promise<AdminCategory[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.categories)).map(
+    mapCategory
+  );
+}
+
+export interface AdminCategoryInput {
+  name_ar: string;
+  name_en: string;
+  description?: string;
+  active?: boolean;
+  category_image?: File | null;
+}
+
+export async function createAdminCategory(
+  input: AdminCategoryInput
+): Promise<AdminCategory> {
+  const fd = new FormData();
+  fd.append("name_ar", input.name_ar);
+  fd.append("name_en", input.name_en);
+  if (input.description) fd.append("description", input.description);
+  fd.append("active", input.active !== false ? "1" : "0");
+  if (input.category_image) fd.append("category_image", input.category_image);
+  return mapCategory(
+    unwrap(await api.post<unknown>(endpoints.admin.categoryCreate, fd))
+  );
+}
+
+export async function updateAdminCategory(
+  categoryId: string | number,
+  input: Partial<AdminCategoryInput>
+): Promise<AdminCategory> {
+  const fd = new FormData();
+  fd.append("id", String(categoryId));
+  if (input.name_ar !== undefined) fd.append("name_ar", input.name_ar);
+  if (input.name_en !== undefined) fd.append("name_en", input.name_en);
+  if (input.description !== undefined)
+    fd.append("description", input.description);
+  if (input.active !== undefined) fd.append("active", input.active ? "1" : "0");
+  if (input.category_image) fd.append("category_image", input.category_image);
+  return mapCategory(
+    unwrap(await api.post<unknown>(endpoints.admin.categoryUpdate, fd))
+  );
+}
+
+export async function deleteAdminCategory(
+  categoryId: string | number
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.categoryDelete, { id: categoryId });
+}
+
+// ─── Services ─────────────────────────────────────────────────────────────────
+
+export interface AdminService {
+  id: string;
+  nameAr?: string;
+  nameEn?: string;
+  description?: string;
+  price?: number;
+  active?: boolean;
+  requiresDrawing?: boolean;
+}
+
+function mapService(s: RawObject): AdminService {
+  return {
+    id: id(s),
+    nameAr: str(s, "name_ar"),
+    nameEn: str(s, "name_en", "name"),
+    description: str(s, "description"),
+    price: num(s, "price"),
+    active: bool(s, "active"),
+    requiresDrawing: bool(s, "requires_drawing"),
+  };
+}
+
+export async function fetchAdminServices(): Promise<AdminService[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.services)).map(
+    mapService
+  );
+}
+
+export interface AdminServiceInput {
+  name_ar: string;
+  name_en: string;
+  description?: string;
+  price?: number | string;
+  active?: boolean;
+}
+
+export async function createAdminService(
+  input: AdminServiceInput
+): Promise<AdminService> {
+  return mapService(
+    unwrap(await api.post<unknown>(endpoints.admin.serviceCreate, input))
+  );
+}
+
+export async function updateAdminService(
+  serviceId: string | number,
+  input: Partial<AdminServiceInput>
+): Promise<AdminService> {
+  return mapService(
+    unwrap(
+      await api.post<unknown>(endpoints.admin.serviceUpdate, {
+        id: serviceId,
+        ...input,
+      })
+    )
+  );
+}
+
+export async function deleteAdminService(
+  serviceId: string | number
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.serviceDelete, { id: serviceId });
+}
+
+// ─── Packages ─────────────────────────────────────────────────────────────────
+
+export interface AdminPackage {
+  id: string;
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  price?: number;
+  durationMonths?: number;
+  maxCameras?: number;
+  maxBranches?: number;
+  categoryId?: string;
+  categoryName?: string;
+  serviceIds?: string[];
+  serviceNames?: string[];
+  active?: boolean;
+}
+
+function mapPackage(p: RawObject): AdminPackage {
+  const category = p.category as RawObject | undefined;
+  const services = Array.isArray(p.services) ? (p.services as RawObject[]) : [];
+  return {
+    id: id(p),
+    nameAr: str(p, "name_ar"),
+    nameEn: str(p, "name_en", "name"),
+    descriptionAr: str(p, "description_ar"),
+    descriptionEn: str(p, "description_en", "description"),
+    price: num(p, "price"),
+    durationMonths: num(p, "duration_months"),
+    maxCameras: num(p, "max_cameras"),
+    maxBranches: num(p, "max_branches"),
+    categoryId: str(p, "category_id") ?? (category && id(category)),
+    categoryName:
+      (category && str(category, "name_en", "name")) ?? str(p, "category_name"),
+    serviceIds: services.map((s) => id(s)).filter(Boolean),
+    serviceNames: services
+      .map((s) => str(s, "name_en", "name") ?? "")
+      .filter(Boolean),
+    active: bool(p, "active"),
+  };
+}
+
+export async function fetchAdminPackages(): Promise<AdminPackage[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.packages)).map(
+    mapPackage
+  );
+}
+
+export interface AdminPackageInput {
+  name_ar: string;
+  name_en: string;
+  description_ar?: string;
+  description_en?: string;
+  price: number | string;
+  duration_months: number | string;
+  active?: boolean;
+  category_id?: string | number;
+  max_cameras?: number | string;
+  max_branches?: number | string;
+  "service_ids[]"?: (string | number)[];
+}
+
+export async function createAdminPackage(
+  input: AdminPackageInput
+): Promise<AdminPackage> {
+  // Build FormData with service_ids[] array
+  const fd = buildPackageFormData(input);
+  return mapPackage(
+    unwrap(await api.post<unknown>(endpoints.admin.packageCreate, fd))
+  );
+}
+
+export async function updateAdminPackage(
+  packageId: string | number,
+  input: Partial<AdminPackageInput>
+): Promise<AdminPackage> {
+  const fd = buildPackageFormData(input);
+  fd.append("id", String(packageId));
+  return mapPackage(
+    unwrap(await api.post<unknown>(endpoints.admin.packageUpdate, fd))
+  );
+}
+
+export async function deleteAdminPackage(
+  packageId: string | number
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.packageDelete, { id: packageId });
+}
+
+function buildPackageFormData(input: Partial<AdminPackageInput>): FormData {
+  const fd = new FormData();
+  const fields: (keyof AdminPackageInput)[] = [
+    "name_ar",
+    "name_en",
+    "description_ar",
+    "description_en",
+    "price",
+    "duration_months",
+    "category_id",
+    "max_cameras",
+    "max_branches",
+  ];
+  fields.forEach((k) => {
+    if (input[k] !== undefined) fd.append(k, String(input[k]));
+  });
+  if (input.active !== undefined) fd.append("active", input.active ? "1" : "0");
+  (input["service_ids[]"] ?? []).forEach((sid, idx) => {
+    fd.append(`service_ids[${idx}]`, String(sid));
+  });
+  return fd;
+}
+
+// ─── AI Models ────────────────────────────────────────────────────────────────
+
+export interface AdminAiModel {
+  id: string;
+  name: string;
+  version?: string;
+  modelPath?: string;
+  serviceIds?: string[];
+  serviceNames?: string[];
+  active?: boolean;
+}
+
+function mapAiModel(m: RawObject): AdminAiModel {
+  const services = Array.isArray(m.services) ? (m.services as RawObject[]) : [];
+  return {
+    id: id(m),
+    name: str(m, "name") ?? "—",
+    version: str(m, "version"),
+    modelPath: str(m, "model_path"),
+    serviceIds: services.map((s) => id(s)).filter(Boolean),
+    serviceNames: services
+      .map((s) => str(s, "name_en", "name") ?? "")
+      .filter(Boolean),
+    active: bool(m, "active"),
+  };
+}
+
+export async function fetchAdminAiModels(): Promise<AdminAiModel[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.aiModels)).map(
+    mapAiModel
+  );
+}
+
+export interface AdminAiModelInput {
+  name: string;
+  version?: string;
+  model_path?: string;
+  active?: boolean;
+  "service_ids[]"?: (string | number)[];
+}
+
+export async function createAdminAiModel(
+  input: AdminAiModelInput
+): Promise<AdminAiModel> {
+  return mapAiModel(
+    unwrap(
+      await api.post<unknown>(
+        endpoints.admin.aiModelCreate,
+        buildAiModelBody(input)
+      )
+    )
+  );
+}
+
+export async function updateAdminAiModel(
+  modelId: string | number,
+  input: Partial<AdminAiModelInput>
+): Promise<AdminAiModel> {
+  return mapAiModel(
+    unwrap(
+      await api.post<unknown>(endpoints.admin.aiModelUpdate, {
+        id: modelId,
+        ...buildAiModelBody(input),
+      })
+    )
+  );
+}
+
+export async function deleteAdminAiModel(
+  modelId: string | number
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.aiModelDelete, { id: modelId });
+}
+
+function buildAiModelBody(
+  input: Partial<AdminAiModelInput>
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (input.name !== undefined) body.name = input.name;
+  if (input.version !== undefined) body.version = input.version;
+  if (input.model_path !== undefined) body.model_path = input.model_path;
+  if (input.active !== undefined) body.active = input.active;
+  (input["service_ids[]"] ?? []).forEach((sid, idx) => {
+    body[`service_ids[${idx}]`] = sid;
+  });
+  return body;
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export interface AdminSettings {
+  raw: Record<string, string>; // key → value pairs from API
+}
+
+export async function fetchAdminSettings(): Promise<AdminSettings> {
+  const raw = await api.get<unknown>(endpoints.admin.settings);
+  const arr = unwrapArray(raw);
+  // Settings come as [{ key, value }, ...] or as a flat object
+  const result: Record<string, string> = {};
+  if (arr.length > 0) {
+    arr.forEach((item) => {
+      const k = str(item, "key");
+      const v = str(item, "value");
+      if (k) result[k] = v ?? "";
+    });
+  } else {
+    const obj = unwrap(raw);
+    Object.entries(obj).forEach(([k, v]) => {
+      if (typeof v === "string" || typeof v === "number") result[k] = String(v);
+    });
+  }
+  return { raw: result };
+}
+
+export async function upsertAdminSetting(
+  key: string,
+  value: string
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.settingsUpsert, { key, value });
+}
+
+export async function upsertManyAdminSettings(
+  pairs: { key: string; value: string }[]
+): Promise<void> {
+  const body: Record<string, string> = {};
+  pairs.forEach(({ key, value }, idx) => {
+    body[`settings[${idx}][key]`] = key;
+    body[`settings[${idx}][value]`] = value;
+  });
+  await api.post<unknown>(endpoints.admin.settingsUpsertMany, body);
+}
+
+export async function fetchAdminPrivacyPolicy(): Promise<string> {
+  const raw = await api.get<unknown>(endpoints.admin.settingsPrivacyPolicy);
+  const obj = unwrap(raw);
+  return str(obj, "privacy_policy", "content", "value") ?? "";
+}
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+export interface AdminSubscription {
+  id: string;
+  userName?: string;
+  userEmail?: string;
+  package?: string;
+  packageId?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  daysRemaining?: number;
+  price?: number;
+  createdAt?: string;
+}
+
+function mapSubscription(s: RawObject): AdminSubscription {
+  const user = (s.user ?? s.customer) as RawObject | undefined;
+  const pkg = s.package as RawObject | undefined;
+  return {
+    id: id(s),
+    userName:
+      (user && str(user, "name_en", "name")) ??
+      str(s, "user_name", "customer_name"),
+    userEmail: (user && str(user, "email")) ?? str(s, "user_email"),
+    package: (pkg && str(pkg, "name_en", "name")) ?? str(s, "package_name"),
+    packageId: (pkg && id(pkg)) ?? str(s, "package_id"),
+    status: str(s, "status"),
+    startDate: str(s, "start_date", "starts_at"),
+    endDate: str(s, "end_date", "ends_at"),
+    daysRemaining: num(s, "days_remaining"),
+    price: num(s, "price", "amount"),
+    createdAt: str(s, "created_at"),
+  };
+}
+
+export async function fetchAdminSubscriptions(): Promise<AdminSubscription[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.subscriptions)).map(
+    mapSubscription
+  );
+}
+
+export async function fetchAdminActiveSubscriptions(): Promise<
+  AdminSubscription[]
+> {
+  return unwrapArray(
+    await api.get<unknown>(endpoints.admin.subscriptionsActive)
+  ).map(mapSubscription);
+}
+
+export async function fetchAdminSubscriptionSingle(
+  subId: string | number
+): Promise<AdminSubscription> {
+  return mapSubscription(
+    unwrap(
+      await api.get<unknown>(endpoints.admin.subscriptionSingle, {
+        query: { id: subId },
+      })
+    )
+  );
+}
+
+// ─── Countries ────────────────────────────────────────────────────────────────
+
+export interface AdminCountry {
+  id: string;
+  nameAr?: string;
+  nameEn?: string;
+  code?: string;
+}
+
+function mapCountry(c: RawObject): AdminCountry {
+  return {
+    id: id(c),
+    nameAr: str(c, "name_ar"),
+    nameEn: str(c, "name_en", "name"),
+    code: str(c, "code"),
+  };
+}
+
+export async function fetchAdminCountries(): Promise<AdminCountry[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.countries)).map(
+    mapCountry
+  );
+}
+
+export interface AdminCountryInput {
+  name_ar: string;
+  name_en: string;
+  code?: string;
+}
+
+export async function createAdminCountry(
+  input: AdminCountryInput
+): Promise<AdminCountry> {
+  return mapCountry(
+    unwrap(await api.post<unknown>(endpoints.admin.countryCreate, input))
+  );
+}
+
+export async function updateAdminCountry(
+  cid: string | number,
+  input: Partial<AdminCountryInput>
+): Promise<AdminCountry> {
+  return mapCountry(
+    unwrap(
+      await api.put<unknown>(
+        (endpoints.admin.countryUpdate as (id: string | number) => string)(cid),
+        input
+      )
+    )
+  );
+}
+
+export async function deleteAdminCountry(cid: string | number): Promise<void> {
+  await api.delete<unknown>(
+    (endpoints.admin.countryDelete as (id: string | number) => string)(cid)
+  );
+}
+
+// ─── Cities ───────────────────────────────────────────────────────────────────
+
+export interface AdminCity {
+  id: string;
+  nameAr?: string;
+  nameEn?: string;
+  countryId?: string;
+  countryName?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+function mapCity(c: RawObject): AdminCity {
+  const country = c.country as RawObject | undefined;
+  return {
+    id: id(c),
+    nameAr: str(c, "name_ar"),
+    nameEn: str(c, "name_en", "name"),
+    countryId: str(c, "country_id") ?? (country && id(country)),
+    countryName:
+      (country && str(country, "name_en", "name")) ?? str(c, "country_name"),
+    latitude: num(c, "latitude"),
+    longitude: num(c, "longitude"),
+  };
+}
+
+export async function fetchAdminCities(
+  countryId?: string | number
+): Promise<AdminCity[]> {
+  const query = countryId ? { country_id: countryId } : undefined;
+  return unwrapArray(
+    await api.get<unknown>(endpoints.admin.cities, { query })
+  ).map(mapCity);
+}
+
+export interface AdminCityInput {
+  country_id: string | number;
+  name_ar: string;
+  name_en: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export async function createAdminCity(
+  input: AdminCityInput
+): Promise<AdminCity> {
+  return mapCity(
+    unwrap(await api.post<unknown>(endpoints.admin.cityCreate, input))
+  );
+}
+
+export async function updateAdminCity(
+  cityId: string | number,
+  input: Partial<AdminCityInput>
+): Promise<AdminCity> {
+  return mapCity(
+    unwrap(
+      await api.put<unknown>(
+        (endpoints.admin.cityUpdate as (id: string | number) => string)(cityId),
+        input
+      )
+    )
+  );
+}
+
+export async function deleteAdminCity(cityId: string | number): Promise<void> {
+  await api.delete<unknown>(
+    (endpoints.admin.cityDelete as (id: string | number) => string)(cityId)
+  );
 }

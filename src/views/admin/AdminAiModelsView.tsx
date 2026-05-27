@@ -36,33 +36,10 @@ import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminAiModel, fetchAdminAiModels } from "@/services/adminService";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import { AdminAiModel, fetchAdminAiModels, createAdminAiModel, updateAdminAiModel, deleteAdminAiModel } from "@/services/adminService";
 
 // ─── CRUD helpers ──────────────────────────────────────────────────────────────
-async function createAiModel(input: {
-  name: string;
-  version?: string;
-  model_path?: string;
-  status?: string;
-}) {
-  return api.post(endpoints.admin.aiModelCreate, input);
-}
-
-async function updateAiModel(
-  input: { id: string } & Partial<{
-    name: string;
-    version?: string;
-    model_path?: string;
-    status?: string;
-  }>
-) {
-  return api.post(endpoints.admin.aiModelUpdate, input);
-}
-
-async function deleteAiModel(id: string) {
-  return api.post(endpoints.admin.aiModelDelete, { id });
+);
 }
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
@@ -97,14 +74,13 @@ function AiModelDialog({
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateAiModel({
-            id: model!.id,
-            name,
+        ? updateAdminAiModel(model!.id, {
+                        name,
             version: version || undefined,
             model_path: modelPath || undefined,
             status,
           })
-        : createAiModel({
+        : createAdminAiModel({
             name,
             version: version || undefined,
             model_path: modelPath || undefined,
@@ -235,7 +211,7 @@ export default function AdminAiModelsView() {
   }, [models, debouncedSearch]);
 
   const delMut = useMutation({
-    mutationFn: (id: string) => deleteAiModel(id),
+    mutationFn: (id: string) => deleteAdminAiModel(id),
     onSuccess: () => {
       toast.success("AI model deleted");
       qc.invalidateQueries({ queryKey: ["admin", "aiModels"] });

@@ -2,7 +2,15 @@
 
 import * as React from "react";
 
-import { clearAuthAndRedirect, setAuthToken, getAuthToken } from "@/lib/api";
+import {
+  clearAuthAndRedirect,
+  setAuthToken,
+  getAuthToken,
+  setAuthRole,
+  getAuthRole,
+  setStoredUser,
+  getStoredUser,
+} from "@/lib/api";
 import {
   loginRequest,
   registerRequest,
@@ -22,7 +30,11 @@ import {
 export interface AuthUser {
   id: string;
   name: string;
+  nameAr?: string;
+  nameEn?: string;
   email: string;
+  phone?: string;
+  avatar?: string;
   role: "admin" | "user";
   permissions: string[];
 }
@@ -37,7 +49,7 @@ interface AuthState {
     email: string,
     password: string,
     rememberMe?: boolean
-  ) => Promise<void>;
+  ) => Promise<{ isAdmin: boolean }>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -75,18 +87,26 @@ function collectFromRoles(roles: AuthUserRaw["roles"]): {
 
 function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
   const email = raw?.email ?? fallbackEmail ?? "";
-  const name =
-    raw?.name ??
-    raw?.full_name ??
+
+  // Prefer name_en for display, fall back to name_ar, then name, then email-derived
+  const nameEn = raw?.name_en ?? raw?.name ?? raw?.full_name;
+  const nameAr = raw?.name_ar;
+  const displayName =
+    nameEn ??
+    nameAr ??
     (email ? email.split("@")[0].replace(/[._-]/g, " ") : "User");
+
   const fromRoles = collectFromRoles(raw?.roles);
   const directPerms = normalisePermissions(raw?.permissions);
   const permissions = Array.from(
     new Set([...directPerms, ...fromRoles.perms].map((p) => p.toLowerCase()))
   );
-  // Platform admin only — `type: "admin"` or role `rgeeb admin`.
-  // "super admin" is a tenant-level role (regular customer account) and must
-  // NOT be treated as platform admin.
+
+  // Admin detection:
+  //  1. type === "admin"          — direct field in login response
+  //  2. role name === "rgeeb admin"
+  //  3. any permission starts with "admin."
+  // "super admin" is a tenant-level role — NOT a platform admin.
   const typeLower = String(
     (raw as { type?: string })?.type ?? ""
   ).toLowerCase();
@@ -96,59 +116,104 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
   ];
   const isAdminRole =
     typeLower === "admin" ||
-    roleNamesLower.some((r) => ["rgeeb admin"].includes(r)) ||
+    roleNamesLower.some((r) => r === "rgeeb admin") ||
     permissions.some((p) => p.startsWith("admin."));
+
   return {
     id: String(raw?.id ?? raw?.uuid ?? crypto.randomUUID()),
     email,
-    name: name ? name.charAt(0).toUpperCase() + name.slice(1) : "User",
+    name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+    nameAr: nameAr || undefined,
+    nameEn: nameEn || undefined,
+    phone: raw?.phone ?? undefined,
+    avatar: raw?.avatar ?? undefined,
     role: isAdminRole ? "admin" : "user",
     permissions,
   };
 }
 
 function readStored(): AuthUser | null {
-  // User profile is now fetched from the backend endpoint on mount.
-  // No local storage persistence needed — httpOnly cookies handle auth.
-  return null;
+  return getStoredUser<AuthUser>();
 }
 
 function persistUser(next: AuthUser | null) {
-  // User profile persistence is now handled in React state only.
-  // No localStorage needed — tokens are in httpOnly cookies.
+  setStoredUser(next);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<AuthUser | null>(null);
-  // Start loading=true only if we have a token to validate.
-  // If no token, we know immediately the user is unauthenticated.
+  // Initialise synchronously from storage so the first render of any
+  // consumer already has the correct auth state — prevents a redirect
+  // flash to /login immediately after login() navigates to the dashboard.
+  const [user, setUser] = React.useState<AuthUser | null>(() => {
+    if (typeof window === "undefined") return null;
+    return readStored();
+  });
+
+  // isLoading = true only when a token exists but no stored user yet,
+  // meaning we still need to fetch/validate before rendering protected pages.
   const [isLoading, setIsLoading] = React.useState(() => {
     if (typeof window === "undefined") return false;
-    return !!(
+    const hasToken = !!(
       window.localStorage.getItem("app.auth.token") ||
       window.sessionStorage.getItem("app.auth.token")
     );
+    const hasStoredUser = !!(
+      window.localStorage.getItem("app.auth.user") ||
+      window.sessionStorage.getItem("app.auth.user")
+    );
+    return hasToken && !hasStoredUser;
   });
 
   React.useEffect(() => {
-    // On mount: only fetch profile if we have a stored token.
-    // This avoids an unnecessary /customer/profile 401 on every page load
-    // when the user is not logged in.
     (async () => {
       try {
         const token = getAuthToken();
-        if (!token) return; // no token → skip, stay unauthenticated
+        if (!token) {
+          // No token — ensure we're fully unauthenticated.
+          setIsLoading(false);
+          return;
+        }
+
+        // If user was already restored from storage (synchronous init above),
+        // just do a silent background re-validation for regular users.
+        if (user) {
+          setIsLoading(false);
+          if (user.role !== "admin") {
+            // Background refresh — don't block rendering.
+            fetchProfileRequest()
+              .then((raw) => {
+                if (raw) applyUser(toAuthUser(raw, user.email));
+              })
+              .catch(() => {
+                /* stored user remains valid */
+              });
+          }
+          return;
+        }
+
+        // Token exists but no stored user (fresh tab / storage cleared).
+        const storedRole = getAuthRole();
+        if (storedRole === "admin") {
+          // Admin — no /customer/profile endpoint, stay authenticated.
+          setIsLoading(false);
+          return;
+        }
+
+        // Regular user — fetch profile to hydrate the session.
         const raw = await fetchProfileRequest();
         if (raw) {
-          setUser(toAuthUser(raw));
+          const resolved = toAuthUser(raw);
+          setAuthRole(resolved.role);
+          applyUser(resolved);
         }
       } catch {
-        // Token expired or invalid — clear it so next mount skips the fetch
         setAuthToken(null);
+        persistUser(null);
       } finally {
         setIsLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const applyUser = (next: AuthUser | null) => {
@@ -169,21 +234,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       rememberMe
     );
     if (token) setAuthToken(token, rememberMe);
-    let resolved = rawUser;
-    // Admin accounts don't have a /customer/profile endpoint — use the
-    // user object returned from login directly. Only fetch profile for
-    // non-admin (customer) accounts where the profile endpoint exists.
-    const provisionalUser = toAuthUser(resolved, email);
-    if (!resolved && provisionalUser.role !== "admin") {
-      resolved = await fetchProfileRequest();
+
+    // Determine admin from the raw login response directly.
+    // We check both the `type` field and the provisional role so either
+    // signal is sufficient — no API call needed for admins.
+    const rawType = String(
+      (rawUser as { type?: string })?.type ?? ""
+    ).toLowerCase();
+    const provisional = toAuthUser(rawUser, email);
+    const isAdminUser = rawType === "admin" || provisional.role === "admin";
+
+    let resolved: AuthUserRaw | null = rawUser ?? null;
+
+    if (!isAdminUser) {
+      // Regular customer — fetch full profile to get roles, subscription etc.
+      const profile = await fetchProfileRequest();
+      if (profile) resolved = profile;
     }
-    applyUser(toAuthUser(resolved, email));
+
+    const finalUser = toAuthUser(resolved, email);
+    setAuthRole(finalUser.role); // persist so mount effect skips wrong profile call on refresh
+    applyUser(finalUser);
+    return { isAdmin: finalUser.role === "admin" };
   };
 
   const register: AuthState["register"] = async (payload) => {
     const { user: rawUser } = await registerRequest(payload);
     const resolved = rawUser ?? (await fetchProfileRequest());
-    applyUser(toAuthUser(resolved, payload.email));
+    const finalUser = toAuthUser(resolved, payload.email);
+    setAuthRole(finalUser.role); // always "user" for new registrations
+    applyUser(finalUser);
   };
 
   const logout: AuthState["logout"] = async () => {
@@ -198,6 +278,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshProfile = async () => {
+    // Admin accounts don't have a /customer/profile endpoint — skip.
+    if (user?.role === "admin") return;
     const raw = await fetchProfileRequest();
     if (raw) applyUser(toAuthUser(raw, user?.email));
   };

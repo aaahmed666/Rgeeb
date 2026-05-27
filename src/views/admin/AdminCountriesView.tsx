@@ -33,8 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import { fetchAdminCountries, createAdminCountry, updateAdminCountry, deleteAdminCountry } from "@/services/adminService";
 
 interface Country {
   id: string;
@@ -81,7 +80,7 @@ export default function AdminCountriesView() {
   const q = useQuery({
     queryKey: ["admin", "countries"],
     queryFn: async () =>
-      listFrom(await api.get(endpoints.admin.countries)).map(mapCountry),
+      fetchAdminCountries(),
   });
 
   const filtered = React.useMemo(() => {
@@ -97,7 +96,7 @@ export default function AdminCountriesView() {
     mutationFn: async (data: typeof form) => {
       if (editing)
         return api.put(endpoints.admin.countryUpdate(editing.id), data);
-      return api.post(endpoints.admin.countryCreate, data);
+      return createAdminCountry(data as any);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "countries"] });

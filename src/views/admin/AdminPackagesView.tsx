@@ -44,38 +44,11 @@ import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminPackage, fetchAdminPackages } from "@/services/adminService";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import { AdminPackage, fetchAdminPackages, createAdminPackage, updateAdminPackage, deleteAdminPackage } from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── CRUD helpers ──────────────────────────────────────────────────────────────
-async function createPackage(input: {
-  name_ar: string;
-  name_en: string;
-  description?: string;
-  price?: string | number;
-  duration?: string;
-  status?: string;
-}) {
-  return api.post(endpoints.admin.packageCreate, input);
-}
-
-async function updatePackage(
-  input: { id: string } & Partial<{
-    name_ar: string;
-    name_en: string;
-    description?: string;
-    price?: string | number;
-    duration?: string;
-    status?: string;
-  }>
-) {
-  return api.post(endpoints.admin.packageUpdate, input);
-}
-
-async function deletePackage(id: string) {
-  return api.post(endpoints.admin.packageDelete, { id });
+);
 }
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
@@ -114,16 +87,15 @@ function PackageDialog({
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updatePackage({
-            id: pkg!.id,
-            name_ar: nameAr,
+        ? updateAdminPackage(pkg!.id, {
+                        name_ar: nameAr,
             name_en: nameEn,
             description,
             price: price ? Number(price) : undefined,
             duration,
             status,
           })
-        : createPackage({
+        : createAdminPackage({
             name_ar: nameAr,
             name_en: nameEn,
             description,
@@ -278,7 +250,7 @@ export default function AdminPackagesView() {
   }, [packages, search]);
 
   const delMut = useMutation({
-    mutationFn: (id: string) => deletePackage(id),
+    mutationFn: (id: string) => deleteAdminPackage(id),
     onSuccess: () => {
       toast.success("Package deleted");
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });

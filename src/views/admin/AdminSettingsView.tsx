@@ -19,22 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { fetchAdminSettings } from "@/services/adminService";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import { fetchAdminSettings, upsertManyAdminSettings } from "@/services/adminService";
 
-// ─── Save helper — uses POST /admin/settings/upsert-many ──────────────────────
-// Payload shape: settings[0][key]=..., settings[0][value]=...
-async function upsertManySettings(pairs: { key: string; value: string }[]) {
-  // Build as a plain object so api.post serialises it correctly.
-  // FormData encoding: settings[0][key]=..., settings[0][value]=...
-  const payload: Record<string, string> = {};
-  pairs.forEach(({ key, value }, i) => {
-    payload[`settings[${i}][key]`] = key;
-    payload[`settings[${i}][value]`] = value;
-  });
-  return api.post(endpoints.admin.settingsUpsertMany, payload);
-}
 
 // ─── Field wrapper ─────────────────────────────────────────────────────────────
 function Field({
@@ -120,7 +106,7 @@ export default function AdminSettingsView() {
 
   const mut = useMutation({
     mutationFn: (pairs: { key: string; value: string }[]) =>
-      upsertManySettings(pairs),
+      upsertManyAdminSettings(pairs),
     onSuccess: () => {
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["admin", "settings"] });

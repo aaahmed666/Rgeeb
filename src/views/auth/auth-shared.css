@@ -1,0 +1,688 @@
+/* ─── auth-shared.css ────────────────────────────────────────────────────────
+   Shared keyframes, layout, base component classes used by ALL auth pages.
+   Each page also imports its own auth-<page>.css for page-specific rules.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800&display=swap");
+
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
+
+@keyframes authCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes authPageSwitch {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes authShieldFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes authGlow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes authBadgePop {
+  from {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes authShimmer {
+  to {
+    left: 150%;
+  }
+}
+
+@keyframes authSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes authPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes authSuccessRing {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes authShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+/* ── Staggered entrance blocks ─────────────────────────────────────────────── */
+
+.auth-card {
+  animation: authCardIn 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.auth-page {
+  animation: authPageSwitch 0.35s ease both;
+}
+.auth-shield {
+  animation: authShieldFloat 4s ease-in-out infinite;
+}
+.auth-glow-orb {
+  animation: authGlow 6s ease-in-out infinite;
+}
+
+.auth-b0 {
+  animation: authFadeUp 0.55s 0.05s both;
+}
+.auth-b1 {
+  animation: authFadeUp 0.55s 0.1s both;
+}
+.auth-b2 {
+  animation: authFadeUp 0.55s 0.15s both;
+}
+.auth-b3 {
+  animation: authFadeUp 0.55s 0.2s both;
+}
+.auth-b4 {
+  animation: authFadeUp 0.55s 0.25s both;
+}
+.auth-b5 {
+  animation: authFadeUp 0.55s 0.3s both;
+}
+.auth-b6 {
+  animation: authFadeUp 0.55s 0.35s both;
+}
+.auth-b7 {
+  animation: authFadeUp 0.55s 0.4s both;
+}
+.auth-b8 {
+  animation: authFadeUp 0.55s 0.45s both;
+}
+
+.auth-badge1 {
+  animation: authBadgePop 0.45s 0.75s both;
+}
+.auth-badge2 {
+  animation: authBadgePop 0.45s 0.85s both;
+}
+.auth-badge3 {
+  animation: authBadgePop 0.45s 0.95s both;
+}
+
+/* ── Page wrapper ──────────────────────────────────────────────────────────── */
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.35s ease;
+}
+
+.auth-bg-dots {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(249, 115, 22, 0.05) 1px,
+    transparent 0
+  );
+  background-size: 40px 40px;
+}
+
+/* ── Split-card layout (login / register / forgot) ─────────────────────────── */
+
+.auth-card-inner {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  width: 100%;
+  max-width: 980px;
+  min-height: 620px;
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.auth-left {
+  flex: 0 0 44%;
+  background: linear-gradient(160deg, #243552 0%, #263450 45%, #1c2d45 100%);
+  padding: 44px 40px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-left-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.04) 1px,
+    transparent 0
+  );
+  background-size: 32px 32px;
+}
+
+.auth-left-glow {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(249, 115, 22, 0.14) 0%,
+    transparent 65%
+  );
+  bottom: -80px;
+  right: -80px;
+  pointer-events: none;
+}
+
+.auth-right {
+  flex: 1;
+  padding: 52px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.35s ease;
+}
+
+.auth-right-accent {
+  position: absolute;
+  top: -60px;
+  width: 200px;
+  height: 200px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(249, 115, 22, 0.06) 0%,
+    transparent 70%
+  );
+}
+
+/* ── Single-card layout (check-email / otp / reset-password) ───────────────── */
+
+.auth-single-card {
+  width: 100%;
+  max-width: 460px;
+  border-radius: 28px;
+  padding: 48px 44px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.35s ease;
+}
+
+.auth-single-card-corner {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(249, 115, 22, 0.07) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.auth-accent-stripe {
+  height: 4px;
+  background: linear-gradient(90deg, #f97316, #ea580c, #f97316);
+}
+
+/* ── Inputs ────────────────────────────────────────────────────────────────── */
+
+.auth-input {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+}
+
+.auth-input:focus {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18) !important;
+}
+
+.auth-input-err:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
+}
+
+.auth-input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon {
+  position: absolute;
+  display: flex;
+  pointer-events: none;
+  color: #9ca3af;
+}
+
+/* ── OTP digits ────────────────────────────────────────────────────────────── */
+
+.auth-otp-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  direction: ltr;
+}
+
+.auth-otp-input {
+  width: 54px;
+  height: 64px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: inherit;
+  border-radius: 14px;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s;
+  caret-color: #f97316;
+}
+
+.auth-otp-input:focus {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18) !important;
+}
+
+.auth-otp-shake {
+  animation: authShake 0.4s ease;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+
+.auth-btn-primary {
+  position: relative;
+  overflow: hidden;
+  height: 54px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.38);
+  cursor: pointer;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    opacity 0.22s ease;
+  text-decoration: none;
+}
+
+.auth-btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+}
+
+.auth-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(249, 115, 22, 0.52) !important;
+}
+
+.auth-btn-primary:hover:not(:disabled)::before {
+  animation: authShimmer 0.55s forwards;
+}
+
+.auth-btn-primary:active {
+  transform: translateY(0);
+}
+
+.auth-btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.auth-btn-outline {
+  border-radius: 12px;
+  background: transparent;
+  font-size: 14.5px;
+  font-weight: 600;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    background 0.2s;
+}
+
+.auth-btn-outline:hover {
+  border-color: #f97316 !important;
+  color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.05) !important;
+}
+
+.auth-social-btn {
+  flex: 1;
+  height: 50px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.auth-social-btn:hover {
+  border-color: #f97316 !important;
+  color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.05) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.12);
+}
+
+/* ── Icon buttons ──────────────────────────────────────────────────────────── */
+
+.auth-pw-toggle {
+  position: absolute;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  padding: 6px;
+  border-radius: 8px;
+  color: #9ca3af;
+  transition:
+    color 0.2s,
+    background 0.2s;
+}
+
+.auth-pw-toggle:hover {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.auth-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.auth-back-btn:hover {
+  background: rgba(249, 115, 22, 0.08);
+  color: #f97316 !important;
+}
+
+.auth-resend-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13.5px;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.auth-resend-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+/* ── Checkbox ──────────────────────────────────────────────────────────────── */
+
+.auth-check-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+/* ── Top bar ───────────────────────────────────────────────────────────────── */
+
+.auth-top-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 50px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
+}
+
+.auth-top-btn:hover {
+  background: rgba(249, 115, 22, 0.1);
+  color: #f97316 !important;
+}
+
+.auth-top-btn.active {
+  background: #f97316 !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.38);
+}
+
+/* ── Password strength bar ─────────────────────────────────────────────────── */
+
+.auth-strength-bar {
+  display: flex;
+  gap: 4px;
+  height: 3px;
+  margin-top: 8px;
+}
+
+.auth-strength-segment {
+  flex: 1;
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+
+/* ── Toast ─────────────────────────────────────────────────────────────────── */
+
+.auth-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  border-radius: 50px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+  z-index: 999;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Error message ─────────────────────────────────────────────────────────── */
+
+.auth-field-error {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.auth-general-error {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #ef4444;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 800px) {
+  .auth-card-inner {
+    flex-direction: column !important;
+    max-width: 440px !important;
+  }
+  .auth-left {
+    flex: none !important;
+  }
+  .auth-right {
+    padding: 32px 28px !important;
+  }
+  .auth-left-headline {
+    font-size: 28px !important;
+  }
+  .auth-badge2-hide {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-right {
+    padding: 24px 20px !important;
+  }
+  .auth-social-row {
+    flex-direction: column !important;
+  }
+}

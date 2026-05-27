@@ -1,15 +1,36 @@
 import type { Metadata } from "next";
-import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { AuthUIProvider } from "@/components/auth-context";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Admin dashboard with AI services",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon-light-32x32.png",
-  },
+  title: "RGEEB Dashboard",
+  description: "AI-powered security & analytics platform",
 };
+
+// Runs synchronously before first paint — reads localStorage and applies the
+// correct theme class to <html> so there is zero flash on load or refresh.
+const themeScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('app.theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var dark = stored === 'dark' || (!stored && prefersDark);
+    if (dark) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
+    }
+    var lang = localStorage.getItem('app.lang');
+    if (lang === 'ar') {
+      document.documentElement.lang = 'ar';
+      document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+})();
+`.trim();
 
 export default function RootLayout({
   children,
@@ -17,15 +38,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head suppressHydrationWarning>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&display=swap"
-        />
+    <html
+      lang="en"
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Blocking script — must be first in <head> before any CSS or paint */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AuthUIProvider>{children}</AuthUIProvider>
+        </Providers>
       </body>
     </html>
   );

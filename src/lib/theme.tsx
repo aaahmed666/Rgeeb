@@ -14,39 +14,49 @@ const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "app.theme";
 
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-  if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+/**
+ * Read the theme that the blocking inline script already applied to <html>.
+ * This never returns a "wrong" value because the script runs before React
+ * hydrates — so React's initial state always matches the DOM.
+ */
+function readAppliedTheme(): Theme {
+  if (typeof window === "undefined") return "light"; // SSR: default to light — matches no-class HTML default
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", theme === "dark");
+  root.style.colorScheme = theme;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, theme);
+  } catch {
+    /* */
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState<Theme>("light");
+  // Initialise from the DOM class that the blocking script already set —
+  // guaranteed to match, so no hydration mismatch and no post-paint flash.
+  const [theme, setThemeState] = React.useState<Theme>(readAppliedTheme);
 
-  React.useEffect(() => {
-    setThemeState(getInitialTheme());
+  const setTheme = React.useCallback((t: Theme) => {
+    setThemeState(t);
+    applyTheme(t);
   }, []);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
-    root.style.colorScheme = theme;
-    window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
 
   const value = React.useMemo<ThemeContextValue>(
     () => ({
       theme,
-      setTheme: setThemeState,
-      toggle: () => setThemeState((t) => (t === "dark" ? "light" : "dark")),
+      setTheme,
+      toggle: () => setTheme(theme === "dark" ? "light" : "dark"),
     }),
-    [theme],
+    [theme, setTheme]
   );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 export function useTheme() {

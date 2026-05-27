@@ -1,0 +1,458 @@
+/* ─── auth-register.css ───────────────────────────────────────────────────────
+   Styles specific to RegisterView (4-step registration flow).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Left panel ─────────────────────────────────────────────────────────────── */
+
+.register-left {
+  flex: 0 0 38%;
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, #243552 0%, #263450 45%, #1C2D45 100%);
+}
+
+.register-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.register-brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 17px;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(249,115,22,0.42);
+}
+
+.register-brand-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.register-brand-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.register-headline-wrap {
+  margin-top: 40px;
+  position: relative;
+  z-index: 2;
+}
+
+.register-headline {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+.register-headline-accent {
+  color: #F97316;
+  font-style: normal;
+}
+
+.register-headline-desc {
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.75;
+  max-width: 240px;
+}
+
+/* ── Step tracker ─────────────────────────────────────────────────────────── */
+
+.register-steps {
+  margin-top: 40px;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.register-step-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  margin-bottom: 6px;
+}
+
+.register-step-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.register-step-label {
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+
+.register-step-sub {
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.register-step-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #F97316;
+  box-shadow: 0 0 8px #F97316;
+  margin-left: auto;
+}
+
+/* ── Stats row ──────────────────────────────────────────────────────────────── */
+
+.register-stats {
+  display: flex;
+  gap: 22px;
+  position: relative;
+  z-index: 2;
+  margin-top: 28px;
+}
+
+.register-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #F97316;
+  letter-spacing: -0.5px;
+}
+
+.register-stat-label {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.38);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+/* ── Right panel progress bar ───────────────────────────────────────────────── */
+
+.register-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.register-progress-step-text {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.register-progress-pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: #F97316;
+}
+
+.register-progress-track {
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.register-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #F97316, #EA580C);
+  box-shadow: 0 2px 8px rgba(249,115,22,0.35);
+  transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ── Step content areas ─────────────────────────────────────────────────────── */
+
+.register-step-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+
+.register-step-subtitle {
+  font-size: 13.5px;
+  margin-top: 6px;
+}
+
+.register-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.register-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.register-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.register-input:focus {
+  border-color: #F97316 !important;
+  box-shadow: 0 0 0 4px rgba(249,115,22,0.18) !important;
+}
+
+.register-input-err:focus {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.14) !important;
+}
+
+.register-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='none' stroke='%239CA3AF' stroke-width='1.5'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px !important;
+  cursor: pointer;
+}
+
+.register-field-error {
+  font-size: 11.5px;
+  color: #EF4444;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.register-pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  padding: 5px;
+  border-radius: 7px;
+  color: #9CA3AF;
+  transition: color 0.2s, background 0.2s;
+}
+
+.register-pw-toggle:hover {
+  color: #F97316;
+  background: rgba(249,115,22,0.1);
+}
+
+/* ── Category cards ─────────────────────────────────────────────────────────── */
+
+.register-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.register-cat-card {
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.register-cat-card:hover {
+  border-color: #F97316 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(249,115,22,0.12) !important;
+}
+
+.register-cat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-cat-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.register-cat-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F97316;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+/* ── Verify step ────────────────────────────────────────────────────────────── */
+
+.register-verify-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-verify-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-otp-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  direction: ltr;
+}
+
+.register-otp-input {
+  width: 52px;
+  height: 60px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: inherit;
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  caret-color: #F97316;
+}
+
+.register-otp-input:focus {
+  border-color: #F97316 !important;
+  box-shadow: 0 0 0 4px rgba(249,115,22,0.18) !important;
+}
+
+.register-resend-row {
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* ── Package cards ──────────────────────────────────────────────────────────── */
+
+.register-packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.register-pkg-card {
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.register-pkg-card:hover {
+  border-color: #F97316 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(249,115,22,0.12) !important;
+}
+
+.register-pkg-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.register-pkg-desc {
+  font-size: 12px;
+  margin-top: 5px;
+  line-height: 1.55;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.register-pkg-price {
+  font-size: 24px;
+  font-weight: 800;
+  color: #F97316;
+  margin-top: 14px;
+}
+
+.register-pkg-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  transition: all 0.2s;
+}
+
+/* ── Navigation buttons ─────────────────────────────────────────────────────── */
+
+.register-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+}
+
+.register-signin-hint {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.register-signin-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #F97316;
+  text-decoration: none;
+}

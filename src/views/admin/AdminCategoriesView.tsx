@@ -36,32 +36,13 @@ import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminCategory, fetchAdminCategories } from "@/services/adminService";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import {
+  AdminCategory, fetchAdminCategories,
+  createAdminCategory, updateAdminCategory, deleteAdminCategory,
+  type AdminCategoryInput,
+} from "@/services/adminService";
 
-// CRUD helpers (POST-based, mirrors Postman collection)
-async function createCategory(input: {
-  name_ar: string;
-  name_en: string;
-  description?: string;
-  status?: string;
-}) {
-  return api.post(endpoints.admin.categoryCreate, input);
-}
-async function updateCategory(
-  input: { id: string } & Partial<{
-    name_ar: string;
-    name_en: string;
-    description?: string;
-    status?: string;
-  }>
-) {
-  return api.post(endpoints.admin.categoryUpdate, input);
-}
-async function deleteCategory(id: string) {
-  return api.post(endpoints.admin.categoryDelete, { id });
-}
+
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
 function CategoryDialog({
@@ -95,19 +76,8 @@ function CategoryDialog({
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateCategory({
-            id: category!.id,
-            name_ar: nameAr,
-            name_en: nameEn,
-            description: desc,
-            status,
-          })
-        : createCategory({
-            name_ar: nameAr,
-            name_en: nameEn,
-            description: desc,
-            status,
-          }),
+        ? updateAdminCategory(category!.id, { name_ar: nameAr, name_en: nameEn, description: desc })
+        : createAdminCategory({ name_ar: nameAr, name_en: nameEn, description: desc }),
     onSuccess: () => {
       toast.success(
         isEdit
@@ -238,7 +208,7 @@ export default function AdminCategoriesView() {
   }, [categories, debouncedSearch]);
 
   const delMut = useMutation({
-    mutationFn: (id: string) => deleteCategory(id),
+    mutationFn: (id: string) => deleteAdminCategory(id),
     onSuccess: () => {
       toast.success(t("categories.deleted", "Category deleted"));
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });

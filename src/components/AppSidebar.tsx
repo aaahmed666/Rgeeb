@@ -149,8 +149,17 @@ export function AppSidebar() {
   const [openGroup, setOpenGroup] = React.useState<string | null>(null);
   const [openSubGroup, setOpenSubGroup] = React.useState<string | null>(null);
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+  const isActive = (href: string) => {
+    // Root dashboard items (/dashboard and /dashboard/admin) must be exact-match
+    // only — otherwise every sub-page would keep "Dashboard" highlighted.
+    const isRootDashboard =
+      href === "/dashboard" || href === "/dashboard/admin";
+    return isRootDashboard
+      ? pathname === href
+      : pathname === href ||
+          pathname.startsWith(href + "/") ||
+          pathname.startsWith(href + "?");
+  };
 
   const canSee = (item: LeafItem) =>
     !item.permission || hasPermission(item.permission);
@@ -172,7 +181,7 @@ export function AppSidebar() {
 
   const statistics: GroupItem[] = [
     {
-      href: "/dashboard",
+      href: isAdmin ? "/dashboard/admin" : "/dashboard",
       icon: LayoutDashboard,
       label: t("navigation.dashboard"),
     },

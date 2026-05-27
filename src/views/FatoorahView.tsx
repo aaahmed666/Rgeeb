@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
+import RegistrationFatoorahFlow from "@/components/RegistrationFatoorahFlow";
 
 /* ------------------------------------------------------------------ */
 /* Service calls                                                        */
@@ -28,7 +29,7 @@ interface FatoorahStatus {
 
 async function fetchFatoorahStatus(): Promise<FatoorahStatus> {
   try {
-    const res = await apiFetch<unknown>("/customer/fatoorah/status");
+    const res = await apiFetch<unknown>(endpoints.payment.fatoorahStatus);
     const obj = res as Record<string, unknown>;
     const data = (obj?.data ?? obj) as Record<string, unknown>;
     return {
@@ -52,7 +53,7 @@ async function linkFatoorah(payload: {
 }
 
 async function unlinkFatoorah(): Promise<void> {
-  await apiFetch("/customer/fatoorah/unlink", { method: "POST" });
+  await apiFetch(endpoints.payment.unlinkFatoorah, { method: "POST" });
 }
 
 /* ------------------------------------------------------------------ */
@@ -263,6 +264,9 @@ export default function FatoorahView() {
           </div>
         )}
       </div>
+
+      {/* Registration → Fatoorah flow diagram */}
+      <RegistrationFatoorahFlow />
     </div>
   );
 }

@@ -1,9 +1,8 @@
 "use client";
-
 /**
- * AsyncPaginatedSelect
- * Drop-in API-backed paginated select using react-select-async-paginate.
- * Pagination uses the proven pattern: pagination.current_page < pagination.total_pages
+ * AuthPaginatedSelect
+ * Paginated async select styled to match the auth page design system.
+ * Wraps AsyncPaginatedSelect with the orange/navy color tokens.
  */
 
 import * as React from "react";
@@ -11,8 +10,7 @@ import { AsyncPaginate } from "react-select-async-paginate";
 import type { LoadOptions } from "react-select-async-paginate";
 import type { GroupBase, StylesConfig, Theme } from "react-select";
 import { apiFetch } from "@/lib/api";
-
-// ─── types ────────────────────────────────────────────────────────────────────
+import { COLORS } from "@/components/auth-styles";
 
 export interface SelectOption {
   value: string;
@@ -24,44 +22,31 @@ interface Additional {
   page: number;
 }
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
 function unwrapList(raw: unknown): Record<string, unknown>[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw as Record<string, unknown>[];
   const r = raw as Record<string, unknown>;
-  // { data: { data: [...] } }
   if (r.data && typeof r.data === "object" && !Array.isArray(r.data)) {
     const inner = r.data as Record<string, unknown>;
     if (Array.isArray(inner.data))
       return inner.data as Record<string, unknown>[];
   }
-  // { data: [...] }
   if (Array.isArray(r.data)) return r.data as Record<string, unknown>[];
-  // { items: [...] }
   if (Array.isArray(r.items)) return r.items as Record<string, unknown>[];
   return [];
 }
 
-/**
- * Extract pagination info using the proven pattern from reference component:
- * json?.pagination || json?.data?.pagination
- * Returns { hasMore, nextPage }
- */
 function unwrapPagination(
   raw: unknown,
   currentPage: number
 ): { hasMore: boolean; nextPage: number } {
   const r = raw as Record<string, unknown>;
-
-  // rgeeb shape: { pagination: { current_page, total_pages, ... } }
   const pagination =
     (r?.pagination as Record<string, unknown> | undefined) ??
     ((r?.data as Record<string, unknown>)?.pagination as
       | Record<string, unknown>
       | undefined) ??
     (r?.meta as Record<string, unknown> | undefined);
-
   if (pagination) {
     const current = Number(
       pagination.current_page ?? pagination.currentPage ?? currentPage
@@ -72,16 +57,12 @@ function unwrapPagination(
         pagination.last_page ??
         1
     );
-    const hasMore = current < totalPages;
-    return { hasMore, nextPage: current + 1 };
+    return { hasMore: current < totalPages, nextPage: current + 1 };
   }
-
   return { hasMore: false, nextPage: currentPage + 1 };
 }
 
-// ─── component ────────────────────────────────────────────────────────────────
-
-export interface AsyncPaginatedSelectProps {
+export interface AuthPaginatedSelectProps {
   endpoint: string;
   labelKey?: string;
   valueKey?: string;
@@ -94,14 +75,12 @@ export interface AsyncPaginatedSelectProps {
   perPage?: number;
   debounceTimeout?: number;
   defaultOption?: SelectOption;
-  className?: string;
+  isDark: boolean;
+  hasError?: boolean;
   id?: string;
 }
 
-const PER_PAGE_DEFAULT = 20;
-const DEBOUNCE_DEFAULT = 350;
-
-export function AsyncPaginatedSelect({
+export function AuthPaginatedSelect({
   endpoint,
   labelKey = "name",
   valueKey = "id",
@@ -111,12 +90,13 @@ export function AsyncPaginatedSelect({
   isClearable = true,
   isDisabled = false,
   extraParams,
-  perPage = PER_PAGE_DEFAULT,
-  debounceTimeout = DEBOUNCE_DEFAULT,
+  perPage = 20,
+  debounceTimeout = 350,
   defaultOption,
-  className,
+  isDark,
+  hasError = false,
   id,
-}: AsyncPaginatedSelectProps) {
+}: AuthPaginatedSelectProps) {
   const [resolvedOption, setResolvedOption] =
     React.useState<SelectOption | null>(
       value && defaultOption ? defaultOption : null
@@ -131,9 +111,8 @@ export function AsyncPaginatedSelect({
     GroupBase<SelectOption>,
     Additional
   > = React.useCallback(
-    async (inputValue, _prevOptions, additional) => {
+    async (inputValue, _prev, additional) => {
       const page = additional?.page ?? 1;
-
       try {
         const raw = await apiFetch<unknown>(endpoint, {
           query: {
@@ -143,10 +122,8 @@ export function AsyncPaginatedSelect({
             ...extraParams,
           },
         });
-
         const list = unwrapList(raw);
         const { hasMore, nextPage } = unwrapPagination(raw, page);
-
         const options: SelectOption[] = list.map((item) => ({
           value: String(item[valueKey] ?? item.id ?? ""),
           label: String(
@@ -159,12 +136,7 @@ export function AsyncPaginatedSelect({
           ),
           raw: item,
         }));
-
-        return {
-          options,
-          hasMore,
-          additional: { page: nextPage },
-        };
+        return { options, hasMore, additional: { page: nextPage } };
       } catch {
         return { options: [], hasMore: false, additional: { page: 1 } };
       }
@@ -172,8 +144,6 @@ export function AsyncPaginatedSelect({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [endpoint, labelKey, valueKey, perPage, JSON.stringify(extraParams)]
   );
-
-  const selectedOption: SelectOption | null = resolvedOption ?? null;
 
   const handleChange = React.useCallback(
     (opt: SelectOption | null) => {
@@ -183,141 +153,161 @@ export function AsyncPaginatedSelect({
     [onChange]
   );
 
+  // ── Auth-themed styles ──
+  const borderColor = hasError
+    ? COLORS.red
+    : isDark
+      ? COLORS.borderDark
+      : COLORS.borderLight;
+  const focusBorderColor = hasError ? COLORS.red : COLORS.orange;
+  const focusShadow = hasError
+    ? "0 0 0 4px rgba(239,68,68,0.15)"
+    : "0 0 0 4px rgba(249,115,22,0.18)";
+
   const selectStyles: StylesConfig<SelectOption, false> = React.useMemo(
     () => ({
       control: (base, state) => ({
         ...base,
-        minHeight: 44,
-        height: 44,
-        borderRadius: "calc(var(--radius) - 2px)",
-        borderColor: state.isFocused
-          ? "hsl(var(--ring))"
-          : "hsl(var(--border))",
-        backgroundColor: "hsl(var(--card))",
-        boxShadow: state.isFocused
-          ? "0 0 0 2px hsl(var(--ring) / 0.3)"
-          : "none",
-        "&:hover": { borderColor: "hsl(var(--border))" },
-        fontSize: "0.875rem",
+        minHeight: 52,
+        height: 52,
+        borderRadius: 12,
+        borderColor: state.isFocused ? focusBorderColor : borderColor,
+        borderWidth: 2,
+        backgroundColor: isDark ? COLORS.inputDark : COLORS.inputLight,
+        boxShadow: state.isFocused ? focusShadow : "none",
+        "&:hover": {
+          borderColor: state.isFocused ? focusBorderColor : COLORS.orange,
+        },
+        fontSize: "14.5px",
+        fontFamily: "inherit",
+        transition: "border-color 0.2s, box-shadow 0.2s",
+        cursor: isDisabled ? "not-allowed" : "pointer",
+        opacity: isDisabled ? 0.6 : 1,
       }),
-      valueContainer: (base) => ({ ...base, padding: "0 10px" }),
-      indicatorsContainer: (base) => ({ ...base, height: 44 }),
+      valueContainer: (base) => ({ ...base, padding: "0 48px 0 16px" }),
+      indicatorsContainer: (base) => ({ ...base, height: 52 }),
       placeholder: (base) => ({
         ...base,
-        color: "hsl(var(--muted-foreground))",
-        fontSize: "0.875rem",
+        color: isDark ? COLORS.textDarkFaint : COLORS.textLightFaint,
+        fontSize: "14.5px",
+        fontWeight: 500,
       }),
       singleValue: (base) => ({
         ...base,
-        color: "hsl(var(--foreground))",
-        fontSize: "0.875rem",
+        color: isDark ? COLORS.textDark : COLORS.textLight,
+        fontSize: "14.5px",
+        fontWeight: 500,
       }),
       menu: (base) => ({
         ...base,
-        backgroundColor: "hsl(var(--card))",
-        border: "1px solid hsl(var(--border))",
-        borderRadius: "calc(var(--radius))",
-        boxShadow:
-          "0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        backgroundColor: isDark ? COLORS.cardDark : COLORS.bgCard,
+        border: `2px solid ${isDark ? COLORS.borderDarkSubtle : COLORS.borderLight}`,
+        borderRadius: 14,
+        boxShadow: isDark
+          ? "0 16px 40px rgba(0,0,0,0.5)"
+          : "0 8px 32px rgba(15,30,58,0.12)",
         zIndex: 9999,
-        fontSize: "0.875rem",
+        marginTop: 6,
+        overflow: "hidden",
       }),
-      menuPortal: (base) => ({
-        ...base,
-        zIndex: 9999,
-      }),
+      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
       menuList: (base) => ({
         ...base,
-        padding: "4px",
-        maxHeight: 300,
-        backgroundColor: "hsl(var(--card))",
+        padding: 6,
+        maxHeight: 280,
+        backgroundColor: isDark ? COLORS.cardDark : COLORS.bgCard,
       }),
       option: (base, state) => ({
         ...base,
-        borderRadius: "calc(var(--radius) - 2px)",
+        borderRadius: 10,
         backgroundColor: state.isSelected
-          ? "hsl(var(--primary))"
+          ? COLORS.orange
           : state.isFocused
-            ? "hsl(var(--accent))"
-            : "hsl(var(--card))",
+            ? isDark
+              ? "rgba(249,115,22,0.1)"
+              : "rgba(249,115,22,0.06)"
+            : "transparent",
         color: state.isSelected
-          ? "hsl(var(--primary-foreground))"
-          : "hsl(var(--foreground))",
+          ? "#fff"
+          : isDark
+            ? COLORS.textDark
+            : COLORS.textLight,
         cursor: "pointer",
-        "&:active": { backgroundColor: "hsl(var(--accent))" },
-        padding: "8px 10px",
-        fontSize: "0.875rem",
+        fontWeight: state.isSelected ? 600 : 500,
+        fontSize: "14px",
+        padding: "10px 12px",
+        transition: "background 0.15s",
+        "&:active": {
+          backgroundColor: isDark
+            ? "rgba(249,115,22,0.2)"
+            : "rgba(249,115,22,0.12)",
+        },
       }),
       input: (base) => ({
         ...base,
-        color: "hsl(var(--foreground))",
-        fontSize: "0.875rem",
+        color: isDark ? COLORS.textDark : COLORS.textLight,
+        fontSize: "14.5px",
+        fontWeight: 500,
       }),
       loadingMessage: (base) => ({
         ...base,
-        color: "hsl(var(--muted-foreground))",
-        fontSize: "0.875rem",
-        backgroundColor: "hsl(var(--card))",
+        color: isDark ? COLORS.textDarkMuted : COLORS.textLightMuted,
+        fontSize: "14px",
       }),
       noOptionsMessage: (base) => ({
         ...base,
-        color: "hsl(var(--muted-foreground))",
-        fontSize: "0.875rem",
-        backgroundColor: "hsl(var(--card))",
+        color: isDark ? COLORS.textDarkMuted : COLORS.textLightMuted,
+        fontSize: "14px",
       }),
       clearIndicator: (base) => ({
         ...base,
-        color: "hsl(var(--muted-foreground))",
+        color: isDark ? COLORS.textDarkMuted : COLORS.textLightFaint,
         padding: "0 4px",
-        "&:hover": { color: "hsl(var(--foreground))" },
+        "&:hover": { color: COLORS.orange },
       }),
       dropdownIndicator: (base) => ({
         ...base,
-        color: "hsl(var(--muted-foreground))",
-        padding: "0 6px",
-        "&:hover": { color: "hsl(var(--foreground))" },
+        color: isDark ? COLORS.textDarkMuted : COLORS.textLightFaint,
+        padding: "0 12px 0 4px",
+        "&:hover": { color: COLORS.orange },
       }),
-      indicatorSeparator: (base) => ({
-        ...base,
-        backgroundColor: "hsl(var(--border))",
-      }),
+      indicatorSeparator: () => ({ display: "none" }),
     }),
-    []
+    [isDark, borderColor, focusBorderColor, focusShadow, isDisabled]
   );
 
   const selectTheme = React.useCallback(
     (theme: Theme): Theme => ({
       ...theme,
-      borderRadius: 6,
+      borderRadius: 12,
       colors: {
         ...theme.colors,
-        primary: "hsl(var(--primary))",
-        primary75: "hsl(var(--primary) / 0.75)",
-        primary50: "hsl(var(--primary) / 0.5)",
-        primary25: "hsl(var(--primary) / 0.25)",
-        danger: "hsl(var(--destructive))",
-        dangerLight: "hsl(var(--destructive) / 0.2)",
-        neutral0: "hsl(var(--card))",
-        neutral5: "hsl(var(--muted))",
-        neutral10: "hsl(var(--muted))",
-        neutral20: "hsl(var(--border))",
-        neutral30: "hsl(var(--border))",
-        neutral40: "hsl(var(--muted-foreground))",
-        neutral50: "hsl(var(--muted-foreground))",
-        neutral60: "hsl(var(--muted-foreground))",
-        neutral70: "hsl(var(--foreground))",
-        neutral80: "hsl(var(--foreground))",
-        neutral90: "hsl(var(--foreground))",
+        primary: COLORS.orange,
+        primary75: "rgba(249,115,22,0.75)",
+        primary50: "rgba(249,115,22,0.5)",
+        primary25: "rgba(249,115,22,0.25)",
+        danger: COLORS.red,
+        dangerLight: "rgba(239,68,68,0.2)",
+        neutral0: isDark ? COLORS.cardDark : COLORS.bgCard,
+        neutral5: isDark ? COLORS.inputDark : COLORS.inputLight,
+        neutral10: isDark ? COLORS.borderDarkSubtle : COLORS.borderLight,
+        neutral20: isDark ? COLORS.borderDark : COLORS.borderLight,
+        neutral30: isDark ? COLORS.borderDark : "#D1D5DB",
+        neutral40: isDark ? COLORS.textDarkMuted : COLORS.textLightFaint,
+        neutral50: isDark ? COLORS.textDarkMuted : COLORS.textLightFaint,
+        neutral60: isDark ? COLORS.textDarkBorder : COLORS.textLightMuted,
+        neutral70: isDark ? COLORS.textDark : COLORS.textLight,
+        neutral80: isDark ? COLORS.textDark : COLORS.textLight,
+        neutral90: isDark ? COLORS.textDark : COLORS.textLight,
       },
     }),
-    []
+    [isDark]
   );
 
   return (
     <AsyncPaginate
       inputId={id}
-      className={className}
-      value={selectedOption}
+      value={resolvedOption}
       onChange={handleChange}
       loadOptions={loadOptions}
       additional={{ page: 1 }}
@@ -339,57 +329,4 @@ export function AsyncPaginatedSelect({
   );
 }
 
-// ─── createPaginatedLoader ────────────────────────────────────────────────────
-
-export function createPaginatedLoader(
-  endpoint: string,
-  opts: {
-    labelKey?: string;
-    valueKey?: string;
-    perPage?: number;
-    extraParams?: Record<string, string | number | boolean | undefined>;
-  } = {}
-): LoadOptions<SelectOption, GroupBase<SelectOption>, Additional> {
-  const {
-    labelKey = "name",
-    valueKey = "id",
-    perPage = 20,
-    extraParams,
-  } = opts;
-
-  return async (inputValue, _prev, additional) => {
-    const page = additional?.page ?? 1;
-    try {
-      const raw = await apiFetch<unknown>(endpoint, {
-        query: {
-          page,
-          per_page: perPage,
-          ...(inputValue ? { keyword: inputValue } : {}),
-          ...extraParams,
-        },
-      });
-
-      const list = unwrapList(raw);
-      const { hasMore, nextPage } = unwrapPagination(raw, page);
-
-      const options: SelectOption[] = list.map((item) => ({
-        value: String(item[valueKey] ?? item.id ?? ""),
-        label: String(
-          item[labelKey] ??
-            item.name ??
-            item.name_en ??
-            item.title ??
-            item[valueKey] ??
-            ""
-        ),
-        raw: item,
-      }));
-
-      return { options, hasMore, additional: { page: nextPage } };
-    } catch {
-      return { options: [], hasMore: false, additional: { page: 1 } };
-    }
-  };
-}
-
-export default AsyncPaginatedSelect;
+export default AuthPaginatedSelect;

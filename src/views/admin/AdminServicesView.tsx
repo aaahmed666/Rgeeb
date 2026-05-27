@@ -43,34 +43,11 @@ import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminService, fetchAdminServices } from "@/services/adminService";
-import { api } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
+import { AdminService, fetchAdminServices, createAdminService, updateAdminService, deleteAdminService } from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── CRUD helpers (POST-based, mirrors Postman collection) ─────────────────────
-async function createService(input: {
-  name: string;
-  description?: string;
-  price?: string | number;
-  status?: string;
-}) {
-  return api.post(endpoints.admin.serviceCreate, input);
-}
-
-async function updateService(
-  input: { id: string } & Partial<{
-    name: string;
-    description?: string;
-    price?: string | number;
-    status?: string;
-  }>
-) {
-  return api.post(endpoints.admin.serviceUpdate, input);
-}
-
-async function deleteService(id: string) {
-  return api.post(endpoints.admin.serviceDelete, { id });
+);
 }
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
@@ -108,14 +85,13 @@ function ServiceDialog({
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateService({
-            id: service!.id,
-            name,
+        ? updateAdminService(service!.id, {
+                        name,
             description,
             price: price ? Number(price) : undefined,
             status,
           })
-        : createService({
+        : createAdminService({
             name,
             description,
             price: price ? Number(price) : undefined,
@@ -249,7 +225,7 @@ export default function AdminServicesView() {
   }, [services, debouncedSearch]);
 
   const delMut = useMutation({
-    mutationFn: (id: string) => deleteService(id),
+    mutationFn: (id: string) => deleteAdminService(id),
     onSuccess: () => {
       toast.success("Service deleted");
       qc.invalidateQueries({ queryKey: ["admin", "services"] });

@@ -9,12 +9,16 @@ export const endpoints = {
     login: "/login",
     register: "/customer/register",
     sendOtp: "/customer/email/send-otp",
-    forgotPassword: "/password/email",
-    resetPassword: "/password/reset",
+    // Forgot & reset password: the API uses OTP-based flow
+    // Step 1: POST /customer/email/send-otp { email }
+    // Step 2: Verify OTP at /otp page
+    // Step 3: POST /customer/profile/update { password, password_confirmation }
+    forgotPassword: "/customer/email/send-otp",
+    resetPassword: "/customer/profile/update",
     refresh: "/auth/refresh",
     logout: "/customer/logout", // customer logout
     adminLogout: "/admin/logout", // admin logout
-    face: "/face-login",
+    face: "/customer/face-login", // POST /customer/face-login (image)
     profile: "/customer/profile",
     updateProfile: "/customer/profile/update",
     updateClient: "/customer/client/update",
@@ -232,7 +236,11 @@ export const endpoints = {
     availableServices: "/customer/services",
   },
   admin: {
-    dashboardStats: "/admin/dashboard-stats",
+    // Dashboard
+    dashboardStats: "/admin/dashboard/stats",
+    dashboardImpersonate: "/admin/dashboard/impersonate",
+    dashboardStopImpersonate: "/admin/dashboard/stop-impersonation",
+    // Users (admin users list)
     users: "/admin/users",
     userSingle: "/admin/users/single",
     userCreate: "/admin/users/create",
@@ -363,6 +371,8 @@ export const endpoints = {
   },
   payment: {
     linkFatoorah: "/customer/link-fatoorah",
+    fatoorahStatus: "/customer/fatoorah/status",
+    unlinkFatoorah: "/customer/fatoorah/unlink",
   },
   services: {
     list: "/customer/services",

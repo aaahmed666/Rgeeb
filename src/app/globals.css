@@ -118,30 +118,32 @@
 }
 
 .dark {
-  --background: oklch(0.18 0.025 255); /* deep navy-tinted slate */
+  /* Base: #2E3F5C navy blue from design spec */
+  --background: oklch(0.367 0.055 261);   /* #2E3F5C — page bg  */
   --foreground: oklch(0.97 0.005 80);
-  --card: oklch(0.23 0.03 255);
+
+  --card: oklch(0.399 0.062 262);         /* #354769 — cards, panels */
   --card-foreground: oklch(0.97 0.005 80);
-  --popover: oklch(0.23 0.03 255);
+  --popover: oklch(0.399 0.062 262);
   --popover-foreground: oklch(0.97 0.005 80);
 
   --primary: var(--brand-orange);
   --primary-foreground: oklch(0.18 0.03 255);
 
-  --secondary: oklch(0.28 0.04 255);
+  --secondary: oklch(0.448 0.063 261);    /* #415578 — secondary surfaces */
   --secondary-foreground: oklch(0.97 0.005 80);
 
-  --muted: oklch(0.27 0.03 255);
-  --muted-foreground: oklch(0.72 0.025 250);
+  --muted: oklch(0.416 0.051 257);        /* #3A4D68 — muted bg */
+  --muted-foreground: oklch(0.80 0.020 255);
 
-  --accent: oklch(0.32 0.06 65);
+  --accent: oklch(0.54 0.06 65);
   --accent-foreground: oklch(0.97 0.005 80);
 
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.32 0.04 255);
-  --input: oklch(0.32 0.04 255);
+  --border: oklch(0.435 0.065 262);       /* #3D5175 — borders */
+  --input: oklch(0.435 0.065 262);
   --ring: var(--brand-orange);
 
   --chart-1: var(--brand-orange);
@@ -150,17 +152,17 @@
   --chart-4: oklch(0.65 0.2 25);
   --chart-5: oklch(0.65 0.15 295);
 
-  --sidebar: oklch(0.14 0.025 255);
+  --sidebar: oklch(0.326 0.053 263);      /* #263450 — sidebar (darker) */
   --sidebar-foreground: oklch(0.97 0.005 80);
   --sidebar-primary: var(--brand-orange);
   --sidebar-primary-foreground: oklch(0.18 0.03 255);
   --sidebar-accent: color-mix(
     in oklch,
     var(--brand-orange) 15%,
-    oklch(0.22 0.04 255)
+    oklch(0.399 0.062 262)
   );
   --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0.28 0.04 255);
+  --sidebar-border: oklch(0.416 0.051 257);
   --sidebar-ring: var(--brand-orange);
 }
 

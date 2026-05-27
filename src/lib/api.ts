@@ -27,6 +27,7 @@ export const API_BASE_URL =
 
 const TOKEN_KEY = "app.auth.token";
 const USER_KEY = "app.auth.user";
+const ROLE_KEY = "app.auth.role"; // "admin" | "user" — persisted to skip wrong profile calls on mount
 const REMEMBER_KEY = "app.auth.remember";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -88,6 +89,70 @@ export function setAuthToken(token: string | null, remember = false) {
   }
 }
 
+/** Persists the resolved role so the mount effect knows which profile endpoint to call. */
+export function setAuthRole(role: "admin" | "user") {
+  if (typeof window === "undefined") return;
+  try {
+    // Use the same storage as the token so both are cleared together.
+    const store = getStore() ?? window.sessionStorage;
+    store.setItem(ROLE_KEY, role);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Returns the stored role, or null if unknown. */
+export function getAuthRole(): "admin" | "user" | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v =
+      window.localStorage.getItem(ROLE_KEY) ??
+      window.sessionStorage.getItem(ROLE_KEY) ??
+      null;
+    return v === "admin" || v === "user" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persists the resolved AuthUser so it can be restored on mount without an API call. */
+export function setStoredUser(
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    permissions: string[];
+  } | null
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const store = getStore() ?? window.sessionStorage;
+    if (user) {
+      store.setItem(USER_KEY, JSON.stringify(user));
+    } else {
+      window.localStorage.removeItem(USER_KEY);
+      window.sessionStorage.removeItem(USER_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Returns the persisted AuthUser, or null if not stored / parse error. */
+export function getStoredUser<T>(): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw =
+      window.localStorage.getItem(USER_KEY) ??
+      window.sessionStorage.getItem(USER_KEY) ??
+      null;
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 401 global handler
 // ---------------------------------------------------------------------------
@@ -98,11 +163,12 @@ export function setAuthToken(token: string | null, remember = false) {
 export function clearAuthAndRedirect(): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.removeItem(TOKEN_KEY);
-    window.localStorage.removeItem(USER_KEY);
-    window.localStorage.removeItem(REMEMBER_KEY);
-    window.sessionStorage.removeItem(TOKEN_KEY);
-    window.sessionStorage.removeItem(USER_KEY);
+    [window.localStorage, window.sessionStorage].forEach((s) => {
+      s.removeItem(TOKEN_KEY);
+      s.removeItem(USER_KEY);
+      s.removeItem(ROLE_KEY);
+      s.removeItem(REMEMBER_KEY);
+    });
   } catch {
     // ignore storage errors
   }

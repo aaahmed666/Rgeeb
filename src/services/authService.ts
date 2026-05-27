@@ -15,18 +15,37 @@ export interface RawPermission {
 export interface RawRole {
   id?: number | string;
   name?: string;
+  guard_name?: string;
+  client_id?: number | string | null;
   permissions?: Array<RawPermission | string>;
 }
 export interface AuthUserRaw {
   id?: string | number;
   uuid?: string;
+  // Name fields — login returns name_ar, name_en, name
   name?: string;
+  name_ar?: string;
+  name_en?: string;
   full_name?: string;
   email?: string;
   phone?: string;
+  // type: "admin" | "customer" — primary admin signal
+  type?: string;
+  // Legacy role string (some responses)
   role?: string;
   roles?: RawRole[];
   permissions?: Array<RawPermission | string> | Record<string, unknown>;
+  // Profile fields (present in both login and /customer/profile)
+  avatar?: string;
+  active?: boolean | number;
+  main_admin?: boolean | number;
+  token?: string;
+  // Customer-specific
+  client_id?: number | string | null;
+  client?: Record<string, unknown> | null;
+  country_id?: number | string | null;
+  city_id?: number | string | null;
+  role_id?: number | string | null;
 }
 
 export interface LoginResult {
@@ -53,24 +72,37 @@ function pickToken(env: Envelope | null | undefined): string | null {
     (data.api_token as string) ??
     (env.token as string) ??
     (env.access_token as string) ??
+    // Login response: token is at root level alongside id/email
+    ((env as unknown as Record<string, unknown>).token as string) ??
     null
   );
 }
 
 function pickUser(env: Envelope | null | undefined): AuthUserRaw | null {
   if (!env) return null;
+  const root = env as unknown as Record<string, unknown>;
   const data = (env.data ?? {}) as Record<string, unknown>;
-  const user =
+
+  // Priority 1: nested user/customer/profile inside data envelope
+  const nested =
     (data.user as AuthUserRaw) ??
     (data.customer as AuthUserRaw) ??
     (data.profile as AuthUserRaw) ??
     (env.user as AuthUserRaw) ??
     null;
-  if (user) return user;
-  // Fallback: data itself may be the user object.
-  if (data && typeof data === "object" && ("email" in data || "id" in data)) {
+  if (nested) return nested;
+
+  // Priority 2: data itself is the user object
+  if (data && typeof data === "object" && ("id" in data || "email" in data)) {
     return data as AuthUserRaw;
   }
+
+  // Priority 3: root IS the user (login response shape from rgeeb API)
+  // { id, token, type, email, roles, ... } — token is a separate field
+  if (root && typeof root === "object" && ("id" in root || "email" in root)) {
+    return root as AuthUserRaw;
+  }
+
   return null;
 }
 
@@ -96,13 +128,18 @@ export interface RegisterPayload {
   password: string;
   password_confirmation: string;
   otp_code: string;
+  /** Alias for otp_code — accepted by the RegisterView multi-step form. */
+  otp?: string;
   name_ar: string;
   name_en: string;
   phone: string;
-  nationality: string;
+  /**
+   * country_id is the canonical field name expected by POST /customer/register.
+   * The RegisterView previously sent this as `nationality`; it now sends `country_id`.
+   */
+  country_id: string;
   city_id: string;
   category_id: string;
-  package_id: string;
   /** Optional name field kept for legacy single-name forms. */
   name?: string;
 }
@@ -110,9 +147,12 @@ export interface RegisterPayload {
 export async function registerRequest(
   payload: RegisterPayload
 ): Promise<LoginResult> {
+  // Normalise the otp alias to otp_code so the backend always receives the canonical field name.
+  const { otp, ...rest } = payload;
+  const normalised = { ...rest, otp_code: rest.otp_code || otp || "" };
   const raw = await apiFetch<Envelope>(endpoints.auth.register, {
     method: "POST",
-    body: payload,
+    body: normalised,
     skipAuthRedirect: true,
   });
   const token = pickToken(raw);
@@ -142,15 +182,16 @@ export async function faceLoginRequest(
   return { token: null, user: pickUser(raw), raw };
 }
 
+/**
+ * Forgot password — sends an OTP to the email via POST /customer/email/send-otp.
+ * The user then verifies the OTP at /otp, and can reset their password
+ * via POST /customer/profile/update { password, password_confirmation }.
+ */
 export async function forgotPasswordRequest(
   email: string
 ): Promise<{ message: string }> {
-  const raw = await apiFetch<Envelope>(endpoints.auth.forgotPassword, {
-    method: "POST",
-    body: { email },
-    skipAuthRedirect: true,
-  });
-  return { message: raw?.message ?? "Password reset link sent." };
+  // Reuse the same OTP endpoint — backend sends a verification code
+  return sendOtpRequest(email);
 }
 
 export interface ResetPasswordPayload {
@@ -160,12 +201,24 @@ export interface ResetPasswordPayload {
   password_confirmation: string;
 }
 
+/**
+ * Reset password via POST /customer/profile/update.
+ * After OTP verification, the user submits their new password here.
+ * The `token` and `email` fields are still accepted for compatibility
+ * with the ResetPasswordView form, but the actual API only needs
+ * password + password_confirmation (the session/token is already set).
+ */
 export async function resetPasswordRequest(
   payload: ResetPasswordPayload
 ): Promise<{ message: string }> {
   const raw = await apiFetch<Envelope>(endpoints.auth.resetPassword, {
     method: "POST",
-    body: payload,
+    body: {
+      password: payload.password,
+      password_confirmation: payload.password_confirmation,
+      // Include email in case the backend needs it for the unauthenticated reset flow
+      email: payload.email,
+    },
     skipAuthRedirect: true,
   });
   return { message: raw?.message ?? "Password reset successful." };
@@ -178,12 +231,12 @@ export async function fetchProfileRequest(): Promise<AuthUserRaw | null> {
     try {
       const raw = await apiFetch<Envelope>(endpoints.auth.profile, {
         method: "GET",
+        skipAuthRedirect: true, // never redirect on 403/401 — caller handles auth state
       });
       return pickUser(raw);
     } catch {
       return null;
     } finally {
-      // release after microtask so concurrent callers share, but next call refetches
       setTimeout(() => {
         inflightProfile = null;
       }, 0);

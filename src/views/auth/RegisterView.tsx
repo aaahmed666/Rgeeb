@@ -1,44 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Eye,
-  EyeOff,
-  Mail,
-  Package as PackageIcon,
-  ShieldCheck,
-  User as UserIcon,
-} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-
-import { Logo } from "@/components/Logo";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-import { isRtl } from "@/lib/i18n";
+import { useAuthUI, AuthTopBar } from "@/components/auth-context";
 import {
   fetchCategories,
   fetchCities,
@@ -46,14 +14,10 @@ import {
   fetchPackages,
 } from "@/services/lookupsService";
 import { sendOtpRequest } from "@/services/authService";
-
-const STEPS = [
-  { key: "basic", titleKey: "Basic Info", subKey: "Account Information", icon: UserIcon },
-  { key: "category", titleKey: "Category", subKey: "Select Category", icon: PackageIcon },
-  { key: "verify", titleKey: "Verification", subKey: "Verify Your Email", icon: ShieldCheck },
-  { key: "package", titleKey: "Package Details", subKey: "Select Package", icon: PackageIcon },
-] as const;
-
+import { subscribeToPackage } from "@/services/subscriptionService";
+import { EmailSentIllustration, Icon } from "@/app/assets/icons/auth-icon";
+import "./auth-shared.css";
+import "./auth-register.css";
 interface BasicInfo {
   name_ar: string;
   name_en: string;
@@ -65,12 +29,105 @@ interface BasicInfo {
   city_id: string;
 }
 
+function getPasswordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw) && /[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return s as 0 | 1 | 2 | 3 | 4;
+}
+
+// ── Normalise Arabic-Indic / Eastern-Arabic digits → ASCII ───────────────────
+function normaliseDigits(raw: string): string {
+  return raw
+    .replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+    .replace(/[\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - 0x06f0))
+    .replace(/\D/g, "");
+}
+
+// ── OTP input ─────────────────────────────────────────────────────────────────
+function OtpDigits({
+  value,
+  onChange,
+  isDark,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  isDark: boolean;
+}) {
+  const refs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] ?? "");
+
+  const handleChange = (idx: number, raw: string) => {
+    const d = normaliseDigits(raw).slice(-1);
+    const next = [...digits];
+    next[idx] = d;
+    onChange(next.join(""));
+    if (d && idx < 5) refs.current[idx + 1]?.focus();
+  };
+  const handleKeyDown = (idx: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace") {
+      if (!digits[idx] && idx > 0) {
+        const next = [...digits];
+        next[idx - 1] = "";
+        onChange(next.join(""));
+        refs.current[idx - 1]?.focus();
+      } else {
+        const next = [...digits];
+        next[idx] = "";
+        onChange(next.join(""));
+      }
+    }
+  };
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = normaliseDigits(e.clipboardData.getData("text")).slice(0, 6);
+    onChange(pasted.padEnd(6, "").slice(0, 6));
+    refs.current[Math.min(pasted.length, 5)]?.focus();
+  };
+
+  return (
+    <div className="register-otp-row">
+      {digits.map((d, idx) => (
+        <input
+          key={idx}
+          ref={(el) => {
+            refs.current[idx] = el;
+          }}
+          type="text"
+          inputMode="numeric"
+          maxLength={2}
+          value={d}
+          onChange={(e) => handleChange(idx, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(idx, e)}
+          onPaste={handlePaste}
+          onFocus={(e) => e.target.select()}
+          className="register-otp-input"
+          style={{
+            border: `2px solid ${d ? "#F97316" : isDark ? "rgba(255,255,255,0.12)" : "rgba(15,30,58,0.15)"}`,
+            background: d
+              ? isDark
+                ? "rgba(249,115,22,0.12)"
+                : "rgba(249,115,22,0.06)"
+              : isDark
+                ? "#263450"
+                : "#F9FAFB",
+            color: isDark ? "#F1F5F9" : "#263450",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function RegisterView() {
-  const { i18n } = useTranslation();
-  const lang = i18n.resolvedLanguage ?? i18n.language ?? "en";
-  const rtl = isRtl(lang);
+  const { isDark, isRtl } = useAuthUI();
+  const { t } = useTranslation();
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, isAdmin } = useAuth();
 
   const [step, setStep] = React.useState(0);
   const [basic, setBasic] = React.useState<BasicInfo>({
@@ -84,588 +141,1107 @@ export default function RegisterView() {
     city_id: "",
   });
   const [showPw, setShowPw] = React.useState(false);
-  const [categoryId, setCategoryId] = React.useState<string>("");
-  const [otp, setOtp] = React.useState<string>("");
-  const [packageId, setPackageId] = React.useState<string>("");
+  const [categoryId, setCategoryId] = React.useState("");
+  const [otp, setOtp] = React.useState("");
+  const [packageId, setPackageId] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [sendingOtp, setSendingOtp] = React.useState(false);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
+    {}
+  );
+  const [resendTimer, setResendTimer] = React.useState(0);
 
-  // Lookups
-  const countriesQ = useQuery({ queryKey: ["countries"], queryFn: fetchCountries });
+  const strength = getPasswordStrength(basic.password);
+  const strengthColors = ["", "#EF4444", "#F59E0B", "#22C55E", "#22C55E"];
+  const strengthLabels = [
+    "",
+    t("auth.register.strengthWeak"),
+    t("auth.register.strengthFair"),
+    t("auth.register.strengthGood"),
+    t("auth.register.strengthStrong"),
+  ];
+
+  const countriesQ = useQuery({
+    queryKey: ["countries"],
+    queryFn: fetchCountries,
+  });
   const citiesQ = useQuery({
     queryKey: ["cities", basic.nationality],
     queryFn: () => fetchCities(basic.nationality),
     enabled: !!basic.nationality,
   });
-  const categoriesQ = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
+  const categoriesQ = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
   const packagesQ = useQuery({
     queryKey: ["packages", categoryId],
-    queryFn: () => fetchPackages({ all: true, category_id: categoryId || undefined }),
+    queryFn: () =>
+      fetchPackages({ all: true, category_id: categoryId || undefined }),
     enabled: step >= 3,
   });
 
-  const localised = (en?: string, ar?: string, fallback?: string) =>
-    (rtl ? ar || en : en || ar) || fallback || "";
+  React.useEffect(() => {
+    if (resendTimer <= 0) return;
+    const id = setInterval(() => setResendTimer((c) => c - 1), 1000);
+    return () => clearInterval(id);
+  }, [resendTimer]);
 
-  // --- Validation per step ---
+  const localised = (en?: string, ar?: string, fallback?: string) =>
+    (isRtl ? ar || en : en || ar) || fallback || "";
+
   const validateBasic = (): string | null => {
-    if (!basic.name_ar.trim()) return "Arabic name is required";
-    if (!basic.name_en.trim()) return "English name is required";
-    if (!/^\S+@\S+\.\S+$/.test(basic.email)) return "Please enter a valid email";
+    const e: Record<string, string> = {};
+    if (!basic.name_ar.trim()) e.name_ar = t("auth.register.errorNameAr");
+    if (!basic.name_en.trim()) e.name_en = t("auth.register.errorNameEn");
+    if (!/^\S+@\S+\.\S+$/.test(basic.email))
+      e.email = t("auth.register.errorEmail");
     if (!/^\+?\d{8,15}$/.test(basic.phone.replace(/\s/g, "")))
-      return "Please enter a valid phone number";
-    if (basic.password.length < 8) return "Password must be at least 8 characters";
-    if (basic.password !== basic.confirm) return "Passwords do not match";
-    if (!basic.nationality) return "Country is required";
-    if (!basic.city_id) return "City is required";
-    return null;
+      e.phone = t("auth.register.errorPhone");
+    if (basic.password.length < 8)
+      e.password = t("auth.register.errorPassword");
+    if (basic.password !== basic.confirm)
+      e.confirm = t("auth.register.errorConfirm");
+    if (!basic.nationality) e.nationality = t("auth.register.errorCountry");
+    if (!basic.city_id) e.city_id = t("auth.register.errorCity");
+    setFieldErrors(e);
+    return Object.keys(e).length === 0 ? null : "error";
   };
 
-  const goNext = async () => {
+  const handleNext = async () => {
     if (step === 0) {
-      const err = validateBasic();
-      if (err) return toast.error(err);
-      setStep(1);
-      return;
-    }
-    if (step === 1) {
-      if (!categoryId) return toast.error("Please select a category");
-      // Trigger OTP send when moving to verification
+      if (validateBasic()) return;
+      setSendingOtp(true);
       try {
-        setSendingOtp(true);
-        const res = await sendOtpRequest(basic.email);
-        toast.success(res.message);
-        setStep(2);
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not send OTP");
+        await sendOtpRequest(basic.email);
+      } catch {
+        /* continue even if OTP send fails — user can resend */
       } finally {
         setSendingOtp(false);
       }
+    }
+    if (step === 1 && !categoryId) {
+      toast.error(t("auth.register.errorCategory"));
       return;
     }
     if (step === 2) {
-      if (otp.length !== 6) return toast.error("Verification code is required");
-      setStep(3);
+      // ── Step 2: verify OTP then register the account ─────────────────────
+      if (otp.length !== 6) {
+        toast.error(t("auth.register.errorCode"));
+        return;
+      }
+      setSubmitting(true);
+      try {
+        await register({
+          name_ar: basic.name_ar,
+          name_en: basic.name_en,
+          email: basic.email,
+          phone: basic.phone,
+          password: basic.password,
+          password_confirmation: basic.confirm,
+          country_id: basic.nationality, // API field is country_id
+          city_id: basic.city_id,
+          category_id: categoryId,
+          otp_code: otp,
+          otp: otp,
+        });
+        toast.success(t("auth.register.successCreate"));
+        setStep(3); // advance to package selection
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : t("auth.register.errorCreate")
+        );
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
     if (step === 3) {
-      if (!packageId) return toast.error("Please select a package");
-      await handleRegister();
+      // ── Step 3: subscribe to selected package ─────────────────────────────
+      if (!packageId) {
+        toast.error(t("auth.register.errorPackage"));
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { payment_link } = await subscribeToPackage(packageId);
+        toast.success(
+          t(
+            "auth.register.successSubscribe",
+            "Successfully subscribed to package!"
+          )
+        );
+        if (payment_link) {
+          // Open the Fatoorah checkout in a new tab (matches old project behaviour).
+          const paymentWindow = window.open(
+            payment_link,
+            "_blank",
+            "noopener,noreferrer"
+          );
+          if (
+            !paymentWindow ||
+            paymentWindow.closed ||
+            typeof paymentWindow.closed === "undefined"
+          ) {
+            toast.error(
+              t(
+                "auth.register.popupBlocked",
+                "Popup blocked! Please allow popups or visit: " + payment_link
+              )
+            );
+          } else {
+            toast.success(
+              t(
+                "auth.register.redirectingPayment",
+                "Redirecting to payment page..."
+              )
+            );
+          }
+        }
+        // Whether or not there is a payment link, navigate to the dashboard.
+        router.push(isAdmin ? "/dashboard/admin" : "/dashboard");
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : t(
+                "auth.register.errorSubscribe",
+                "Failed to subscribe to package"
+              )
+        );
+      } finally {
+        setSubmitting(false);
+      }
+      return;
     }
+    setStep((s) => s + 1);
   };
 
-  const goBack = () => setStep((s) => Math.max(0, s - 1));
-
-  const resendOtp = async () => {
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    setSendingOtp(true);
     try {
-      setSendingOtp(true);
-      const res = await sendOtpRequest(basic.email);
-      toast.success(res.message);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not resend code");
+      await sendOtpRequest(basic.email);
+      setResendTimer(60);
+      toast.success(t("auth.checkEmail.resendSuccess"));
+    } catch {
+      toast.error(t("auth.checkEmail.resendFail"));
     } finally {
       setSendingOtp(false);
     }
   };
 
-  const handleRegister = async () => {
-    setSubmitting(true);
-    try {
-      await register({
-        name_ar: basic.name_ar,
-        name_en: basic.name_en,
-        name: basic.name_en,
-        email: basic.email,
-        phone: basic.phone,
-        password: basic.password,
-        password_confirmation: basic.confirm,
-        otp_code: otp,
-        nationality: basic.nationality,
-        city_id: basic.city_id,
-        category_id: categoryId,
-        package_id: packageId,
-      });
-      toast.success("Account created");
-      router.push('/dashboard');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Registration failed");
-    } finally {
-      setSubmitting(false);
-    }
+  const STEPS = [
+    { label: t("auth.register.step1Label"), sub: t("auth.register.step1Sub") },
+    { label: t("auth.register.step2Label"), sub: t("auth.register.step2Sub") },
+    { label: t("auth.register.step3Label"), sub: t("auth.register.step3Sub") },
+    { label: t("auth.register.step4Label"), sub: t("auth.register.step4Sub") },
+  ];
+
+  // ── colours
+  const cardShadow = isDark
+    ? "0 32px 80px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)"
+    : "0 24px 64px rgba(15,30,58,0.13)";
+  const rightBg = isDark ? "#2E3F5C" : "#FFFFFF";
+  const textMain = isDark ? "#F1F5F9" : "#263450";
+  const textMuted = isDark ? "#94A3B8" : "#6B7280";
+  const textFaint = isDark ? "#64748B" : "#9CA3AF";
+  const inputBg = isDark ? "#263450" : "#F9FAFB";
+  const inputBdr = (f: string) =>
+    fieldErrors[f] ? "#EF4444" : isDark ? "#334155" : "#E5E7EB";
+  const dividerBg = isDark ? "#354769" : "#E5E7EB";
+
+  const inp = (field: string, noPad?: boolean): React.CSSProperties => ({
+    border: `2px solid ${inputBdr(field)}`,
+    background: inputBg,
+    color: textMain,
+    ...(noPad ? { paddingLeft: 14, paddingRight: 14 } : {}),
+  });
+
+  // Shared inline icon wrapper style for form fields
+  const iconWrap: React.CSSProperties = {
+    position: "absolute",
+    left: 14,
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "#9CA3AF",
+    display: "flex",
+    pointerEvents: "none",
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-secondary">
-      <div className="absolute top-4 end-4 z-10 flex gap-2">
-        <LanguageSwitcher />
-        <ThemeToggle />
-      </div>
+    <div
+      className="auth-page-wrapper"
+      style={{
+        fontFamily: isRtl ? "'Cairo', sans-serif" : "'Inter', sans-serif",
+        direction: isRtl ? "rtl" : "ltr",
+        background: isDark
+          ? "radial-gradient(ellipse 80% 60% at 70% -10%, rgba(249,115,22,0.18) 0%, transparent 60%), #1C2D45"
+          : "radial-gradient(ellipse 80% 60% at 70% -10%, rgba(249,115,22,0.1) 0%, transparent 60%), #EDE8E0",
+      }}
+    >
+      <AuthTopBar />
+      <div
+        className="auth-bg-dots"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(249,115,22,0.04) 1px, transparent 0)",
+          backgroundSize: "40px 40px",
+        }}
+      />
 
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo className="mb-3 h-12 w-auto" />
-          <h1 className="text-2xl font-bold sm:text-3xl">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Complete the steps below to get started
-          </p>
-        </div>
+      <div
+        className="auth-card auth-card-inner"
+        style={{ maxWidth: 1020, boxShadow: cardShadow }}
+      >
+        {/* ══ LEFT PANEL ══ */}
+        <div className="register-left">
+          <div className="auth-left-grid" />
+          <div className="auth-left-glow auth-glow-orb" />
 
-        <Stepper current={step} />
-
-        <div className="mt-8 rounded-2xl border bg-card p-6 shadow-xl sm:p-8">
-          {step === 0 && (
-            <BasicInfoStep
-              value={basic}
-              onChange={setBasic}
-              showPw={showPw}
-              onTogglePw={() => setShowPw((v) => !v)}
-              countries={countriesQ.data ?? []}
-              countriesLoading={countriesQ.isLoading}
-              cities={citiesQ.data ?? []}
-              citiesLoading={citiesQ.isFetching}
-              rtl={rtl}
-            />
-          )}
-          {step === 1 && (
-            <CategoryStep
-              categories={categoriesQ.data ?? []}
-              loading={categoriesQ.isLoading}
-              selected={categoryId}
-              onSelect={setCategoryId}
-              localised={localised}
-            />
-          )}
-          {step === 2 && (
-            <VerifyStep
-              email={basic.email}
-              otp={otp}
-              onChange={setOtp}
-              onResend={resendOtp}
-              sending={sendingOtp}
-            />
-          )}
-          {step === 3 && (
-            <PackageStep
-              packages={packagesQ.data ?? []}
-              loading={packagesQ.isLoading}
-              selected={packageId}
-              onSelect={setPackageId}
-              localised={localised}
-            />
-          )}
-
-          <div className="mt-8 flex items-center justify-between border-t pt-6">
-            <Button
-              variant="ghost"
-              onClick={goBack}
-              disabled={step === 0 || submitting}
-            >
-              <ArrowLeft className="me-2 h-4 w-4 rtl-flip" />
-              Previous
-            </Button>
-
-            <Button onClick={goNext} disabled={submitting || sendingOtp}>
-              {step === 3
-                ? submitting
-                  ? "Subscribing..."
-                  : "Subscribe"
-                : step === 2
-                  ? "Verify My Email"
-                  : sendingOtp && step === 1
-                    ? "Sending code..."
-                    : step === 1
-                      ? "Submit"
-                      : "Next"}
-              {step === 3 ? (
-                <Check className="ms-2 h-4 w-4" />
-              ) : (
-                <ArrowRight className="ms-2 h-4 w-4 rtl-flip" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ============== Stepper ============== */
-function Stepper({ current }: { current: number }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {STEPS.map((s, i) => {
-        const Icon = s.icon;
-        const active = i === current;
-        const done = i < current;
-        return (
-          <React.Fragment key={s.key}>
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border transition-colors",
-                  active && "border-primary bg-primary text-primary-foreground",
-                  done && "border-primary/50 bg-primary/10 text-primary",
-                  !active && !done && "bg-muted text-muted-foreground",
-                )}
-              >
-                {done ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-              </div>
-              <div className="min-w-0">
-                <p
-                  className={cn(
-                    "truncate text-sm font-semibold",
-                    !active && !done && "text-muted-foreground",
-                  )}
-                >
-                  {s.titleKey}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">{s.subKey}</p>
+          <div className="register-brand auth-b0">
+            <div className="register-brand-logo">R</div>
+            <div>
+              <div className="register-brand-name">{t("auth.brand.name")}</div>
+              <div className="register-brand-sub">
+                {t("auth.shared.securityPlatform")}
               </div>
             </div>
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
+          </div>
 
-/* ============== Step 1: Basic Info ============== */
-function BasicInfoStep({
-  value,
-  onChange,
-  showPw,
-  onTogglePw,
-  countries,
-  countriesLoading,
-  cities,
-  citiesLoading,
-  rtl,
-}: {
-  value: BasicInfo;
-  onChange: (next: BasicInfo) => void;
-  showPw: boolean;
-  onTogglePw: () => void;
-  countries: { id: string; name_ar?: string; name_en?: string; name: string }[];
-  countriesLoading: boolean;
-  cities: { id: string; name_ar?: string; name_en?: string; name: string }[];
-  citiesLoading: boolean;
-  rtl: boolean;
-}) {
-  const set = (patch: Partial<BasicInfo>) => onChange({ ...value, ...patch });
-  return (
-    <>
-      <h2 className="text-xl font-bold">Basic Information</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Enter your account details (All fields are required)
-      </p>
+          <div className="register-headline-wrap auth-b1">
+            <h2 className="register-headline">
+              {t("auth.register.headline")}
+              <br />
+              <em className="register-headline-accent">
+                {t("auth.register.headlineAccent")}
+              </em>
+            </h2>
+            <p className="register-headline-desc">
+              {t("auth.register.subDesc")}
+            </p>
+          </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <Field label="Name (Arabic)">
-          <Input
-            value={value.name_ar}
-            onChange={(e) => set({ name_ar: e.target.value })}
-            placeholder="الاسم بالعربية"
-            dir="rtl"
-          />
-        </Field>
-        <Field label="Name (English)">
-          <Input
-            value={value.name_en}
-            onChange={(e) => set({ name_en: e.target.value })}
-            placeholder="John Doe"
-          />
-        </Field>
+          {/* Step tracker */}
+          <div className="register-steps auth-b2">
+            {STEPS.map((s, i) => {
+              const active = i === step;
+              const done = i < step;
+              return (
+                <div
+                  key={i}
+                  className="register-step-item"
+                  style={{
+                    background: active
+                      ? "rgba(249,115,22,0.12)"
+                      : done
+                        ? "rgba(34,197,94,0.06)"
+                        : "transparent",
+                    border: `1px solid ${active ? "rgba(249,115,22,0.3)" : done ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.05)"}`,
+                  }}
+                >
+                  <div
+                    className="register-step-circle"
+                    style={{
+                      background: active
+                        ? "#F97316"
+                        : done
+                          ? "#22C55E"
+                          : "rgba(255,255,255,0.06)",
+                      border: `2px solid ${active ? "#F97316" : done ? "#22C55E" : "rgba(255,255,255,0.12)"}`,
+                      boxShadow: active
+                        ? "0 4px 14px rgba(249,115,22,0.4)"
+                        : done
+                          ? "0 4px 12px rgba(34,197,94,0.3)"
+                          : "none",
+                    }}
+                  >
+                    {done ? (
+                      <Icon.StepCheck />
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: active ? "#fff" : "rgba(255,255,255,0.3)",
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div
+                      className="register-step-label"
+                      style={{
+                        color: active
+                          ? "#fff"
+                          : done
+                            ? "rgba(34,197,94,0.9)"
+                            : "rgba(255,255,255,0.35)",
+                      }}
+                    >
+                      {s.label}
+                    </div>
+                    <div
+                      className="register-step-sub"
+                      style={{
+                        color: active
+                          ? "rgba(255,255,255,0.55)"
+                          : "rgba(255,255,255,0.22)",
+                      }}
+                    >
+                      {s.sub}
+                    </div>
+                  </div>
+                  {active && <div className="register-step-active-dot" />}
+                </div>
+              );
+            })}
+          </div>
 
-        <Field label="Email">
-          <Input
-            type="email"
-            value={value.email}
-            onChange={(e) => set({ email: e.target.value })}
-            placeholder="john.doe@email.com"
-          />
-        </Field>
-        <Field label="Phone">
-          <Input
-            value={value.phone}
-            onChange={(e) => set({ phone: e.target.value })}
-            placeholder="+966500000000"
-          />
-        </Field>
+          <div className="register-stats auth-b3">
+            {[
+              { val: "99.9%", lbl: t("auth.brand.uptime") },
+              { val: "50K+", lbl: t("auth.brand.users") },
+              { val: "ISO 27001", lbl: t("auth.brand.certified") },
+            ].map((s) => (
+              <div key={s.lbl}>
+                <div className="register-stat-value">{s.val}</div>
+                <div className="register-stat-label">{s.lbl}</div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <Field label="Password">
-          <div className="relative">
-            <Input
-              type={showPw ? "text" : "password"}
-              value={value.password}
-              onChange={(e) => set({ password: e.target.value })}
-              placeholder="••••••••"
-              className="pe-10"
-            />
+        {/* ══ RIGHT PANEL ══ */}
+        <div
+          className="auth-right"
+          style={{ background: rightBg, paddingTop: 40, paddingBottom: 44 }}
+        >
+          <div
+            className="auth-accent-stripe"
+            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+          />
+          <div
+            className="auth-right-accent"
+            style={{ right: -60 }}
+          />
+
+          {/* Progress bar */}
+          <div
+            className="auth-b0"
+            style={{ marginBottom: 28 }}
+          >
+            <div className="register-progress-header">
+              <span
+                className="register-progress-step-text"
+                style={{ color: textFaint }}
+              >
+                Step {step + 1} {t("auth.register.stepOf")} {STEPS.length}
+              </span>
+              <span className="register-progress-pct">
+                {Math.round(((step + 1) / STEPS.length) * 100)}%
+              </span>
+            </div>
+            <div
+              className="register-progress-track"
+              style={{ background: dividerBg }}
+            >
+              <div
+                className="register-progress-fill"
+                style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* ─── STEP 0: Basic Info ─── */}
+          {step === 0 && (
+            <div
+              className="auth-page"
+              style={{ flex: 1, overflow: "auto" }}
+            >
+              <div
+                className="auth-b1"
+                style={{ marginBottom: 24 }}
+              >
+                <h1
+                  className="register-step-title"
+                  style={{ color: textMain }}
+                >
+                  {t("auth.register.basicTitle")}
+                </h1>
+                <p
+                  className="register-step-subtitle"
+                  style={{ color: textMuted }}
+                >
+                  {t("auth.register.basicSubtitle")}
+                </p>
+              </div>
+
+              <div className="register-fields-grid">
+                {/* Name Arabic */}
+                <div className="auth-b2">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.nameAr")}
+                  </div>
+                  <input
+                    value={basic.name_ar}
+                    dir="rtl"
+                    placeholder={t("auth.register.nameArPlaceholder")}
+                    className={`register-input${fieldErrors.name_ar ? " register-input-err" : ""}`}
+                    onChange={(e) => {
+                      setBasic((b) => ({ ...b, name_ar: e.target.value }));
+                      setFieldErrors((fe) => ({ ...fe, name_ar: "" }));
+                    }}
+                    style={inp("name_ar", true)}
+                  />
+                  {fieldErrors.name_ar && (
+                    <div className="register-field-error">
+                      {fieldErrors.name_ar}
+                    </div>
+                  )}
+                </div>
+
+                {/* Name English */}
+                <div className="auth-b2">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.nameEn")}
+                  </div>
+                  <input
+                    value={basic.name_en}
+                    placeholder={t("auth.register.nameEnPlaceholder")}
+                    className={`register-input${fieldErrors.name_en ? " register-input-err" : ""}`}
+                    onChange={(e) => {
+                      setBasic((b) => ({ ...b, name_en: e.target.value }));
+                      setFieldErrors((fe) => ({ ...fe, name_en: "" }));
+                    }}
+                    style={inp("name_en", true)}
+                  />
+                  {fieldErrors.name_en && (
+                    <div className="register-field-error">
+                      {fieldErrors.name_en}
+                    </div>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div className="auth-b2">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.email")}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <span style={iconWrap}>
+                      <Icon.Email />
+                    </span>
+                    <input
+                      type="email"
+                      value={basic.email}
+                      placeholder={t("auth.register.emailPlaceholder")}
+                      className={`register-input${fieldErrors.email ? " register-input-err" : ""}`}
+                      onChange={(e) => {
+                        setBasic((b) => ({ ...b, email: e.target.value }));
+                        setFieldErrors((fe) => ({ ...fe, email: "" }));
+                      }}
+                      style={{ ...inp("email"), paddingLeft: 44 }}
+                    />
+                  </div>
+                  {fieldErrors.email && (
+                    <div className="register-field-error">
+                      {fieldErrors.email}
+                    </div>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div className="auth-b2">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.phone")}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <span style={iconWrap}>
+                      <Icon.Phone />
+                    </span>
+                    <input
+                      value={basic.phone}
+                      placeholder={t("auth.register.phonePlaceholder")}
+                      className={`register-input${fieldErrors.phone ? " register-input-err" : ""}`}
+                      onChange={(e) => {
+                        setBasic((b) => ({ ...b, phone: e.target.value }));
+                        setFieldErrors((fe) => ({ ...fe, phone: "" }));
+                      }}
+                      style={{ ...inp("phone"), paddingLeft: 44 }}
+                    />
+                  </div>
+                  {fieldErrors.phone && (
+                    <div className="register-field-error">
+                      {fieldErrors.phone}
+                    </div>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div className="auth-b3">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.password")}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <span style={iconWrap}>
+                      <Icon.Password />
+                    </span>
+                    <input
+                      type={showPw ? "text" : "password"}
+                      value={basic.password}
+                      placeholder="••••••••"
+                      className={`register-input${fieldErrors.password ? " register-input-err" : ""}`}
+                      onChange={(e) => {
+                        setBasic((b) => ({ ...b, password: e.target.value }));
+                        setFieldErrors((fe) => ({ ...fe, password: "" }));
+                      }}
+                      style={{
+                        ...inp("password"),
+                        paddingLeft: 44,
+                        paddingRight: 40,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="register-pw-toggle"
+                      onClick={() => setShowPw((v) => !v)}
+                    >
+                      {showPw ? <Icon.EyeOff /> : <Icon.Eye />}
+                    </button>
+                  </div>
+                  {basic.password && (
+                    <div style={{ marginTop: 6 }}>
+                      <div className="auth-strength-bar">
+                        {[1, 2, 3, 4].map((seg) => (
+                          <div
+                            key={seg}
+                            className="auth-strength-segment"
+                            style={{
+                              background:
+                                strength >= seg
+                                  ? strengthColors[strength]
+                                  : dividerBg,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {strength > 0 && (
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            color: strengthColors[strength],
+                            marginTop: 3,
+                          }}
+                        >
+                          {strengthLabels[strength]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {fieldErrors.password && (
+                    <div className="register-field-error">
+                      {fieldErrors.password}
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm */}
+                <div className="auth-b3">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.confirmPassword")}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <span style={iconWrap}>
+                      <Icon.Password />
+                    </span>
+                    <input
+                      type={showPw ? "text" : "password"}
+                      value={basic.confirm}
+                      placeholder="••••••••"
+                      className={`register-input${fieldErrors.confirm ? " register-input-err" : ""}`}
+                      onChange={(e) => {
+                        setBasic((b) => ({ ...b, confirm: e.target.value }));
+                        setFieldErrors((fe) => ({ ...fe, confirm: "" }));
+                      }}
+                      style={{ ...inp("confirm"), paddingLeft: 44 }}
+                    />
+                  </div>
+                  {fieldErrors.confirm && (
+                    <div className="register-field-error">
+                      {fieldErrors.confirm}
+                    </div>
+                  )}
+                </div>
+
+                {/* Country */}
+                <div className="auth-b4">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.country")}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <span style={iconWrap}>
+                      <Icon.Globe />
+                    </span>
+                    <select
+                      value={basic.nationality}
+                      className={`register-input register-select${fieldErrors.nationality ? " register-input-err" : ""}`}
+                      onChange={(e) => {
+                        setBasic((b) => ({
+                          ...b,
+                          nationality: e.target.value,
+                          city_id: "",
+                        }));
+                        setFieldErrors((fe) => ({ ...fe, nationality: "" }));
+                      }}
+                      style={{ ...inp("nationality"), paddingLeft: 44 }}
+                    >
+                      <option value="">
+                        {countriesQ.isLoading
+                          ? t("common.loading")
+                          : t("auth.register.selectCountry")}
+                      </option>
+                      {(countriesQ.data ?? []).map((c: any) => (
+                        <option
+                          key={c.id}
+                          value={String(c.id)}
+                        >
+                          {localised(c.name_en, c.name_ar, c.name)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {fieldErrors.nationality && (
+                    <div className="register-field-error">
+                      {fieldErrors.nationality}
+                    </div>
+                  )}
+                </div>
+
+                {/* City */}
+                <div className="auth-b4">
+                  <div
+                    className="register-label"
+                    style={{ color: isDark ? "#CBD5E1" : "#263450" }}
+                  >
+                    {t("auth.register.city")}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <span style={iconWrap}>
+                      <Icon.Location />
+                    </span>
+                    <select
+                      value={basic.city_id}
+                      disabled={!basic.nationality}
+                      className={`register-input register-select${fieldErrors.city_id ? " register-input-err" : ""}`}
+                      onChange={(e) => {
+                        setBasic((b) => ({ ...b, city_id: e.target.value }));
+                        setFieldErrors((fe) => ({ ...fe, city_id: "" }));
+                      }}
+                      style={{
+                        ...inp("city_id"),
+                        paddingLeft: 44,
+                        opacity: basic.nationality ? 1 : 0.6,
+                        cursor: basic.nationality ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      <option value="">
+                        {!basic.nationality
+                          ? t("auth.register.selectCountryFirst")
+                          : citiesQ.isLoading
+                            ? t("common.loading")
+                            : t("auth.register.selectCity")}
+                      </option>
+                      {(citiesQ.data ?? []).map((c: any) => (
+                        <option
+                          key={c.id}
+                          value={String(c.id)}
+                        >
+                          {localised(c.name_en, c.name_ar, c.name)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {fieldErrors.city_id && (
+                    <div className="register-field-error">
+                      {fieldErrors.city_id}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 1: Category ─── */}
+          {step === 1 && (
+            <div
+              className="auth-page"
+              style={{ flex: 1, overflow: "auto" }}
+            >
+              <div
+                className="auth-b1"
+                style={{ marginBottom: 24 }}
+              >
+                <h1
+                  className="register-step-title"
+                  style={{ color: textMain }}
+                >
+                  {t("auth.register.categoryTitle")}
+                </h1>
+                <p
+                  className="register-step-subtitle"
+                  style={{ color: textMuted }}
+                >
+                  {t("auth.register.categorySubtitle")}
+                </p>
+              </div>
+              <div className="register-categories-grid">
+                {categoriesQ.isLoading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          height: 140,
+                          borderRadius: 14,
+                          border: `1px solid ${dividerBg}`,
+                          background: inputBg,
+                          opacity: 0.6,
+                        }}
+                      />
+                    ))
+                  : (categoriesQ.data ?? []).map((c: any) => {
+                      const id = String(c.id);
+                      const active = categoryId === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          className="register-cat-card"
+                          onClick={() => setCategoryId(id)}
+                          style={{
+                            border: `2px solid ${active ? "#F97316" : dividerBg}`,
+                            background: active
+                              ? isDark
+                                ? "rgba(249,115,22,0.1)"
+                                : "rgba(249,115,22,0.06)"
+                              : inputBg,
+                            boxShadow: active
+                              ? "0 6px 20px rgba(249,115,22,0.2)"
+                              : "none",
+                          }}
+                        >
+                          <div
+                            className="register-cat-icon"
+                            style={{
+                              background: active
+                                ? "rgba(249,115,22,0.15)"
+                                : isDark
+                                  ? "rgba(255,255,255,0.05)"
+                                  : "rgba(15,30,58,0.05)",
+                            }}
+                          >
+                            <Icon.CategoryGrid active={active} />
+                          </div>
+                          <div
+                            className="register-cat-name"
+                            style={{ color: active ? "#F97316" : textMain }}
+                          >
+                            {localised(c.name_en, c.name_ar, c.name)}
+                          </div>
+                          {active && (
+                            <div
+                              className="register-cat-check"
+                              style={{ marginTop: 10 }}
+                            >
+                              <Icon.SmallCheck />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 2: Verify ─── */}
+          {step === 2 && (
+            <div className="auth-page register-verify-wrap">
+              <div
+                className="auth-b1"
+                style={{ marginBottom: 24 }}
+              >
+                <div
+                  className="register-verify-icon"
+                  style={{
+                    background: isDark
+                      ? "rgba(249,115,22,0.1)"
+                      : "rgba(249,115,22,0.07)",
+                    border: "2px solid rgba(249,115,22,0.25)",
+                  }}
+                >
+                  <EmailSentIllustration isDark={isDark} />
+                </div>
+              </div>
+
+              <div
+                className="auth-b2"
+                style={{ textAlign: "center", marginBottom: 28 }}
+              >
+                <h1
+                  className="register-step-title"
+                  style={{ color: textMain }}
+                >
+                  {t("auth.register.verifyTitle")}
+                </h1>
+                <p
+                  style={{
+                    fontSize: 13.5,
+                    color: textMuted,
+                    marginTop: 8,
+                    lineHeight: 1.65,
+                  }}
+                >
+                  {t("auth.register.verifySentTo")}{" "}
+                  <strong style={{ color: textMain }}>{basic.email}</strong>
+                </p>
+              </div>
+
+              <div
+                className="auth-b3"
+                style={{ marginBottom: 18, width: "100%" }}
+              >
+                <OtpDigits
+                  value={otp}
+                  onChange={setOtp}
+                  isDark={isDark}
+                />
+              </div>
+
+              <div className="register-resend-row auth-b4">
+                <span style={{ fontSize: 13.5, color: textFaint }}>
+                  {t("auth.register.didntReceive")}{" "}
+                </span>
+                <button
+                  type="button"
+                  disabled={resendTimer > 0 || sendingOtp}
+                  onClick={handleResendOtp}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    cursor: resendTimer > 0 ? "default" : "pointer",
+                    color:
+                      resendTimer > 0
+                        ? isDark
+                          ? "#475569"
+                          : "#CBD5E1"
+                        : "#F97316",
+                  }}
+                >
+                  {sendingOtp
+                    ? t("auth.register.sendingCode")
+                    : resendTimer > 0
+                      ? `${t("auth.register.resendIn")} ${resendTimer}s`
+                      : t("auth.register.resendCode")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 3: Package ─── */}
+          {step === 3 && (
+            <div
+              className="auth-page"
+              style={{ flex: 1, overflow: "auto" }}
+            >
+              <div
+                className="auth-b1"
+                style={{ marginBottom: 24 }}
+              >
+                <h1
+                  className="register-step-title"
+                  style={{ color: textMain }}
+                >
+                  {t("auth.register.packageTitle")}
+                </h1>
+                <p
+                  className="register-step-subtitle"
+                  style={{ color: textMuted }}
+                >
+                  {t("auth.register.packageSubtitle")}
+                </p>
+              </div>
+              <div className="register-packages-grid">
+                {packagesQ.isLoading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          height: 180,
+                          borderRadius: 14,
+                          border: `1px solid ${dividerBg}`,
+                          background: inputBg,
+                          opacity: 0.6,
+                        }}
+                      />
+                    ))
+                  : (packagesQ.data ?? []).map((p: any) => {
+                      const id = String(p.id);
+                      const active = packageId === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          className="register-pkg-card"
+                          onClick={() => setPackageId(id)}
+                          style={{
+                            border: `2px solid ${active ? "#F97316" : dividerBg}`,
+                            background: active
+                              ? isDark
+                                ? "rgba(249,115,22,0.1)"
+                                : "rgba(249,115,22,0.06)"
+                              : inputBg,
+                            boxShadow: active
+                              ? "0 6px 20px rgba(249,115,22,0.2)"
+                              : "none",
+                          }}
+                        >
+                          <div
+                            className="register-pkg-name"
+                            style={{ color: textMain }}
+                          >
+                            {localised(p.name_en, p.name_ar, p.name)}
+                          </div>
+                          <p
+                            className="register-pkg-desc"
+                            style={{ color: textFaint }}
+                          >
+                            {localised(
+                              p.description_en,
+                              p.description_ar,
+                              p.description
+                            )}
+                          </p>
+                          <div
+                            style={{
+                              marginTop: 14,
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: 4,
+                            }}
+                          >
+                            <span className="register-pkg-price">
+                              ${p.price ?? 0}
+                            </span>
+                            {p.duration && (
+                              <span style={{ fontSize: 12, color: textFaint }}>
+                                / {p.duration} {p.duration_unit ?? "month"}
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className="register-pkg-radio"
+                            style={{
+                              border: `2px solid ${active ? "#F97316" : isDark ? "#334155" : "#D1D5DB"}`,
+                              background: active ? "#F97316" : "transparent",
+                            }}
+                          >
+                            {active && <Icon.SmallCheck />}
+                          </div>
+                        </button>
+                      );
+                    })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Navigation buttons ── */}
+          <div
+            className="register-nav"
+            style={{ borderTop: `1px solid ${dividerBg}` }}
+          >
+            {step > 0 && (
+              <button
+                type="button"
+                className="auth-btn-outline"
+                onClick={() => setStep((s) => s - 1)}
+                style={{
+                  height: 52,
+                  padding: "0 22px",
+                  border: `2px solid ${dividerBg}`,
+                  background: inputBg,
+                  color: isDark ? "#CBD5E1" : "#263450",
+                }}
+              >
+                <Icon.ArrowLeft />
+                {t("auth.register.back")}
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={onTogglePw}
-              className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="auth-btn-primary"
+              onClick={handleNext}
+              disabled={submitting || sendingOtp}
+              style={{
+                flex: 1,
+                height: 52,
+                opacity: submitting || sendingOtp ? 0.8 : 1,
+              }}
             >
-              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {submitting || sendingOtp ? (
+                <Icon.Spinner />
+              ) : (
+                <>
+                  {step === 3
+                    ? t("auth.register.createAccount")
+                    : t("auth.register.continue")}
+                  <Icon.SignInArrow rtl={isRtl} />
+                </>
+              )}
             </button>
           </div>
-        </Field>
-        <Field label="Confirm Password">
-          <Input
-            type={showPw ? "text" : "password"}
-            value={value.confirm}
-            onChange={(e) => set({ confirm: e.target.value })}
-            placeholder="••••••••"
-          />
-        </Field>
 
-        <Field label="Country">
-          <Select
-            value={value.nationality}
-            onValueChange={(v) => set({ nationality: v, city_id: "" })}
-          >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={countriesLoading ? "Loading..." : "Select country"}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {countries.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {rtl ? c.name_ar || c.name : c.name_en || c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="City">
-          <Select
-            value={value.city_id}
-            onValueChange={(v) => set({ city_id: v })}
-            disabled={!value.nationality}
-          >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={
-                  !value.nationality
-                    ? "Select country first"
-                    : citiesLoading
-                      ? "Loading..."
-                      : "Select city"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {cities.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {rtl ? c.name_ar || c.name : c.name_en || c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-      </div>
-    </>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-/* ============== Step 2: Category ============== */
-function CategoryStep({
-  categories,
-  loading,
-  selected,
-  onSelect,
-  localised,
-}: {
-  categories: import("@/services/lookupsService").Category[];
-  loading: boolean;
-  selected: string;
-  onSelect: (v: string) => void;
-  localised: (en?: string, ar?: string, fb?: string) => string;
-}) {
-  return (
-    <>
-      <h2 className="text-xl font-bold">Select Category</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Please select a category for your account.
-      </p>
-
-      {loading ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-44 animate-pulse rounded-xl border bg-muted/40"
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((c) => {
-            const id = String(c.id);
-            const isActive = selected === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => onSelect(id)}
-                className={cn(
-                  "group flex flex-col items-start rounded-xl border bg-card p-5 text-start transition-all hover:border-primary/60 hover:shadow-md",
-                  isActive && "border-primary ring-2 ring-primary/30 shadow-md",
-                )}
+          {step === 0 && (
+            <div className="register-signin-hint">
+              <span style={{ color: isDark ? "#475569" : "#9CA3AF" }}>
+                {t("auth.register.alreadyHaveAccount")}{" "}
+              </span>
+              <a
+                href="/login"
+                className="register-signin-link"
               >
-                <div className="mb-4 flex h-28 w-full items-center justify-center rounded-lg bg-gradient-to-br from-muted to-muted/40">
-                  <PackageIcon className="h-10 w-10 text-primary/60" />
-                </div>
-                <p className="font-semibold">
-                  {localised(c.name_en, c.name_ar, c.name)}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {localised(c.description_en, c.description_ar, c.description)}
-                </p>
-              </button>
-            );
-          })}
+                {t("auth.register.signIn")}
+              </a>
+            </div>
+          )}
         </div>
-      )}
-    </>
-  );
-}
-
-/* ============== Step 3: Verify ============== */
-function VerifyStep({
-  email,
-  otp,
-  onChange,
-  onResend,
-  sending,
-}: {
-  email: string;
-  otp: string;
-  onChange: (v: string) => void;
-  onResend: () => void;
-  sending: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <Mail className="h-7 w-7" />
       </div>
-      <h2 className="text-2xl font-bold">Verify Your Email</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        We've sent a 6-digit code to <strong>{email}</strong>
-      </p>
-
-      <div className="mt-6">
-        <InputOTP maxLength={6} value={otp} onChange={onChange}>
-          <InputOTPGroup>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <InputOTPSlot key={i} index={i} />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
-      </div>
-
-      <p className="mt-4 text-sm text-muted-foreground">
-        Didn't receive the code?{" "}
-        <button
-          type="button"
-          onClick={onResend}
-          disabled={sending}
-          className="font-semibold text-primary hover:underline disabled:opacity-50"
-        >
-          {sending ? "Sending..." : "Resend Code"}
-        </button>
-      </p>
     </div>
-  );
-}
-
-/* ============== Step 4: Package ============== */
-function PackageStep({
-  packages,
-  loading,
-  selected,
-  onSelect,
-  localised,
-}: {
-  packages: import("@/services/lookupsService").PackageItem[];
-  loading: boolean;
-  selected: string;
-  onSelect: (v: string) => void;
-  localised: (en?: string, ar?: string, fb?: string) => string;
-}) {
-  return (
-    <>
-      <h2 className="text-xl font-bold">Select Plan</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Select a package and subscribe to continue
-      </p>
-
-      {loading ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-44 animate-pulse rounded-xl border bg-muted/40" />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {packages.map((p) => {
-            const id = String(p.id);
-            const isActive = selected === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => onSelect(id)}
-                className={cn(
-                  "flex flex-col items-start rounded-xl border bg-card p-5 text-start transition-all hover:border-primary/60 hover:shadow-md",
-                  isActive && "border-primary ring-2 ring-primary/30 shadow-md",
-                )}
-              >
-                <p className="text-base font-semibold">
-                  {localised(p.name_en, p.name_ar, p.name)}
-                </p>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  {localised(p.description_en, p.description_ar, p.description)}
-                </p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-primary">${p.price ?? 0}</span>
-                  {p.duration && (
-                    <span className="text-sm text-muted-foreground">
-                      / {p.duration} {p.duration_unit ?? "month"}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    "mt-4 flex h-5 w-5 items-center justify-center rounded-full border",
-                    isActive ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
-                  )}
-                >
-                  {isActive && <Check className="h-3 w-3" />}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </>
   );
 }
