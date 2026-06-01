@@ -63,7 +63,12 @@ import {
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { cn } from "@/lib/utils";
-import { tasksService, type TaskItem } from "@/services/tasksService";
+import {
+  tasksService,
+  type TaskItem,
+  type TaskSummary,
+} from "@/services/tasksService";
+import { TaskBoard } from "@/views/TaskBoard";
 
 const ALL = "__all__";
 const PER_PAGE = 15;
@@ -755,339 +760,32 @@ function FilterSelect({
   );
 }
 
-// ─── Kanban Board ─────────────────────────────────────────────────────────────
+// ─── Status helpers ───────────────────────────────────────────────────────────
 
-interface BoardColumn {
-  id: string;
-  label: string;
-  tone: string;
-  badgeTone: string;
-  icon: React.ReactNode;
-}
-
-const BOARD_COLUMNS: BoardColumn[] = [
-  {
-    id: "pending",
-    label: "tasks.board.new",
-    tone: "bg-slate-500/10 border-slate-500/20",
-    badgeTone: "bg-slate-700 text-white",
-    icon: <Inbox className="h-4 w-4" />,
-  },
-  {
-    id: "assigned",
-    label: "tasks.board.assigned",
-    tone: "bg-blue-500/5 border-blue-500/20",
-    badgeTone: "bg-blue-500 text-white",
-    icon: <UserCheck className="h-4 w-4" />,
-  },
-  {
-    id: "in_progress",
-    label: "tasks.board.inProgress",
-    tone: "bg-orange-500/5 border-orange-500/20",
-    badgeTone: "bg-orange-500 text-white",
-    icon: <Play className="h-4 w-4" />,
-  },
-  {
-    id: "pending_review",
-    label: "tasks.board.pendingReview",
-    tone: "bg-violet-500/5 border-violet-500/20",
-    badgeTone: "bg-violet-500 text-white",
-    icon: <Eye className="h-4 w-4" />,
-  },
-  {
-    id: "completed",
-    label: "tasks.board.completed",
-    tone: "bg-emerald-500/5 border-emerald-500/20",
-    badgeTone: "bg-emerald-500 text-white",
-    icon: <CheckCircle2 className="h-4 w-4" />,
-  },
-];
-
-function TaskBoard({
-  tasks,
-  isLoading,
-  summary,
-  formatDate,
-  onMove,
-  onDelete,
-}: {
-  tasks: TaskItem[];
-  isLoading: boolean;
-  summary: {
-    total: number;
-    inProgress: number;
-    completed: number;
-    overdue: number;
+function statusLabel(s: string): string {
+  const map: Record<string, string> = {
+    pending: "Pending",
+    assigned: "Assigned",
+    in_progress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled",
   };
-  formatDate: (s: string) => string;
-  onMove: (id: string, newStatus: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  const [dragOver, setDragOver] = React.useState<string | null>(null);
-  const total = tasks.length || summary.total;
-  const completedPct =
-    total > 0 ? Math.round((summary.completed / total) * 100) : 0;
-
-  const grouped = React.useMemo(() => {
-    const map: Record<string, TaskItem[]> = {};
-    BOARD_COLUMNS.forEach((c) => (map[c.id] = []));
-    for (const task of tasks) {
-      const key = map[task.status] ? task.status : "pending";
-      map[key].push(task);
-    }
-    return map;
-  }, [tasks]);
-
-  const handleDrop = (e: React.DragEvent, columnId: string) => {
-    e.preventDefault();
-    setDragOver(null);
-    const id = e.dataTransfer.getData("text/task-id");
-    const fromStatus = e.dataTransfer.getData("text/from-status");
-    if (id && fromStatus !== columnId) onMove(id, columnId);
-  };
-
   return (
-    <div className="space-y-4">
-      <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-2 text-sm">
-            <Move className="h-4 w-4 text-primary" />
-            <span className="font-medium">
-              {t("tasks.board.hint", "Drag and drop to update task status")}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Badge
-              variant="outline"
-              className="gap-1"
-            >
-              <Columns className="h-3 w-3" />
-              {t("tasks.board.totalChip", "{{n}} Total", { n: total })}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="gap-1 border-destructive/30 bg-destructive/10 text-destructive"
-            >
-              <AlertTriangle className="h-3 w-3" />
-              {t("tasks.board.overdueChip", "{{n}} Overdue", {
-                n: summary.overdue,
-              })}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
-            >
-              <CheckCircle2 className="h-3 w-3" />
-              {completedPct}%
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {BOARD_COLUMNS.map((col) => {
-          const colTasks = grouped[col.id] ?? [];
-          const isOver = dragOver === col.id;
-          return (
-            <div
-              key={col.id}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(col.id);
-              }}
-              onDragLeave={() => setDragOver((c) => (c === col.id ? null : c))}
-              onDrop={(e) => handleDrop(e, col.id)}
-              className={cn(
-                "flex min-h-[200px] flex-col rounded-xl border-2 transition-colors",
-                col.tone,
-                isOver && "border-primary ring-2 ring-primary/40"
-              )}
-            >
-              <div className="flex items-center justify-between gap-2 rounded-t-xl bg-background/60 px-3 py-2.5 backdrop-blur">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  {col.icon}
-                  <span>{t(col.label, col.id)}</span>
-                </div>
-                <span
-                  className={cn(
-                    "rounded-md px-2 py-0.5 text-xs font-bold",
-                    col.badgeTone
-                  )}
-                >
-                  {colTasks.length}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col gap-2 p-2">
-                {isLoading ? (
-                  Array.from({ length: 2 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-32 animate-pulse rounded-lg bg-muted"
-                    />
-                  ))
-                ) : colTasks.length === 0 ? (
-                  <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/60 py-10 text-center text-xs text-muted-foreground">
-                    <div>
-                      <Inbox className="mx-auto mb-1 h-5 w-5 opacity-50" />
-                      {t("tasks.board.dropHere", "Drop tasks here")}
-                    </div>
-                  </div>
-                ) : (
-                  colTasks.map((task) => (
-                    <BoardCard
-                      key={task.id}
-                      task={task}
-                      formatDate={formatDate}
-                      onDelete={() => onDelete(task.id)}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    map[s] ?? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
 }
 
-function BoardCard({
-  task,
-  formatDate,
-  onDelete,
-}: {
-  task: TaskItem;
-  formatDate: (s: string) => string;
-  onDelete: () => void;
-}) {
-  const { t } = useTranslation();
-  const tone =
-    task.priority === "urgent"
-      ? "bg-destructive text-destructive-foreground"
-      : task.priority === "high"
-        ? "bg-orange-500/15 text-orange-700 border-orange-500/30"
-        : task.priority === "medium"
-          ? "bg-cyan-500/15 text-cyan-700 border-cyan-500/30"
-          : "bg-muted text-muted-foreground";
+const ALL_STATUS_DOTS: Record<string, string> = {
+  pending: "bg-slate-500",
+  assigned: "bg-violet-500",
+  in_progress: "bg-amber-500",
+  pending_verification: "bg-orange-500",
+  completed: "bg-emerald-500",
+  closed: "bg-slate-500",
+  on_hold: "bg-rose-500",
+  cancelled: "bg-destructive",
+};
 
-  const isOverdue =
-    task.dueDate &&
-    new Date(task.dueDate).getTime() < Date.now() &&
-    task.status !== "completed";
-
-  return (
-    <article
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/task-id", task.id);
-        e.dataTransfer.setData("text/from-status", task.status);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      className="group cursor-grab overflow-hidden rounded-lg border bg-card shadow-sm transition hover:shadow-md active:cursor-grabbing"
-    >
-      {task.image ? (
-        <div className="relative aspect-video bg-muted">
-          <img
-            src={task.image}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        </div>
-      ) : null}
-      <div className="space-y-2 p-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge
-            variant="outline"
-            className={cn("h-5 px-1.5 text-[10px] capitalize", tone)}
-          >
-            {t(`tasks.priorityLabel.${task.priority}`, task.priority)}
-          </Badge>
-          <Badge
-            variant="outline"
-            className="h-5 px-1.5 text-[10px] font-mono lowercase"
-          >
-            {task.type}
-          </Badge>
-          {isOverdue ? (
-            <Badge
-              variant="outline"
-              className="ms-auto h-5 gap-1 border-destructive/30 bg-destructive/10 px-1.5 text-[10px] text-destructive"
-            >
-              <AlertTriangle className="h-3 w-3" />
-              {t("tasks.board.overdue", "Overdue")}
-            </Badge>
-          ) : null}
-        </div>
-        <p className="line-clamp-2 text-sm font-medium leading-snug">
-          {task.title}
-        </p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-          {task.branch?.name ? (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {task.branch.name}
-            </span>
-          ) : null}
-          {task.dueDate ? (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {formatDate(task.dueDate)}
-            </span>
-          ) : null}
-        </div>
-        <div className="flex items-center justify-between border-t pt-2">
-          {task.assignedTo ? (
-            <span className="inline-flex items-center gap-1.5 text-xs">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
-                {task.assignedTo.name.charAt(0).toUpperCase()}
-              </span>
-              <span className="truncate">{task.assignedTo.name}</span>
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 opacity-0 transition group-hover:opacity-100"
-            onClick={onDelete}
-            aria-label="Delete"
-          >
-            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-          </Button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-// ─── Status Dropdown ──────────────────────────────────────────────────────────
-
-const ALL_STATUSES = [
-  { value: "new", dot: "bg-blue-500" },
-  { value: "assigned", dot: "bg-violet-500" },
-  { value: "in_progress", dot: "bg-amber-500" },
-  { value: "pending_verification", dot: "bg-orange-500" },
-  { value: "completed", dot: "bg-emerald-500" },
-  { value: "closed", dot: "bg-slate-500" },
-  { value: "on_hold", dot: "bg-rose-500" },
-  { value: "cancelled", dot: "bg-destructive" },
-] as const;
-
-function statusLabel(s: string) {
-  return s
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-/**
- * StatusDropdown — compact icon trigger used inside the Actions column.
- * Shows the current status dot + label and a small caret.
- * Selecting a new status calls onSelect(newStatus).
- */
 function StatusDropdown({
   status,
   onSelect,
@@ -1095,44 +793,34 @@ function StatusDropdown({
   status: string;
   onSelect: (s: string) => void;
 }) {
-  const meta = ALL_STATUSES.find((s) => s.value === status);
-  const dot = meta?.dot ?? "bg-slate-400";
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium",
-            "transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition hover:opacity-80",
             statusTone(status)
           )}
-          aria-label="Change status"
         >
-          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
-          <span className="whitespace-nowrap">{statusLabel(status)}</span>
-          <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
+          <span
+            className={cn(
+              "h-2 w-2 shrink-0 rounded-full",
+              ALL_STATUS_DOTS[status] ?? "bg-slate-400"
+            )}
+          />
+          {statusLabel(status)}
+          <ChevronDown className="h-3 w-3 opacity-60" />
         </button>
       </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        align="end"
-        className="w-48"
-      >
-        {ALL_STATUSES.map((s) => (
+      <DropdownMenuContent align="start">
+        {Object.entries(ALL_STATUS_DOTS).map(([val, dot]) => (
           <DropdownMenuItem
-            key={s.value}
-            className={cn(
-              "flex items-center gap-2 text-sm",
-              s.value === status && "font-semibold bg-accent"
-            )}
-            onSelect={() => s.value !== status && onSelect(s.value)}
+            key={val}
+            onClick={() => onSelect(val)}
+            className="gap-2 capitalize"
           >
-            <span className={cn("h-2 w-2 rounded-full shrink-0", s.dot)} />
-            {statusLabel(s.value)}
-            {s.value === status && (
-              <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-emerald-500 shrink-0" />
-            )}
+            <span className={cn("h-2 w-2 rounded-full", dot)} />
+            {statusLabel(val)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -1140,323 +828,70 @@ function StatusDropdown({
   );
 }
 
-// ─── StatusBadge (read-only pill shown in the Status column) ─────────────────
-
-function StatusBadge({ status }: { status: string }) {
-  const meta = ALL_STATUSES.find((s) => s.value === status);
-  const dot = meta?.dot ?? "bg-slate-400";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
-        statusTone(status)
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
-      {statusLabel(status)}
-    </span>
-  );
-}
-
 // ─── Dashboard Breakdown ──────────────────────────────────────────────────────
 
-const STATUS_META: Record<string, { dot: string; bg: string; text: string }> = {
-  new: { dot: "bg-blue-500", bg: "bg-blue-500/10", text: "text-blue-600" },
-  assigned: {
-    dot: "bg-violet-500",
-    bg: "bg-violet-500/10",
-    text: "text-violet-600",
-  },
-  in_progress: {
-    dot: "bg-amber-500",
-    bg: "bg-amber-500/10",
-    text: "text-amber-600",
-  },
-  pending_verification: {
-    dot: "bg-orange-500",
-    bg: "bg-orange-500/10",
-    text: "text-orange-600",
-  },
-  completed: {
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-600",
-  },
-  closed: {
-    dot: "bg-slate-500",
-    bg: "bg-slate-500/10",
-    text: "text-slate-600",
-  },
-  on_hold: { dot: "bg-rose-500", bg: "bg-rose-500/10", text: "text-rose-600" },
-  cancelled: { dot: "bg-red-500", bg: "bg-red-500/10", text: "text-red-600" },
-};
-
-const TYPE_META: Record<
-  string,
-  { icon: React.ReactNode; bg: string; text: string }
-> = {
-  violation_response: {
-    icon: <AlertTriangle className="h-3.5 w-3.5" />,
-    bg: "bg-rose-500/10",
-    text: "text-rose-600",
-  },
-  ai_generated: {
-    icon: <Zap className="h-3.5 w-3.5" />,
-    bg: "bg-indigo-500/10",
-    text: "text-indigo-600",
-  },
-  manual: {
-    icon: <Pencil className="h-3.5 w-3.5" />,
-    bg: "bg-slate-500/10",
-    text: "text-slate-600",
-  },
-  recurring: {
-    icon: <RefreshCw className="h-3.5 w-3.5" />,
-    bg: "bg-teal-500/10",
-    text: "text-teal-600",
-  },
-  maintenance: {
-    icon: <Activity className="h-3.5 w-3.5" />,
-    bg: "bg-cyan-500/10",
-    text: "text-cyan-600",
-  },
-};
-
-const PRIORITY_META: Record<string, { bar: string; text: string; bg: string }> =
-  {
-    critical: { bar: "bg-red-600", text: "text-red-600", bg: "bg-red-600/10" },
-    urgent: {
-      bar: "bg-destructive",
-      text: "text-destructive",
-      bg: "bg-destructive/10",
-    },
-    high: {
-      bar: "bg-orange-500",
-      text: "text-orange-600",
-      bg: "bg-orange-500/10",
-    },
-    medium: { bar: "bg-cyan-500", text: "text-cyan-600", bg: "bg-cyan-500/10" },
-    low: { bar: "bg-slate-400", text: "text-slate-500", bg: "bg-slate-400/10" },
-  };
-
 function BreakdownBar({
+  label,
   value,
-  max,
-  color,
+  total,
+  tone,
 }: {
+  label: string;
   value: number;
-  max: number;
-  color: string;
+  total: number;
+  tone: string;
 }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn("h-full rounded-full transition-all duration-500", color)}
-        style={{ width: `${pct}%` }}
-      />
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium capitalize">
+          {label.replace(/_/g, " ")}
+        </span>
+        <span className="text-muted-foreground">
+          {value} ({pct}%)
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full", tone)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }
 
-function DashboardBreakdown({
-  summary,
-}: {
-  summary: import("@/services/tasksService").TaskSummary;
-}) {
-  const { byStatus, byType, byPriority, total } = summary;
-
-  const statusEntries = Object.entries(byStatus)
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1]);
-  const typeEntries = Object.entries(byType)
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1]);
-  const priorityEntries = Object.entries(byPriority)
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1]);
-
-  const maxType = Math.max(...typeEntries.map(([, v]) => v), 1);
-  const maxPriority = Math.max(...priorityEntries.map(([, v]) => v), 1);
-
-  if (
-    statusEntries.length === 0 &&
-    typeEntries.length === 0 &&
-    priorityEntries.length === 0
-  )
-    return null;
-
+function DashboardBreakdown({ summary }: { summary: TaskSummary }) {
+  const { t } = useTranslation();
+  const total = summary.total || 1;
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      {/* ── By Status ── */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600">
-              <CircleDot className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold">By Status</span>
-            <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {statusEntries.length} types
-            </span>
-          </div>
-          <div className="divide-y">
-            {statusEntries.map(([key, count]) => {
-              const m = STATUS_META[key] ?? {
-                dot: "bg-slate-400",
-                bg: "bg-slate-400/10",
-                text: "text-slate-600",
-              };
-              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-              return (
-                <div
-                  key={key}
-                  className="flex items-center gap-3 px-4 py-2.5"
-                >
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold",
-                      m.bg,
-                      m.text
-                    )}
-                  >
-                    <span className={cn("h-1.5 w-1.5 rounded-full", m.dot)} />
-                  </span>
-                  <span className="flex-1 text-sm capitalize">
-                    {statusLabel(key)}
-                  </span>
-                  <span
-                    className={cn("text-xs font-semibold tabular-nums", m.text)}
-                  >
-                    {count.toLocaleString()}
-                  </span>
-                  <span className="w-9 text-end text-[11px] text-muted-foreground">
-                    {pct}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── By Type ── */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600">
-              <Tag className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold">By Type</span>
-            <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {typeEntries.length} types
-            </span>
-          </div>
-          <div className="divide-y">
-            {typeEntries.map(([key, count]) => {
-              const m = TYPE_META[key] ?? {
-                icon: <Activity className="h-3.5 w-3.5" />,
-                bg: "bg-slate-500/10",
-                text: "text-slate-600",
-              };
-              const label = key
-                .split("_")
-                .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" ");
-              return (
-                <div
-                  key={key}
-                  className="px-4 py-2.5 space-y-1.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
-                        m.bg,
-                        m.text
-                      )}
-                    >
-                      {m.icon}
-                    </span>
-                    <span className="flex-1 text-sm">{label}</span>
-                    <span
-                      className={cn(
-                        "text-xs font-semibold tabular-nums",
-                        m.text
-                      )}
-                    >
-                      {count.toLocaleString()}
-                    </span>
-                  </div>
-                  <BreakdownBar
-                    value={count}
-                    max={maxType}
-                    color={m.text
-                      .replace("text-", "bg-")
-                      .replace("-600", "-500")}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── By Priority ── */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600">
-              <TrendingUp className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold">By Priority</span>
-            <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {priorityEntries.length} levels
-            </span>
-          </div>
-          <div className="divide-y">
-            {priorityEntries.map(([key, count]) => {
-              const m = PRIORITY_META[key] ?? {
-                bar: "bg-slate-400",
-                text: "text-slate-500",
-                bg: "bg-slate-400/10",
-              };
-              return (
-                <div
-                  key={key}
-                  className="px-4 py-2.5 space-y-1.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold uppercase tracking-wide",
-                        m.bg,
-                        m.text
-                      )}
-                    >
-                      {key.charAt(0)}
-                    </span>
-                    <span className="flex-1 text-sm capitalize">{key}</span>
-                    <span
-                      className={cn(
-                        "text-xs font-semibold tabular-nums",
-                        m.text
-                      )}
-                    >
-                      {count.toLocaleString()}
-                    </span>
-                  </div>
-                  <BreakdownBar
-                    value={count}
-                    max={maxPriority}
-                    color={m.bar}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardContent className="p-4 sm:p-5">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          {t("tasks.breakdown", "Task Breakdown")}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(summary.byStatus ?? {}).map(([k, v]) => (
+            <BreakdownBar
+              key={k}
+              label={k}
+              value={v}
+              total={total}
+              tone={
+                k === "completed"
+                  ? "bg-emerald-500"
+                  : k === "in_progress"
+                    ? "bg-blue-500"
+                    : k === "cancelled"
+                      ? "bg-destructive"
+                      : "bg-slate-400"
+              }
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

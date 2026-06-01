@@ -330,3 +330,31 @@ export function AuthPaginatedSelect({
 }
 
 export default AuthPaginatedSelect;
+
+// ─── Dashboard-themed wrapper ─────────────────────────────────────────────────
+// Used by dashboard views (DetectionFeedView, TasksView, AiSchedulerView, etc.)
+// Uses the app's CSS custom properties rather than the auth page colour tokens.
+
+export interface AsyncPaginatedSelectProps extends Omit<
+  AuthPaginatedSelectProps,
+  "isDark"
+> {
+  isDark?: boolean;
+}
+
+/**
+ * AsyncPaginatedSelect — the standard paginated async select for dashboard pages.
+ * Identical to AuthPaginatedSelect but `isDark` is optional (defaults to false)
+ * so it picks up the shadcn theme automatically via CSS variables.
+ */
+export function AsyncPaginatedSelect({
+  isDark = false,
+  ...props
+}: AsyncPaginatedSelectProps) {
+  return (
+    <AuthPaginatedSelect
+      isDark={isDark}
+      {...props}
+    />
+  );
+}

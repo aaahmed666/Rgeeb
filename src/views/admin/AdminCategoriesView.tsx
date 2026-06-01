@@ -1,9 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Tag, Plus, Loader2, Pencil, Trash2, MoreVertical } from "lucide-react";
+import {
+  Tag,
+  Plus,
+  Loader2,
+  Pencil,
+  Trash2,
+  MoreVertical,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
@@ -37,14 +45,19 @@ import {
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
 import {
-  AdminCategory, fetchAdminCategories,
-  createAdminCategory, updateAdminCategory, deleteAdminCategory,
-  type AdminCategoryInput,
+  AdminCategory,
+  AdminCategoryInput,
+  fetchAdminCategories,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
 } from "@/services/adminService";
 
-
-
 // ─── Dialog ────────────────────────────────────────────────────────────────────
+// Postman: POST /admin/categories/create  fields: name_en, name_ar, description, active
+// Postman: POST /admin/categories/update  fields: name_ar, name_en, description, active, id
+// AdminCategory interface: id, nameAr?, nameEn?, description?, image?, active?
+// AdminCategoryInput:      name_ar, name_en, description?, active?, category_image?
 function CategoryDialog({
   open,
   onOpenChange,
@@ -61,29 +74,52 @@ function CategoryDialog({
   const [nameAr, setNameAr] = useState(category?.nameAr ?? "");
   const [nameEn, setNameEn] = useState(category?.nameEn ?? "");
   const [desc, setDesc] = useState(category?.description ?? "");
-  const [status, setStatus] = useState(category?.status ?? "active");
+  // active (boolean) — NOT status (string)
+  const [active, setActive] = useState<"active" | "inactive">(
+    category?.active === false ? "inactive" : "active"
+  );
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    category?.image ?? null
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleOpen = (v: boolean) => {
-    if (v) {
+  // useEffect to reset form when dialog opens with new category
+  useEffect(() => {
+    if (open) {
       setNameAr(category?.nameAr ?? "");
       setNameEn(category?.nameEn ?? "");
       setDesc(category?.description ?? "");
-      setStatus(category?.status ?? "active");
+      setActive(category?.active === false ? "inactive" : "active");
+      setImageFile(null);
+      setImagePreview(category?.image ?? null);
     }
-    onOpenChange(v);
+  }, [open, category]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setImagePreview(url);
+    }
   };
+
+  const buildInput = (): AdminCategoryInput => ({
+    name_ar: nameAr,
+    name_en: nameEn,
+    description: desc || undefined,
+    active: active === "active",
+    category_image: imageFile ?? undefined,
+  });
 
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateAdminCategory(category!.id, { name_ar: nameAr, name_en: nameEn, description: desc })
-        : createAdminCategory({ name_ar: nameAr, name_en: nameEn, description: desc }),
+        ? updateAdminCategory(category!.id, buildInput())
+        : createAdminCategory(buildInput()),
     onSuccess: () => {
-      toast.success(
-        isEdit
-          ? t("categories.updated", "Category updated")
-          : t("categories.created", "Category created")
-      );
+      toast.success(isEdit ? "Category updated" : "Category created");
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
       onOpenChange(false);
     },
@@ -93,7 +129,7 @@ function CategoryDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={handleOpen}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -127,13 +163,48 @@ function CategoryDialog({
             <Input
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
+              placeholder="Optional description"
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("categories.image", "Category Image")}</Label>
+            <div
+              className="flex items-center gap-3 rounded-lg border border-dashed p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt=""
+                  className="h-16 w-16 rounded object-cover shrink-0"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded bg-muted shrink-0">
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {imageFile ? imageFile.name : "Click to upload image"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  PNG, JPG, WEBP up to 5MB
+                </p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>{t("common.status", "Status")}</Label>
             <Select
-              value={status}
-              onValueChange={setStatus}
+              value={active}
+              onValueChange={(v) => setActive(v as "active" | "inactive")}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -180,8 +251,6 @@ export default function AdminCategoriesView() {
     searchValue: search,
     debouncedValue: debouncedSearch,
     handleSearchChange,
-    clearSearch,
-    isSearching,
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
 
@@ -210,7 +279,7 @@ export default function AdminCategoriesView() {
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminCategory(id),
     onSuccess: () => {
-      toast.success(t("categories.deleted", "Category deleted"));
+      toast.success("Category deleted");
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -287,7 +356,10 @@ export default function AdminCategoriesView() {
           {
             key: "status",
             header: t("common.status", "Status"),
-            render: (c) => <StatusPill status={c.status} />,
+            // AdminCategory.active is boolean — derive status string for StatusPill
+            render: (c) => (
+              <StatusPill status={c.active !== false ? "active" : "inactive"} />
+            ),
           },
           {
             key: "actions",
@@ -316,9 +388,7 @@ export default function AdminCategoriesView() {
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => {
-                      setDeleteTarget(c);
-                    }}
+                    onClick={() => setDeleteTarget(c)}
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -340,7 +410,7 @@ export default function AdminCategoriesView() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title="Delete Category"
-        description={`Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`}
+        description={`Delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={() => {

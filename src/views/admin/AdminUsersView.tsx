@@ -1,18 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Users,
-  Plus,
-  Loader2,
-  Pencil,
-  Trash2,
-  MoreVertical,
-  UserCheck,
-  UserX,
-  ShieldCheck,
+  Users, Plus, Loader2, Pencil, Trash2, MoreVertical,
+  UserCheck, UserX, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -23,28 +16,19 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/admin/AdminPageHeader";
+// Postman: POST /admin/users/create  fields: name_ar, name_en, email, password, phone, active, main_admin, client_id
+// Postman: POST /admin/users/update  fields: name_ar, name_en, email, password, phone, active, id, main_admin, client_id
+// AdminUser:      id, nameAr?, nameEn?, name, email?, phone?, active?(bool), mainAdmin?(bool), ...
+// AdminUserInput: name_ar*, name_en*, email*, password?, phone?, active?, main_admin?, client_id?
 import {
   AdminUser,
   AdminUserInput,
@@ -56,29 +40,19 @@ import {
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
-function StatCard({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
+function StatCard({ icon, label, value, tone }: {
+  icon: React.ReactNode; label: string; value: number;
   tone: "slate" | "emerald" | "rose";
 }) {
   const tones = {
-    slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-    emerald:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
-    rose: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400",
+    slate:   "bg-slate-100  text-slate-700  dark:bg-slate-800  dark:text-slate-300",
+    emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
+    rose:    "bg-rose-100   text-rose-700   dark:bg-rose-950/40   dark:text-rose-400",
   } as const;
   return (
     <Card>
       <CardContent className="flex items-center gap-4 p-5">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-xl ${tones[tone]}`}
-        >
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${tones[tone]}`}>
           {icon}
         </div>
         <div>
@@ -90,168 +64,132 @@ function StatCard({
   );
 }
 
-// ─── User dialog (create / edit) ──────────────────────────────────────────────
-function UserDialog({
-  open,
-  onOpenChange,
-  user,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  user: AdminUser | null;
+// ─── User dialog ──────────────────────────────────────────────────────────────
+function UserDialog({ open, onOpenChange, user }: {
+  open: boolean; onOpenChange: (v: boolean) => void; user: AdminUser | null;
 }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const isEdit = !!user;
 
-  const [form, setForm] = useState<AdminUserInput>({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    status: "active",
-  });
+  // Form state mirrors AdminUserInput exactly
+  const [nameAr,     setNameAr]     = useState(user?.nameAr     ?? "");
+  const [nameEn,     setNameEn]     = useState(user?.nameEn     ?? user?.name ?? "");
+  const [email,      setEmail]      = useState(user?.email      ?? "");
+  const [phone,      setPhone]      = useState(user?.phone      ?? "");
+  const [password,   setPassword]   = useState("");
+  const [active,     setActive]     = useState(user?.active     !== false);
+  const [mainAdmin,  setMainAdmin]  = useState(user?.mainAdmin  ?? false);
 
-  // Pre-fill when editing
-  useState(() => {
+  // useEffect (not useState callback — that never runs) to reset when dialog opens
+  useEffect(() => {
     if (open) {
-      setForm({
-        name: user?.name ?? "",
-        email: user?.email ?? "",
-        phone: user?.phone ?? "",
-        password: "",
-        status: user?.status ?? "active",
-      });
+      setNameAr(user?.nameAr ?? "");
+      setNameEn(user?.nameEn ?? user?.name ?? "");
+      setEmail(user?.email ?? "");
+      setPhone(user?.phone ?? "");
+      setPassword("");
+      setActive(user?.active !== false);
+      setMainAdmin(user?.mainAdmin ?? false);
     }
-  });
+  }, [open, user]);
 
-  // Reset on open
-  const handleOpen = (v: boolean) => {
-    if (v) {
-      setForm({
-        name: user?.name ?? "",
-        email: user?.email ?? "",
-        phone: user?.phone ?? "",
-        password: "",
-        status: user?.status ?? "active",
-      });
-    }
-    onOpenChange(v);
+  const buildInput = (): AdminUserInput => {
+    const inp: AdminUserInput = {
+      name_ar:    nameAr,
+      name_en:    nameEn,
+      email,
+      phone:      phone || undefined,
+      active,
+      main_admin: mainAdmin,
+    };
+    if (password) inp.password = password;
+    return inp;
   };
 
   const mut = useMutation({
     mutationFn: () =>
-      isEdit ? updateAdminUser(user!.id, form) : createAdminUser(form),
+      isEdit ? updateAdminUser(user!.id, buildInput()) : createAdminUser(buildInput()),
     onSuccess: () => {
-      toast.success(
-        isEdit
-          ? t("users.updated", "User updated successfully")
-          : t("users.created", "User created successfully")
-      );
+      toast.success(isEdit ? t("users.updated", "User updated") : t("users.created", "User created"));
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const set =
-    (field: keyof AdminUserInput) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleOpen}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            {isEdit
-              ? t("users.editTitle", "Edit User")
-              : t("users.createTitle", "Create New User")}
+            {isEdit ? t("users.editTitle", "Edit User") : t("users.createTitle", "Create User")}
           </DialogTitle>
         </DialogHeader>
-
         <div className="space-y-4 py-2">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="u-name">{t("users.name", "Full Name")} *</Label>
+              <Label>Name (EN) *</Label>
               <Input
-                id="u-name"
-                value={form.name}
-                onChange={set("name")}
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
                 placeholder="John Doe"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="u-email">{t("users.email", "Email")} *</Label>
+              <Label>Name (AR)</Label>
               <Input
-                id="u-email"
-                type="email"
-                value={form.email}
-                onChange={set("email")}
-                placeholder="john@example.com"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="u-phone">{t("users.phone", "Phone")}</Label>
-              <Input
-                id="u-phone"
-                value={form.phone ?? ""}
-                onChange={set("phone")}
-                placeholder="+1 555 0100"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="u-password">
-                {isEdit
-                  ? t(
-                      "users.passwordHint",
-                      "New Password (leave blank to keep)"
-                    )
-                  : t("users.password", "Password") + " *"}
-              </Label>
-              <Input
-                id="u-password"
-                type="password"
-                value={form.password ?? ""}
-                onChange={set("password")}
-                placeholder="••••••••"
+                dir="rtl"
+                value={nameAr}
+                onChange={(e) => setNameAr(e.target.value)}
+                placeholder="الاسم"
               />
             </div>
           </div>
-
           <div className="space-y-1.5">
-            <Label>{t("common.status", "Status")}</Label>
-            <Select
-              value={form.status ?? "active"}
-              onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">
-                  {t("common.active", "Active")}
-                </SelectItem>
-                <SelectItem value="inactive">
-                  {t("common.inactive", "Inactive")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Email *</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Phone</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+971 5xx xxx xxx"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>
+              {isEdit ? "New Password (leave blank to keep)" : "Password *"}
+            </Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <Label>Active</Label>
+            <Switch checked={active} onCheckedChange={setActive} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <Label>Main Admin</Label>
+            <Switch checked={mainAdmin} onCheckedChange={setMainAdmin} />
           </div>
         </div>
-
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel", "Cancel")}
           </Button>
           <Button
-            disabled={!form.name || !form.email || mut.isPending}
+            disabled={!nameEn || !email || (!isEdit && !password) || mut.isPending}
             onClick={() => mut.mutate()}
             className="gap-2"
           >
@@ -268,23 +206,13 @@ function UserDialog({
 export default function AdminUsersView() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [open,    setOpen]    = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
-  const {
-    searchValue: search,
-    debouncedValue: debouncedSearch,
-    handleSearchChange,
-    clearSearch,
-    isSearching,
-  } = useDebounceSearch("", 300);
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } =
+    useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
-  const {
-    data: users = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const { data: users = [], isLoading, isError, error } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: fetchAdminUsers,
   });
@@ -293,19 +221,15 @@ export default function AdminUsersView() {
     const q = debouncedSearch.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) =>
-      [u.name, u.email, u.phone, u.country, u.city]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
+      [u.name, u.nameEn, u.nameAr, u.email, u.phone, u.country, u.city]
+        .filter(Boolean).join(" ").toLowerCase().includes(q)
     );
-  }, [users, search]);
+  }, [users, debouncedSearch]); // debouncedSearch, NOT search
 
-  const total = users.length;
-  const active = users.filter(
-    (u) => (u.status ?? "active") === "active"
-  ).length;
-  const inactive = total - active;
+  const total    = users.length;
+  // active is boolean on AdminUser — not a status string
+  const activeCount   = users.filter((u) => u.active !== false).length;
+  const inactiveCount = total - activeCount;
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminUser(id),
@@ -315,19 +239,6 @@ export default function AdminUsersView() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const openCreate = () => {
-    setEditing(null);
-    setOpen(true);
-  };
-  const openEdit = (u: AdminUser) => {
-    setEditing(u);
-    setOpen(true);
-  };
-
-  const confirmDelete = (u: AdminUser) => {
-    setDeleteTarget(u);
-  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -339,69 +250,38 @@ export default function AdminUsersView() {
               <Users className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">
-                {t("users.title", "Users")}
-              </h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">{t("users.title", "Users")}</h1>
               <p className="text-sm text-white/80">
                 {t("users.subtitle", "Manage platform users and their access")}
               </p>
             </div>
           </div>
           <Button
-            onClick={openCreate}
-            className="shrink-0 gap-2 bg-white/20 hover:bg-white/30 border-0 text-white backdrop-blur"
+            onClick={() => { setEditing(null); setOpen(true); }}
+            className="shrink-0 gap-2 border-0 bg-white/20 text-white backdrop-blur hover:bg-white/30"
           >
-            <Plus className="h-4 w-4" />
-            {t("users.addUser", "Add User")}
+            <Plus className="h-4 w-4" /> {t("users.addUser", "Add User")}
           </Button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={<Users className="h-5 w-5" />}
-          label={t("users.total", "Total Users")}
-          value={total}
-          tone="slate"
-        />
-        <StatCard
-          icon={<UserCheck className="h-5 w-5" />}
-          label={t("common.active", "Active")}
-          value={active}
-          tone="emerald"
-        />
-        <StatCard
-          icon={<UserX className="h-5 w-5" />}
-          label={t("common.inactive", "Inactive")}
-          value={inactive}
-          tone="rose"
-        />
+        <StatCard icon={<Users className="h-5 w-5" />}     label={t("users.total","Total Users")} value={total}         tone="slate"   />
+        <StatCard icon={<UserCheck className="h-5 w-5" />} label={t("common.active","Active")}    value={activeCount}   tone="emerald" />
+        <StatCard icon={<UserX className="h-5 w-5" />}     label={t("common.inactive","Inactive")} value={inactiveCount} tone="rose"    />
       </div>
 
       {/* Table */}
       <DataTable
-        title={t("users.allUsers", "All Users")}
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={
-          error instanceof Error ? error.message : "Failed to load users"
-        }
+        errorMessage={error instanceof Error ? error.message : "Failed to load users"}
         emptyMessage={t("users.noResults", "No users found")}
         searchValue={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder={t("users.searchPlaceholder", "Search users…")}
-        actions={
-          <Button
-            size="sm"
-            onClick={openCreate}
-            className="gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            {t("users.addUser", "Add User")}
-          </Button>
-        }
         columns={[
           {
             key: "user",
@@ -409,21 +289,15 @@ export default function AdminUsersView() {
             render: (u) => (
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                  {u.avatar ? (
-                    <AvatarImage
-                      src={u.avatar}
-                      alt={u.name}
-                    />
-                  ) : null}
+                  {u.avatar && <AvatarImage src={u.avatar} alt={u.name} />}
                   <AvatarFallback className="text-xs font-bold">
                     {u.name?.slice(0, 2).toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-medium leading-tight">{u.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {u.email ?? "—"}
-                  </div>
+                  <div className="font-medium leading-tight">{u.nameEn || u.name}</div>
+                  {u.nameAr && <div className="text-xs text-muted-foreground" dir="rtl">{u.nameAr}</div>}
+                  <div className="text-xs text-muted-foreground">{u.email ?? "—"}</div>
                 </div>
               </div>
             ),
@@ -445,7 +319,13 @@ export default function AdminUsersView() {
           {
             key: "status",
             header: t("common.status", "Status"),
-            render: (u) => <StatusPill status={u.status} />,
+            render: (u) => (
+              <div className="flex gap-1.5">
+                {/* active is boolean — derive status string */}
+                <StatusPill status={u.active !== false ? "active" : "inactive"} />
+                {u.mainAdmin && <Badge variant="secondary" className="text-xs">Admin</Badge>}
+              </div>
+            ),
           },
           {
             key: "actions",
@@ -454,28 +334,16 @@ export default function AdminUsersView() {
             render: (u) => (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => openEdit(u)}
-                    className="gap-2"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    {t("common.edit", "Edit")}
+                  <DropdownMenuItem onClick={() => { setEditing(u); setOpen(true); }} className="gap-2">
+                    <Pencil className="h-4 w-4" />{t("common.edit", "Edit")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => confirmDelete(u)}
-                    className="gap-2 text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {t("common.delete", "Delete")}
+                  <DropdownMenuItem onClick={() => setDeleteTarget(u)} className="gap-2 text-destructive focus:text-destructive">
+                    <Trash2 className="h-4 w-4" />{t("common.delete", "Delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -484,19 +352,12 @@ export default function AdminUsersView() {
         ]}
       />
 
-      <UserDialog
-        open={open}
-        onOpenChange={setOpen}
-        user={editing}
-      />
+      <UserDialog open={open} onOpenChange={setOpen} user={editing} />
       <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title={t("users.confirmDeleteTitle", "Delete User")}
-        description={t(
-          "users.confirmDeleteDesc",
-          `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`
-        )}
+        description={`Delete "${deleteTarget?.name}"? This cannot be undone.`}
         confirmLabel={t("common.delete", "Delete")}
         cancelLabel={t("common.cancel", "Cancel")}
         onConfirm={() => {

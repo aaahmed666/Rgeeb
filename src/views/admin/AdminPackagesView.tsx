@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -40,16 +40,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminPackage, fetchAdminPackages, createAdminPackage, updateAdminPackage, deleteAdminPackage } from "@/services/adminService";
+import {
+  AdminPackage,
+  AdminPackageInput,
+  fetchAdminPackages,
+  createAdminPackage,
+  updateAdminPackage,
+  deleteAdminPackage,
+  fetchAdminServices,
+  fetchAdminCategories,
+} from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
-
-// ─── CRUD helpers ──────────────────────────────────────────────────────────────
-);
-}
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
 function PackageDialog({
@@ -65,44 +71,71 @@ function PackageDialog({
   const qc = useQueryClient();
   const isEdit = !!pkg;
 
+  // FIX: use correct AdminPackage fields (descriptionAr/En, durationMonths, maxCameras, maxBranches)
   const [nameAr, setNameAr] = useState(pkg?.nameAr ?? "");
   const [nameEn, setNameEn] = useState(pkg?.nameEn ?? "");
-  const [description, setDescription] = useState(pkg?.description ?? "");
+  const [descAr, setDescAr] = useState(pkg?.descriptionAr ?? "");
+  const [descEn, setDescEn] = useState(pkg?.descriptionEn ?? "");
   const [price, setPrice] = useState(String(pkg?.price ?? ""));
-  const [duration, setDuration] = useState(pkg?.duration ?? "");
-  const [status, setStatus] = useState(pkg?.status ?? "active");
+  const [durationMonths, setDurationMonths] = useState(
+    String(pkg?.durationMonths ?? "")
+  );
+  const [maxCameras, setMaxCameras] = useState(String(pkg?.maxCameras ?? ""));
+  const [maxBranches, setMaxBranches] = useState(
+    String(pkg?.maxBranches ?? "")
+  );
+  // FIX: active (boolean) not status (string)
+  const [active, setActive] = useState<"active" | "inactive">(
+    pkg?.active === false ? "inactive" : "active"
+  );
+  const [serviceIds, setServiceIds] = useState<string[]>(pkg?.serviceIds ?? []);
+  const [categoryId, setCategoryId] = useState<string>(pkg?.categoryId ?? "");
 
-  const handleOpen = (v: boolean) => {
-    if (v) {
+  const servicesQ = useQuery({
+    queryKey: ["admin", "services"],
+    queryFn: fetchAdminServices,
+  });
+  const categoriesQ = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: fetchAdminCategories,
+  });
+
+  useEffect(() => {
+    if (open) {
       setNameAr(pkg?.nameAr ?? "");
       setNameEn(pkg?.nameEn ?? "");
-      setDescription(pkg?.description ?? "");
+      setDescAr(pkg?.descriptionAr ?? "");
+      setDescEn(pkg?.descriptionEn ?? "");
       setPrice(String(pkg?.price ?? ""));
-      setDuration(pkg?.duration ?? "");
-      setStatus(pkg?.status ?? "active");
+      setDurationMonths(String(pkg?.durationMonths ?? ""));
+      setMaxCameras(String(pkg?.maxCameras ?? ""));
+      setMaxBranches(String(pkg?.maxBranches ?? ""));
+      setActive(pkg?.active === false ? "inactive" : "active");
+      setServiceIds(pkg?.serviceIds ?? []);
+      setCategoryId(pkg?.categoryId ?? "");
     }
-    onOpenChange(v);
-  };
+  }, [open, pkg]);
+
+  // FIX: build correct AdminPackageInput (duration_months number, description_ar/en)
+  const buildInput = (): AdminPackageInput => ({
+    name_ar: nameAr,
+    name_en: nameEn,
+    description_ar: descAr || undefined,
+    description_en: descEn || undefined,
+    price: price ? Number(price) : 0,
+    duration_months: durationMonths ? Number(durationMonths) : 1,
+    max_cameras: maxCameras ? Number(maxCameras) : undefined,
+    max_branches: maxBranches ? Number(maxBranches) : undefined,
+    active: active === "active",
+    category_id: categoryId || undefined,
+    "service_ids[]": serviceIds.length > 0 ? serviceIds : undefined,
+  });
 
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateAdminPackage(pkg!.id, {
-                        name_ar: nameAr,
-            name_en: nameEn,
-            description,
-            price: price ? Number(price) : undefined,
-            duration,
-            status,
-          })
-        : createAdminPackage({
-            name_ar: nameAr,
-            name_en: nameEn,
-            description,
-            price: price ? Number(price) : undefined,
-            duration,
-            status,
-          }),
+        ? updateAdminPackage(pkg!.id, buildInput())
+        : createAdminPackage(buildInput()),
     onSuccess: () => {
       toast.success(isEdit ? "Package updated" : "Package created");
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
@@ -114,9 +147,9 @@ function PackageDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={handleOpen}
+      onOpenChange={onOpenChange}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PackageIcon className="h-5 w-5 text-primary" />
@@ -124,35 +157,47 @@ function PackageDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label>Arabic Name *</Label>
-            <Input
-              dir="rtl"
-              value={nameAr}
-              onChange={(e) => setNameAr(e.target.value)}
-              placeholder="الاسم بالعربية"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Arabic Name *</Label>
+              <Input
+                dir="rtl"
+                value={nameAr}
+                onChange={(e) => setNameAr(e.target.value)}
+                placeholder="الاسم بالعربية"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>English Name *</Label>
+              <Input
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                placeholder="English name"
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
-            <Label>English Name *</Label>
-            <Input
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value)}
-              placeholder="English name"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Description</Label>
+            <Label>Description (AR)</Label>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Package description"
-              rows={3}
+              dir="rtl"
+              value={descAr}
+              onChange={(e) => setDescAr(e.target.value)}
+              placeholder="الوصف بالعربية"
+              rows={2}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Description (EN)</Label>
+            <Textarea
+              value={descEn}
+              onChange={(e) => setDescEn(e.target.value)}
+              placeholder="English description"
+              rows={2}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Price</Label>
+              <Label>Price *</Label>
               <Input
                 type="number"
                 min={0}
@@ -163,19 +208,117 @@ function PackageDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Duration</Label>
+              <Label>Duration (months) *</Label>
               <Input
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="e.g. 1y or 6m"
+                type="number"
+                min={1}
+                value={durationMonths}
+                onChange={(e) => setDurationMonths(e.target.value)}
+                placeholder="12"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Max Cameras</Label>
+              <Input
+                type="number"
+                min={0}
+                value={maxCameras}
+                onChange={(e) => setMaxCameras(e.target.value)}
+                placeholder="10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Max Branches</Label>
+              <Input
+                type="number"
+                min={0}
+                value={maxBranches}
+                onChange={(e) => setMaxBranches(e.target.value)}
+                placeholder="5"
               />
             </div>
           </div>
           <div className="space-y-1.5">
+            <Label>Category</Label>
+            <Select
+              value={categoryId}
+              onValueChange={setCategoryId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">— None —</SelectItem>
+                {(categoriesQ.data ?? []).map((cat) => (
+                  <SelectItem
+                    key={cat.id}
+                    value={cat.id}
+                  >
+                    {cat.nameEn ?? cat.nameAr ?? cat.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Services</Label>
+            <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
+              {servicesQ.isLoading ? (
+                <div className="p-2 text-sm text-muted-foreground">
+                  Loading services…
+                </div>
+              ) : (
+                (servicesQ.data ?? []).map((svc) => (
+                  <label
+                    key={svc.id}
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      checked={serviceIds.includes(svc.id)}
+                      onCheckedChange={(checked) =>
+                        setServiceIds((prev) =>
+                          checked
+                            ? [...prev, svc.id]
+                            : prev.filter((id) => id !== svc.id)
+                        )
+                      }
+                    />
+                    <span className="text-sm">
+                      {svc.nameEn ?? svc.nameAr ?? svc.id}
+                    </span>
+                  </label>
+                ))
+              )}
+              {!servicesQ.isLoading && !servicesQ.data?.length && (
+                <div className="p-2 text-sm text-muted-foreground">
+                  No services available
+                </div>
+              )}
+            </div>
+            {serviceIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {serviceIds.map((sid) => {
+                  const svc = servicesQ.data?.find((s) => s.id === sid);
+                  return (
+                    <Badge
+                      key={sid}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {svc?.nameEn ?? svc?.nameAr ?? sid}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="space-y-1.5">
             <Label>{t("common.status", "Status")}</Label>
             <Select
-              value={status}
-              onValueChange={setStatus}
+              value={active}
+              onValueChange={(v) => setActive(v as "active" | "inactive")}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -199,7 +342,9 @@ function PackageDialog({
             {t("common.cancel", "Cancel")}
           </Button>
           <Button
-            disabled={!nameAr || !nameEn || mut.isPending}
+            disabled={
+              !nameAr || !nameEn || !price || !durationMonths || mut.isPending
+            }
             onClick={() => mut.mutate()}
             className="gap-2"
           >
@@ -222,8 +367,6 @@ export default function AdminPackagesView() {
     searchValue: search,
     debouncedValue: debouncedSearch,
     handleSearchChange,
-    clearSearch,
-    isSearching,
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminPackage | null>(null);
 
@@ -240,14 +383,15 @@ export default function AdminPackagesView() {
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
     if (!q) return packages;
+    // FIX: use real AdminPackage fields (descriptionEn, categoryName, serviceNames)
     return packages.filter((p) =>
-      [p.nameEn, p.nameAr, p.description, p.category]
+      [p.nameEn, p.nameAr, p.descriptionEn, p.categoryName]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(q)
     );
-  }, [packages, search]);
+  }, [packages, debouncedSearch]); // FIX: was [packages, search] — wrong dep
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminPackage(id),
@@ -293,21 +437,22 @@ export default function AdminPackagesView() {
         searchPlaceholder="Search packages…"
         columns={[
           {
-            key: "category",
-            header: "Category",
-            render: (p) => <span>{p.category ?? "—"}</span>,
-          },
-          {
             key: "nameAr",
-            header: "Arabic Name",
+            header: "Name (AR)",
             render: (p) => <span dir="rtl">{p.nameAr ?? "—"}</span>,
           },
           {
             key: "nameEn",
-            header: "English Name",
+            header: "Name (EN)",
             render: (p) => (
               <span className="font-medium">{p.nameEn ?? "—"}</span>
             ),
+          },
+          {
+            // FIX: was p.category — field is categoryName
+            key: "categoryName",
+            header: "Category",
+            render: (p) => <span>{p.categoryName ?? "—"}</span>,
           },
           {
             key: "price",
@@ -315,17 +460,26 @@ export default function AdminPackagesView() {
             render: (p) => <span>{p.price != null ? `$${p.price}` : "—"}</span>,
           },
           {
-            key: "duration",
+            // FIX: was p.duration — field is durationMonths
+            key: "durationMonths",
             header: "Duration",
-            render: (p) => <span>{p.duration || "—"}</span>,
+            render: (p) => (
+              <span>{p.durationMonths ? `${p.durationMonths} mo` : "—"}</span>
+            ),
           },
           {
+            key: "maxCameras",
+            header: "Cameras",
+            render: (p) => <span>{p.maxCameras ?? "—"}</span>,
+          },
+          {
+            // FIX: was p.services — field is serviceNames
             key: "services",
             header: "Services",
             render: (p) =>
-              p.services?.length ? (
+              p.serviceNames?.length ? (
                 <div className="flex flex-wrap gap-1">
-                  {p.services.slice(0, 3).map((s) => (
+                  {p.serviceNames.slice(0, 2).map((s) => (
                     <Badge
                       key={s}
                       variant="secondary"
@@ -334,12 +488,12 @@ export default function AdminPackagesView() {
                       {s}
                     </Badge>
                   ))}
-                  {p.services.length > 3 && (
+                  {p.serviceNames.length > 2 && (
                     <Badge
                       variant="outline"
                       className="text-xs"
                     >
-                      +{p.services.length - 3}
+                      +{p.serviceNames.length - 2}
                     </Badge>
                   )}
                 </div>
@@ -350,7 +504,10 @@ export default function AdminPackagesView() {
           {
             key: "status",
             header: "Status",
-            render: (p) => <StatusPill status={p.status} />,
+            // FIX: was p.status — field is active (boolean)
+            render: (p) => (
+              <StatusPill status={p.active !== false ? "active" : "inactive"} />
+            ),
           },
           {
             key: "actions",
@@ -379,9 +536,7 @@ export default function AdminPackagesView() {
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => {
-                      setDeleteTarget(p);
-                    }}
+                    onClick={() => setDeleteTarget(p)}
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />

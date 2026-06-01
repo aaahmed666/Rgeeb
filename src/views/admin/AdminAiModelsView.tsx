@@ -1,9 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Plus, Loader2, Pencil, Trash2, MoreVertical } from "lucide-react";
+import {
+  Bot,
+  Plus,
+  Loader2,
+  Pencil,
+  Trash2,
+  MoreVertical,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
@@ -32,15 +40,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminAiModel, fetchAdminAiModels, createAdminAiModel, updateAdminAiModel, deleteAdminAiModel } from "@/services/adminService";
-
-// ─── CRUD helpers ──────────────────────────────────────────────────────────────
-);
-}
+import {
+  AdminAiModel,
+  AdminAiModelInput,
+  fetchAdminAiModels,
+  createAdminAiModel,
+  updateAdminAiModel,
+  deleteAdminAiModel,
+  fetchAdminServices,
+} from "@/services/adminService";
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
 function AiModelDialog({
@@ -59,33 +73,41 @@ function AiModelDialog({
   const [name, setName] = useState(model?.name ?? "");
   const [version, setVersion] = useState(model?.version ?? "");
   const [modelPath, setModelPath] = useState(model?.modelPath ?? "");
-  const [status, setStatus] = useState(model?.status ?? "active");
+  const [active, setActive] = useState<"active" | "inactive">(
+    model?.active === false ? "inactive" : "active"
+  );
+  const [serviceIds, setServiceIds] = useState<string[]>(
+    model?.serviceIds ?? []
+  );
 
-  const handleOpen = (v: boolean) => {
-    if (v) {
+  const servicesQ = useQuery({
+    queryKey: ["admin", "services"],
+    queryFn: fetchAdminServices,
+  });
+
+  useEffect(() => {
+    if (open) {
       setName(model?.name ?? "");
       setVersion(model?.version ?? "");
       setModelPath(model?.modelPath ?? "");
-      setStatus(model?.status ?? "active");
+      setActive(model?.active === false ? "inactive" : "active");
+      setServiceIds(model?.serviceIds ?? []);
     }
-    onOpenChange(v);
-  };
+  }, [open, model]);
+
+  const buildInput = (): AdminAiModelInput => ({
+    name,
+    version: version || undefined,
+    model_path: modelPath || undefined,
+    active: active === "active",
+    "service_ids[]": serviceIds.length > 0 ? serviceIds : undefined,
+  });
 
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateAdminAiModel(model!.id, {
-                        name,
-            version: version || undefined,
-            model_path: modelPath || undefined,
-            status,
-          })
-        : createAdminAiModel({
-            name,
-            version: version || undefined,
-            model_path: modelPath || undefined,
-            status,
-          }),
+        ? updateAdminAiModel(model!.id, buildInput())
+        : createAdminAiModel(buildInput()),
     onSuccess: () => {
       toast.success(isEdit ? "AI model updated" : "AI model created");
       qc.invalidateQueries({ queryKey: ["admin", "aiModels"] });
@@ -97,7 +119,7 @@ function AiModelDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={handleOpen}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -133,10 +155,62 @@ function AiModelDialog({
             />
           </div>
           <div className="space-y-1.5">
+            <Label>Services</Label>
+            <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
+              {servicesQ.isLoading ? (
+                <div className="p-2 text-sm text-muted-foreground">
+                  Loading services…
+                </div>
+              ) : (
+                (servicesQ.data ?? []).map((svc) => (
+                  <label
+                    key={svc.id}
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      checked={serviceIds.includes(svc.id)}
+                      onCheckedChange={(checked) =>
+                        setServiceIds((prev) =>
+                          checked
+                            ? [...prev, svc.id]
+                            : prev.filter((id) => id !== svc.id)
+                        )
+                      }
+                    />
+                    <span className="text-sm">
+                      {svc.nameEn ?? svc.nameAr ?? svc.id}
+                    </span>
+                  </label>
+                ))
+              )}
+              {!servicesQ.isLoading && !servicesQ.data?.length && (
+                <div className="p-2 text-sm text-muted-foreground">
+                  No services available
+                </div>
+              )}
+            </div>
+            {serviceIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {serviceIds.map((sid) => {
+                  const svc = servicesQ.data?.find((s) => s.id === sid);
+                  return (
+                    <Badge
+                      key={sid}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {svc?.nameEn ?? svc?.nameAr ?? sid}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="space-y-1.5">
             <Label>{t("common.status", "Status")}</Label>
             <Select
-              value={status}
-              onValueChange={setStatus}
+              value={active}
+              onValueChange={(v) => setActive(v as "active" | "inactive")}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -183,8 +257,6 @@ export default function AdminAiModelsView() {
     searchValue: search,
     debouncedValue: debouncedSearch,
     handleSearchChange,
-    clearSearch,
-    isSearching,
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminAiModel | null>(null);
 
@@ -202,7 +274,7 @@ export default function AdminAiModelsView() {
     const q = debouncedSearch.trim().toLowerCase();
     if (!q) return models;
     return models.filter((m) =>
-      [m.name, m.version, m.modelPath, m.services]
+      [m.name, m.version, m.modelPath, ...(m.serviceNames ?? [])]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -275,12 +347,18 @@ export default function AdminAiModelsView() {
           {
             key: "services",
             header: "Services",
-            render: (m) => <span>{m.services ?? "—"}</span>,
+            render: (m) => (
+              <span className="text-sm text-muted-foreground">
+                {m.serviceNames?.join(", ") ?? "—"}
+              </span>
+            ),
           },
           {
             key: "status",
             header: "Status",
-            render: (m) => <StatusPill status={m.status} />,
+            render: (m) => (
+              <StatusPill status={m.active !== false ? "active" : "inactive"} />
+            ),
           },
           {
             key: "actions",
@@ -309,9 +387,7 @@ export default function AdminAiModelsView() {
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => {
-                      setDeleteTarget(m);
-                    }}
+                    onClick={() => setDeleteTarget(m)}
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />

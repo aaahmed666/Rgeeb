@@ -43,12 +43,15 @@ import {
   AdminPageHeader,
   StatusPill,
 } from "@/components/admin/AdminPageHeader";
-import { AdminService, fetchAdminServices, createAdminService, updateAdminService, deleteAdminService } from "@/services/adminService";
+import {
+  AdminService,
+  AdminServiceInput,
+  fetchAdminServices,
+  createAdminService,
+  updateAdminService,
+  deleteAdminService,
+} from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
-
-// ─── CRUD helpers (POST-based, mirrors Postman collection) ─────────────────────
-);
-}
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
 function ServiceDialog({
@@ -64,39 +67,37 @@ function ServiceDialog({
   const qc = useQueryClient();
   const isEdit = !!service;
 
-  const [name, setName] = useState(service?.name ?? "");
+  const [nameEn, setNameEn] = useState(service?.nameEn ?? "");
+  const [nameAr, setNameAr] = useState(service?.nameAr ?? "");
   const [description, setDescription] = useState(service?.description ?? "");
   const [price, setPrice] = useState(String(service?.price ?? ""));
-  const [status, setStatus] = useState(service?.status ?? "active");
+  const [active, setActive] = useState<"active" | "inactive">(
+    service?.active === false ? "inactive" : "active"
+  );
 
   useEffect(() => {
     if (open) {
-      setName(service?.name ?? "");
+      setNameEn(service?.nameEn ?? "");
+      setNameAr(service?.nameAr ?? "");
       setDescription(service?.description ?? "");
       setPrice(String(service?.price ?? ""));
-      setStatus(service?.status ?? "active");
+      setActive(service?.active === false ? "inactive" : "active");
     }
   }, [open, service]);
 
-  const handleOpen = (v: boolean) => {
-    onOpenChange(v);
-  };
+  const buildInput = (): AdminServiceInput => ({
+    name_en: nameEn,
+    name_ar: nameAr,
+    description,
+    price: price ? Number(price) : undefined,
+    active: active === "active",
+  });
 
   const mut = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateAdminService(service!.id, {
-                        name,
-            description,
-            price: price ? Number(price) : undefined,
-            status,
-          })
-        : createAdminService({
-            name,
-            description,
-            price: price ? Number(price) : undefined,
-            status,
-          }),
+        ? updateAdminService(service!.id, buildInput())
+        : createAdminService(buildInput()),
     onSuccess: () => {
       toast.success(isEdit ? "Service updated" : "Service created");
       qc.invalidateQueries({ queryKey: ["admin", "services"] });
@@ -106,10 +107,7 @@ function ServiceDialog({
   });
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleOpen}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -119,11 +117,20 @@ function ServiceDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Name *</Label>
+            <Label>Name (EN) *</Label>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Service name"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              placeholder="Service name in English"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Name (AR)</Label>
+            <Input
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              placeholder="اسم الخدمة بالعربية"
+              dir="rtl"
             />
           </div>
           <div className="space-y-1.5">
@@ -149,8 +156,8 @@ function ServiceDialog({
           <div className="space-y-1.5">
             <Label>{t("common.status", "Status")}</Label>
             <Select
-              value={status}
-              onValueChange={setStatus}
+              value={active}
+              onValueChange={(v) => setActive(v as "active" | "inactive")}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -167,14 +174,11 @@ function ServiceDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel", "Cancel")}
           </Button>
           <Button
-            disabled={!name || mut.isPending}
+            disabled={!nameEn || mut.isPending}
             onClick={() => mut.mutate()}
             className="gap-2"
           >
@@ -197,8 +201,6 @@ export default function AdminServicesView() {
     searchValue: search,
     debouncedValue: debouncedSearch,
     handleSearchChange,
-    clearSearch,
-    isSearching,
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<AdminService | null>(null);
 
@@ -216,7 +218,7 @@ export default function AdminServicesView() {
     const q = debouncedSearch.trim().toLowerCase();
     if (!q) return services;
     return services.filter((s) =>
-      [s.name, s.description]
+      [s.nameEn, s.nameAr, s.description]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -268,9 +270,14 @@ export default function AdminServicesView() {
         searchPlaceholder="Search services…"
         columns={[
           {
-            key: "name",
-            header: "Name",
-            render: (s) => <span className="font-medium">{s.name}</span>,
+            key: "nameEn",
+            header: "Name (EN)",
+            render: (s) => <span className="font-medium">{s.nameEn ?? s.nameAr ?? "—"}</span>,
+          },
+          {
+            key: "nameAr",
+            header: "Name (AR)",
+            render: (s) => <span dir="rtl">{s.nameAr ?? "—"}</span>,
           },
           {
             key: "description",
@@ -286,7 +293,7 @@ export default function AdminServicesView() {
           {
             key: "status",
             header: "Status",
-            render: (s) => <StatusPill status={s.status} />,
+            render: (s) => <StatusPill status={s.active !== false ? "active" : "inactive"} />,
           },
           {
             key: "actions",
@@ -295,11 +302,7 @@ export default function AdminServicesView() {
             render: (s) => (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -315,9 +318,7 @@ export default function AdminServicesView() {
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => {
-                      setDeleteTarget(s);
-                    }}
+                    onClick={() => setDeleteTarget(s)}
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -339,7 +340,7 @@ export default function AdminServicesView() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title="Delete Service"
-        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={() => {

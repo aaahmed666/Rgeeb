@@ -126,18 +126,11 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-type LeafItem = {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  badge?: { text: string; tone?: "live" | "new" | "ai" | "warn" };
-  permission?: string;
-};
-type SubGroupItem = LeafItem & { children?: LeafItem[] };
-type GroupItem = LeafItem & {
-  children?: (SubGroupItem | LeafItem)[];
-  subGroups?: SubGroupItem[];
-};
+import type {
+  LeafItem,
+  SubGroupItem,
+  GroupItem,
+} from "@/components/AppSidebarNavItems";
 
 export function AppSidebar() {
   const { t, i18n } = useTranslation();

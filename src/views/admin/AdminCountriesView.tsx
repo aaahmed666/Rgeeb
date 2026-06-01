@@ -11,121 +11,105 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { fetchAdminCountries, createAdminCountry, updateAdminCountry, deleteAdminCountry } from "@/services/adminService";
+// All mutations go through the service layer — no raw api/endpoints in views
+import {
+  AdminCountry,
+  fetchAdminCountries,
+  createAdminCountry,
+  updateAdminCountry,
+  deleteAdminCountry,
+} from "@/services/adminService";
 
-interface Country {
-  id: string;
-  name: string;
-  nameAr?: string;
-  code?: string;
-  flag?: string;
-  citiesCount?: number;
-}
+// Postman:
+//   GET    /admin/countries            — list
+//   POST   /api/admin/countries        fields: name_ar, name_en, code
+//   PUT    /admin/countries/:id        fields: name_en  (partial)
+//   DELETE /api/admin/countries/:id
+//
+// AdminCountry interface: id, nameAr?, nameEn?, code?
+// AdminCountryInput:      name_ar*, name_en*, code?
 
-function mapCountry(r: any): Country {
-  return {
-    id: String(r.id ?? ""),
-    name: r.name ?? r.name_en ?? "",
-    nameAr: r.name_ar,
-    code: r.code ?? r.iso_code ?? r.iso,
-    flag: r.flag ?? r.flag_url,
-    citiesCount:
-      typeof r.cities_count === "number" ? r.cities_count : undefined,
-  };
-}
-function listFrom(res: unknown): any[] {
-  if (Array.isArray(res)) return res;
-  const d = (res as any)?.data;
-  if (Array.isArray(d)) return d;
-  if (Array.isArray((d as any)?.data)) return (d as any).data;
-  return [];
-}
+type FormState = { name_en: string; name_ar: string; code: string };
+const EMPTY: FormState = { name_en: "", name_ar: "", code: "" };
 
 export default function AdminCountriesView() {
   const qc = useQueryClient();
-  const {
-    searchValue: search,
-    debouncedValue: debouncedSearch,
-    handleSearchChange,
-    clearSearch,
-    isSearching,
-  } = useDebounceSearch("", 300);
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } =
+    useDebounceSearch("", 300);
   const [open, setOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<Country | null>(null);
-  const [form, setForm] = React.useState({ name: "", name_ar: "", code: "" });
+  const [editing, setEditing] = React.useState<AdminCountry | null>(null);
+  const [form, setForm] = React.useState<FormState>(EMPTY);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["admin", "countries"],
-    queryFn: async () =>
-      fetchAdminCountries(),
+    queryFn: fetchAdminCountries,
   });
 
   const filtered = React.useMemo(() => {
     const s = debouncedSearch.trim().toLowerCase();
-    return s
-      ? (q.data ?? []).filter((c) =>
-          [c.name, c.nameAr, c.code].join(" ").toLowerCase().includes(s)
-        )
-      : (q.data ?? []);
+    if (!s) return q.data ?? [];
+    return (q.data ?? []).filter((c) =>
+      [c.nameEn, c.nameAr, c.code].filter(Boolean).join(" ").toLowerCase().includes(s)
+    );
   }, [q.data, debouncedSearch]);
 
   const saveMut = useMutation({
-    mutationFn: async (data: typeof form) => {
-      if (editing)
-        return api.put(endpoints.admin.countryUpdate(editing.id), data);
-      return createAdminCountry(data as any);
-    },
+    mutationFn: (data: FormState) =>
+      editing
+        ? updateAdminCountry(editing.id, {
+            name_en: data.name_en,
+            name_ar: data.name_ar,
+            code: data.code || undefined,
+          })
+        : createAdminCountry({
+            name_en: data.name_en,
+            name_ar: data.name_ar,
+            code: data.code || undefined,
+          }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "countries"] });
       toast.success(editing ? "Country updated" : "Country created");
       setOpen(false);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => api.delete(endpoints.admin.countryDelete(id)),
+    mutationFn: (id: string) => deleteAdminCountry(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "countries"] });
       toast.success("Country deleted");
       setDeleteId(null);
     },
-    onError: () => toast.error("Delete failed"),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: "", name_ar: "", code: "" });
+    setForm(EMPTY);
     setOpen(true);
   }
-  function openEdit(c: Country) {
+
+  function openEdit(c: AdminCountry) {
     setEditing(c);
-    setForm({ name: c.name, name_ar: c.nameAr ?? "", code: c.code ?? "" });
+    // AdminCountry has nameEn / nameAr (not name)
+    setForm({ name_en: c.nameEn ?? "", name_ar: c.nameAr ?? "", code: c.code ?? "" });
     setOpen(true);
   }
+
+  const set = (k: keyof FormState) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -135,10 +119,7 @@ export default function AdminCountriesView() {
         onRefresh={() => q.refetch()}
         isRefreshing={q.isFetching}
         right={
-          <Button
-            size="sm"
-            onClick={openCreate}
-          >
+          <Button size="sm" onClick={openCreate}>
             <Plus className="mr-1.5 h-4 w-4" /> Add Country
           </Button>
         }
@@ -153,34 +134,11 @@ export default function AdminCountriesView() {
         searchValue={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Search countries…"
-        actions={
-          <Button
-            size="sm"
-            onClick={openCreate}
-          >
-            <Plus className="mr-1.5 h-4 w-4" /> Add Country
-          </Button>
-        }
         columns={[
           {
-            key: "flag",
-            header: "Flag",
-            headClassName: "w-16",
-            render: (c) =>
-              c.flag ? (
-                <img
-                  src={c.flag}
-                  alt=""
-                  className="h-5 w-7 rounded-sm object-cover"
-                />
-              ) : (
-                <span>🌍</span>
-              ),
-          },
-          {
-            key: "name",
+            key: "nameEn",
             header: "Name (EN)",
-            render: (c) => <span className="font-medium">{c.name}</span>,
+            render: (c) => <span className="font-medium">{c.nameEn ?? "—"}</span>,
           },
           {
             key: "nameAr",
@@ -191,15 +149,8 @@ export default function AdminCountriesView() {
             key: "code",
             header: "Code",
             render: (c) => (
-              <span className="font-mono text-xs uppercase">
-                {c.code ?? "—"}
-              </span>
+              <span className="font-mono text-xs uppercase">{c.code ?? "—"}</span>
             ),
-          },
-          {
-            key: "cities",
-            header: "Cities",
-            render: (c) => <span>{c.citiesCount ?? "—"}</span>,
           },
           {
             key: "actions",
@@ -208,25 +159,19 @@ export default function AdminCountriesView() {
             render: (c) => (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => openEdit(c)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => setDeleteId(c.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -235,24 +180,18 @@ export default function AdminCountriesView() {
         ]}
       />
 
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-      >
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editing ? "Edit Country" : "Add Country"}
-            </DialogTitle>
+            <DialogTitle>{editing ? "Edit Country" : "Add Country"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>Name (EN) *</Label>
               <Input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
+                value={form.name_en}
+                onChange={set("name_en")}
+                placeholder="United Arab Emirates"
               />
             </div>
             <div className="grid gap-1.5">
@@ -260,9 +199,8 @@ export default function AdminCountriesView() {
               <Input
                 dir="rtl"
                 value={form.name_ar}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name_ar: e.target.value }))
-                }
+                onChange={set("name_ar")}
+                placeholder="الإمارات العربية المتحدة"
               />
             </div>
             <div className="grid gap-1.5">
@@ -272,21 +210,16 @@ export default function AdminCountriesView() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))
                 }
-                placeholder="SA, US, EG..."
+                placeholder="AE, SA, EG…"
                 maxLength={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button
               onClick={() => saveMut.mutate(form)}
-              disabled={saveMut.isPending || !form.name.trim()}
+              disabled={saveMut.isPending || !form.name_en.trim()}
             >
               {saveMut.isPending ? "Saving…" : "Save"}
             </Button>
@@ -294,15 +227,12 @@ export default function AdminCountriesView() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={!!deleteId}
-        onOpenChange={(o) => !o && setDeleteId(null)}
-      >
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Country?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will also remove all associated cities.
+              This will also remove all associated cities. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

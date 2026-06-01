@@ -21,45 +21,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { fetchAdminSettings, upsertManyAdminSettings } from "@/services/adminService";
 
+// ─── Field config — matches old implementation's settingFields ─────────────────
+//
+// Old code used: app_name, app_description, contact_email, support_phone,
+//                privacy_policy, terms_of_service, cookie_policy,
+//                notification_email, email_signature
+// Postman: POST /admin/settings/upsert-many  { settings[0][key], settings[0][value] }
+// AdminSettings.raw is Record<string, string> — key/value pairs from the API.
 
 // ─── Field wrapper ─────────────────────────────────────────────────────────────
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">
-        {label}
-      </Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
 }
 
-// ─── Tab-level save button ─────────────────────────────────────────────────────
-function SaveBar({
-  onSave,
-  isPending,
-}: {
-  onSave: () => void;
-  isPending: boolean;
-}) {
+function SaveBar({ onSave, isPending }: { onSave: () => void; isPending: boolean }) {
   return (
-    <div className="flex justify-end pt-4 border-t border-border/60">
-      <Button
-        onClick={onSave}
-        disabled={isPending}
-        className="gap-2"
-      >
-        {isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Save className="h-4 w-4" />
-        )}
+    <div className="flex justify-end border-t border-border/60 pt-4">
+      <Button onClick={onSave} disabled={isPending} className="gap-2">
+        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         Save Changes
       </Button>
     </div>
@@ -69,41 +53,32 @@ function SaveBar({
 // ─── Main view ─────────────────────────────────────────────────────────────────
 export default function AdminSettingsView() {
   const qc = useQueryClient();
+
+  // AdminSettings.raw is Record<string,string> — flat key/value map
   const q = useQuery({
     queryKey: ["admin", "settings"],
     queryFn: fetchAdminSettings,
   });
-  const s = q.data;
 
-  // ── General state ──────────────────────────────────────────────────────────
-  const [appName, setAppName] = useState("");
-  const [appDescription, setAppDescription] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [supportPhone, setSupportPhone] = useState("");
+  // We keep a single flat state object matching the raw keys
+  const [vals, setVals] = useState<Record<string, string>>({});
 
-  // ── Legal state ────────────────────────────────────────────────────────────
-  const [privacyPolicy, setPrivacyPolicy] = useState("");
-  const [termsOfService, setTermsOfService] = useState("");
-  const [cookiePolicy, setCookiePolicy] = useState("");
-
-  // ── Notifications state ────────────────────────────────────────────────────
-  const [notificationEmail, setNotificationEmail] = useState("");
-  const [emailSignature, setEmailSignature] = useState("");
-
-  // Populate form when data loads
+  // Populate from API — raw is already { app_name: "...", privacy_policy: "..." }
   useEffect(() => {
-    if (!s) return;
-    setAppName(s.general.appName ?? "");
-    setAppDescription(s.general.appDescription ?? "");
-    setContactEmail(s.general.contactEmail ?? "");
-    setSupportPhone(s.general.supportPhone ?? "");
-    setPrivacyPolicy(s.legal.privacyPolicy ?? "");
-    setTermsOfService(s.legal.termsOfService ?? "");
-    setCookiePolicy(s.legal.cookiePolicy ?? "");
-    setNotificationEmail(s.notifications.notificationEmail ?? "");
-    setEmailSignature(s.notifications.emailSignature ?? "");
-  }, [s]);
+    if (q.data?.raw) {
+      setVals(q.data.raw);
+    }
+  }, [q.data]);
 
+  const set = (key: string) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => setVals((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const v = (key: string) => vals[key] ?? "";
+
+  // Postman: POST /admin/settings/upsert-many
+  // body: settings[0][key], settings[0][value], settings[1][key], ...
+  // upsertManyAdminSettings already builds that format
   const mut = useMutation({
     mutationFn: (pairs: { key: string; value: string }[]) =>
       upsertManyAdminSettings(pairs),
@@ -116,23 +91,23 @@ export default function AdminSettingsView() {
 
   const saveGeneral = () =>
     mut.mutate([
-      { key: "app_name", value: appName },
-      { key: "app_description", value: appDescription },
-      { key: "contact_email", value: contactEmail },
-      { key: "support_phone", value: supportPhone },
+      { key: "app_name",        value: v("app_name") },
+      { key: "app_description", value: v("app_description") },
+      { key: "contact_email",   value: v("contact_email") },
+      { key: "support_phone",   value: v("support_phone") },
     ]);
 
   const saveLegal = () =>
     mut.mutate([
-      { key: "privacy_policy", value: privacyPolicy },
-      { key: "terms_of_service", value: termsOfService },
-      { key: "cookie_policy", value: cookiePolicy },
+      { key: "privacy_policy",  value: v("privacy_policy") },
+      { key: "terms_of_service",value: v("terms_of_service") },
+      { key: "cookie_policy",   value: v("cookie_policy") },
     ]);
 
   const saveNotifications = () =>
     mut.mutate([
-      { key: "notification_email", value: notificationEmail },
-      { key: "email_signature", value: emailSignature },
+      { key: "notification_email", value: v("notification_email") },
+      { key: "email_signature",    value: v("email_signature") },
     ]);
 
   return (
@@ -143,6 +118,7 @@ export default function AdminSettingsView() {
         onRefresh={() => q.refetch()}
         isRefreshing={q.isFetching}
       />
+
       <Card className="border-border/60 shadow-sm">
         <CardContent className="p-4 sm:p-6">
           {q.isLoading ? (
@@ -152,7 +128,7 @@ export default function AdminSettingsView() {
             </div>
           ) : q.isError ? (
             <div className="text-sm text-destructive">
-              {q.error instanceof Error ? q.error.message : "Failed to load"}
+              {q.error instanceof Error ? q.error.message : "Failed to load settings"}
             </div>
           ) : (
             <Tabs defaultValue="general">
@@ -169,21 +145,18 @@ export default function AdminSettingsView() {
               </TabsList>
 
               {/* ── General ──────────────────────────────────────────────── */}
-              <TabsContent
-                value="general"
-                className="mt-6 space-y-4"
-              >
+              <TabsContent value="general" className="mt-6 space-y-4">
                 <Field label="Application Name">
                   <Input
-                    value={appName}
-                    onChange={(e) => setAppName(e.target.value)}
+                    value={v("app_name")}
+                    onChange={set("app_name")}
                     placeholder="My App"
                   />
                 </Field>
                 <Field label="Application Description">
                   <Textarea
-                    value={appDescription}
-                    onChange={(e) => setAppDescription(e.target.value)}
+                    value={v("app_description")}
+                    onChange={set("app_description")}
                     rows={4}
                     placeholder="Short description of the application"
                   />
@@ -191,84 +164,69 @@ export default function AdminSettingsView() {
                 <Field label="Contact Email">
                   <Input
                     type="email"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
+                    value={v("contact_email")}
+                    onChange={set("contact_email")}
                     placeholder="contact@example.com"
                   />
                 </Field>
                 <Field label="Support Phone">
                   <Input
-                    value={supportPhone}
-                    onChange={(e) => setSupportPhone(e.target.value)}
+                    value={v("support_phone")}
+                    onChange={set("support_phone")}
                     placeholder="+1 555 000 0000"
                   />
                 </Field>
-                <SaveBar
-                  onSave={saveGeneral}
-                  isPending={mut.isPending}
-                />
+                <SaveBar onSave={saveGeneral} isPending={mut.isPending} />
               </TabsContent>
 
               {/* ── Legal ─────────────────────────────────────────────────── */}
-              <TabsContent
-                value="legal"
-                className="mt-6 space-y-4"
-              >
+              <TabsContent value="legal" className="mt-6 space-y-4">
                 <Field label="Privacy Policy">
                   <Textarea
-                    value={privacyPolicy}
-                    onChange={(e) => setPrivacyPolicy(e.target.value)}
+                    value={v("privacy_policy")}
+                    onChange={set("privacy_policy")}
                     rows={8}
                     placeholder="Privacy policy content…"
                   />
                 </Field>
                 <Field label="Terms of Service">
                   <Textarea
-                    value={termsOfService}
-                    onChange={(e) => setTermsOfService(e.target.value)}
+                    value={v("terms_of_service")}
+                    onChange={set("terms_of_service")}
                     rows={8}
                     placeholder="Terms of service content…"
                   />
                 </Field>
                 <Field label="Cookie Policy">
                   <Textarea
-                    value={cookiePolicy}
-                    onChange={(e) => setCookiePolicy(e.target.value)}
+                    value={v("cookie_policy")}
+                    onChange={set("cookie_policy")}
                     rows={8}
                     placeholder="Cookie policy content…"
                   />
                 </Field>
-                <SaveBar
-                  onSave={saveLegal}
-                  isPending={mut.isPending}
-                />
+                <SaveBar onSave={saveLegal} isPending={mut.isPending} />
               </TabsContent>
 
               {/* ── Notifications ─────────────────────────────────────────── */}
-              <TabsContent
-                value="notifications"
-                className="mt-6 space-y-4"
-              >
+              <TabsContent value="notifications" className="mt-6 space-y-4">
                 <Field label="Notification Email">
                   <Input
                     type="email"
-                    value={notificationEmail}
-                    onChange={(e) => setNotificationEmail(e.target.value)}
+                    value={v("notification_email")}
+                    onChange={set("notification_email")}
                     placeholder="notifications@example.com"
                   />
                 </Field>
                 <Field label="Email Signature">
                   <Textarea
-                    value={emailSignature}
-                    onChange={(e) => setEmailSignature(e.target.value)}
+                    value={v("email_signature")}
+                    onChange={set("email_signature")}
                     rows={8}
                     placeholder="Email signature HTML or text…"
                   />
                 </Field>
-                <SaveBar
-                  onSave={saveNotifications}
-                  isPending={mut.isPending}
-                />
+                <SaveBar onSave={saveNotifications} isPending={mut.isPending} />
               </TabsContent>
             </Tabs>
           )}
