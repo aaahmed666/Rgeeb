@@ -73,8 +73,10 @@ export async function fetchCities(countryId: string | number): Promise<City[]> {
   return unwrap<City[]>(raw) ?? [];
 }
 
-export async function fetchCategories(): Promise<Category[]> {
-  const raw = await apiFetch<Envelope<Category[]>>(endpoints.lookups.categories);
+export async function fetchCategories(lang?: string): Promise<Category[]> {
+  const query: Record<string, string | undefined> = {};
+  if (lang) query.lang = lang;
+  const raw = await apiFetch<Envelope<Category[]>>(endpoints.lookups.categories, { query });
   return unwrap<Category[]>(raw) ?? [];
 }
 

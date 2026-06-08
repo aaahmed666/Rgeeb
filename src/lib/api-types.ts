@@ -26,3 +26,15 @@ export interface ListResponse<T> {
   status?: boolean;
   message?: string;
 }
+
+// ── Structured error type used by error-fallback and use-error-handler ──────
+export interface StructuredApiError {
+  type: "auth" | "permission" | "not_found" | "forbidden" | "notfound" | "validation" | "server" | "network" | "unknown";
+  status?: number;
+  code?: string;
+  message: string;
+  details?: string[];
+  field?: string;
+  retryable?: boolean;
+  timestamp?: number | string;
+}

@@ -1,2 +1,12 @@
+"use client";
 
-export { default } from "@/views/admin/AdminDashboardView";
+import React from "react";
+import dynamic from "next/dynamic";
+
+const View = dynamic(() => import("@/views/admin/AdminDashboardView"), {
+  ssr: false,
+});
+
+export default function Page() {
+  return <View />;
+}

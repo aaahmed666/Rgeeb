@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 import {
   Activity,
   AlertTriangle,
@@ -9,6 +10,7 @@ import {
   HardDrive,
   Wifi,
   Zap,
+ShieldAlert,
 } from "lucide-react";
 
 import {
@@ -52,7 +54,18 @@ const sevTone: Record<"high" | "medium" | "low", string> = {
 
 export default function MonitoringView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
 
+
+  if (!hasPermission("event_timeline")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">Access Denied</p>
+        <p className="text-sm text-muted-foreground">You don&apos;t have permission to view this page.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header>

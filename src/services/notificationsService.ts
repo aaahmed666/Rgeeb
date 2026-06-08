@@ -79,7 +79,7 @@ function unwrapList(raw: unknown): {
 export const notificationsService = {
   list: async (page = 1, perPage = 20): Promise<NotificationsResponse> => {
     try {
-      const raw = await api.get<unknown>(endpoints.customer.notifications, {
+      const raw = await api.get<unknown>(endpoints.notifications.list, {
         query: { page, per_page: perPage },
       });
       const { list, meta } = unwrapList(raw);
@@ -114,7 +114,7 @@ export const notificationsService = {
   unreadCount: async (): Promise<number> => {
     try {
       const raw = await api.get<unknown>(
-        endpoints.customer.notificationsUnread
+        endpoints.notifications.unreadCount
       );
       const r = (raw ?? {}) as Record<string, unknown>;
       return num(
@@ -128,7 +128,7 @@ export const notificationsService = {
 
   markAllRead: async (): Promise<void> => {
     try {
-      await api.post<unknown>(endpoints.customer.notificationsMarkAllRead, {});
+      await api.post<unknown>(endpoints.notifications.markAllRead, {});
     } catch {
       /* ignore */
     }
@@ -136,7 +136,7 @@ export const notificationsService = {
 
   markRead: async (id: string): Promise<void> => {
     try {
-      await api.post<unknown>(endpoints.customer.notificationRead(id), {});
+      await api.post<unknown>(endpoints.notifications.markRead(id), {});
     } catch {
       /* ignore */
     }

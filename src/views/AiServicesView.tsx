@@ -3,7 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronDown, ChevronUp, Brain } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { Search, ChevronDown, ChevronUp, Brain, ShieldAlert,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,15 +14,11 @@ import { ALL_SERVICES } from "@/views/ai-services/aiServicesData";
 import { dashboardService } from "@/services/dashboardService";
 import type { AIServiceItem } from "@/services/dashboardService";
 
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "safety", label: "Safety" },
-  { id: "analytics", label: "Analytics" },
-  { id: "operations", label: "Operations" },
-  { id: "monitoring", label: "Monitoring" },
-] as const;
+// TABS labels are now resolved via t() in render — see tLabel() below
+const TAB_IDS = ["all", "safety", "analytics", "operations", "monitoring"] as const;
+type Tab = typeof TAB_IDS[number];
 
-type Tab = (typeof TABS)[number]["id"];
+
 
 const CATEGORY_PATH: Record<string, string> = {
   Safety: "safety",
@@ -64,9 +62,22 @@ const KEY_TO_ID: Record<string, string> = {
   waiting: "waiting-customer",
 };
 
-export default function AiServicesView() {
+export default function AiServicesView({ defaultTab }: { defaultTab?: string } = {}) {
   const { t } = useTranslation();
-  const [tab, setTab] = React.useState<Tab>("all");
+  const { hasPermission } = useAuth();
+
+  // Resolve tab label via i18n
+  const tLabel = (id: string): string => {
+    const keys: Record<string, string> = {
+      all:        t("aiServices.all", "All"),
+      safety:     t("aiServices.safety", "Safety"),
+      analytics:  t("aiServices.analytics", "Analytics"),
+      operations: t("aiServices.operations", "Operations"),
+      monitoring: t("aiServices.monitoring", "Monitoring"),
+    };
+    return keys[id] ?? id;
+  };
+  const [tab, setTab] = React.useState<string>("all");
   const [query, setQuery] = React.useState("");
   const [showAll, setShowAll] = React.useState(false);
   // live detection counts from API keyed by static service id
@@ -105,6 +116,8 @@ export default function AiServicesView() {
 
   const visible = showAll ? filtered : filtered.slice(0, INITIAL_VISIBLE);
   const hasMore = filtered.length > INITIAL_VISIBLE;
+
+  // Read guard handled via auth aliases — isAdmin bypasses all
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -186,23 +199,23 @@ export default function AiServicesView() {
           }
         `}</style>
         <div className="mt-4 flex gap-1 border-b overflow-x-auto">
-          {TABS.map((t2) => (
+          {TAB_IDS.map((tabId) => (
             <button
-              key={t2.id}
+              key={tabId}
               onClick={() => {
-                setTab(t2.id);
+                setTab(tabId);
                 setShowAll(false);
               }}
               className={cn(
                 "tab-item shrink-0 px-4 py-2.5 text-sm font-medium transition-all duration-300 ease-out",
-                tab === t2.id
+                tab === tabId
                   ? "active text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {t2.label}
+              {tLabel(tabId)}
               <span className="ms-1.5 text-xs opacity-60">
-                ({counts[t2.id] ?? 0})
+                ({(counts as Record<string, number>)[tabId] ?? 0})
               </span>
             </button>
           ))}

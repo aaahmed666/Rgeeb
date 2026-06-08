@@ -2,6 +2,9 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
+import { ShieldAlert } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
@@ -38,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import {
   AdminPageHeader,
   StatusPill,
@@ -64,6 +67,8 @@ function ServiceDialog({
   service: AdminService | null;
 }) {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
+  const can = usePermission("admin");
   const qc = useQueryClient();
   const isEdit = !!service;
 
@@ -194,6 +199,8 @@ function ServiceDialog({
 // ─── Main view ─────────────────────────────────────────────────────────────────
 export default function AdminServicesView() {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
+  const can = usePermission("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminService | null>(null);
@@ -235,6 +242,18 @@ export default function AdminServicesView() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.noAccess")}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <AdminPageHeader
@@ -245,6 +264,7 @@ export default function AdminServicesView() {
         }
         isRefreshing={isLoading}
         right={
+          can.create ? (
           <Button
             size="sm"
             onClick={() => {
@@ -256,6 +276,7 @@ export default function AdminServicesView() {
             <Plus className="h-4 w-4" />
             Add Service
           </Button>
+          ) : undefined
         }
       />
 
@@ -307,7 +328,7 @@ export default function AdminServicesView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
+                  {can.update && (<DropdownMenuItem
                     onClick={() => {
                       setEditing(s);
                       setOpen(true);
@@ -316,14 +337,14 @@ export default function AdminServicesView() {
                   >
                     <Pencil className="h-4 w-4" />
                     {t("common.edit", "Edit")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </DropdownMenuItem>)}
+                  {can.delete && (<DropdownMenuItem
                     onClick={() => setDeleteTarget(s)}
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                     {t("common.delete", "Delete")}
-                  </DropdownMenuItem>
+                  </DropdownMenuItem>)}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),

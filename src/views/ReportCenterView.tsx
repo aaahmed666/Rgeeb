@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePermission } from "@/hooks/usePermission";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { DateRange } from "rsuite/DateRangePicker";
 import {
@@ -32,6 +33,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
+import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -42,14 +45,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -316,6 +311,7 @@ function ScheduleDialog({
 /* ------------------------------------------------------------------ */
 export default function ReportCenterView() {
   const { t } = useTranslation();
+  const can = usePermission("report_center");
   const qc = useQueryClient();
   const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
 
@@ -411,6 +407,7 @@ export default function ReportCenterView() {
       toast.success("Schedule removed");
       qc.invalidateQueries({ queryKey: ["report-scheduled"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const reportTypes = templates.data ?? [];
@@ -440,7 +437,8 @@ export default function ReportCenterView() {
           </div>
           <Button
             variant="secondary"
-            onClick={() => setScheduleOpen(true)}
+            onClick={() => can.create && setScheduleOpen(true)}
+            disabled={!can.create}
             className="gap-2 border border-white/25 bg-white/15 text-white shadow-sm backdrop-blur hover:bg-white/25"
           >
             <CalendarClock className="h-4 w-4" />
@@ -510,54 +508,31 @@ export default function ReportCenterView() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   {t("reportCenter.branch", "Branch")}
                 </label>
-                <Select
-                  value={branch}
-                  onValueChange={setBranch}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("common.all", "All")}
-                    </SelectItem>
-                    {(branches.data ?? []).map((b) => (
-                      <SelectItem
-                        key={b.id}
-                        value={b.id}
-                      >
-                        {b.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AsyncPaginatedSelect
+                    endpoint="/customer/branches"
+                    labelKey="name"
+                    valueKey="id"
+                    extraParams={{ active: 1 }}
+                    value={branch || null}
+                    onChange={(v) => setBranch(v ?? "")}
+                    placeholder="All Branches"
+                    isClearable
+                  />
               </div>
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   {t("reportCenter.service", "Service")}
                 </label>
-                <Select
-                  value={service}
-                  onValueChange={setService}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("common.all", "All")}
-                    </SelectItem>
-                    {(services.data ?? []).map((s) => (
-                      <SelectItem
-                        key={s.id}
-                        value={s.id}
-                      >
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AsyncPaginatedSelect
+                  endpoint="/customer/services"
+                  labelKey="name"
+                  valueKey="id"
+                  value={service === "all" ? null : service}
+                  onChange={(v) => setService(v ?? "all")}
+                  placeholder={t("common.all", "All")}
+                  isClearable
+                />
               </div>
 
               <div>
@@ -649,8 +624,8 @@ export default function ReportCenterView() {
 
                     {/* Generate button */}
                     <Button
-                      onClick={() => generateMut.mutate(r.id)}
-                      disabled={isBusy || generateMut.isPending}
+                      onClick={() => can.create && generateMut.mutate(r.id)}
+                      disabled={!can.create || isBusy || generateMut.isPending}
                       className="w-full gap-2 text-xs"
                     >
                       {isBusy ? (
@@ -696,110 +671,32 @@ export default function ReportCenterView() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Title
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Template
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Format
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Generated At
-                    </TableHead>
-                    <TableHead className="text-end text-[11px] uppercase tracking-wide">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {generated.isLoading && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="py-10 text-center"
-                      >
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!generated.isLoading &&
-                    (generated.data ?? []).length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="py-10 text-center text-muted-foreground"
-                        >
-                          {t(
-                            "reportCenter.emptyHistory",
-                            "No generated reports yet"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  {(generated.data ?? []).map((h) => {
-                    const ts = h.generated_at ?? h.created_at;
-                    return (
-                      <TableRow key={h.id}>
-                        <TableCell className="font-medium">{h.title}</TableCell>
-                        <TableCell>
-                          <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
-                            {h.template}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <FormatChip format={h.format} />
-                        </TableCell>
-                        <TableCell>
-                          <StatusChip status={h.status} />
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {ts ? new Date(ts).toLocaleString() : "—"}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              title="Download"
-                              onClick={() => {
-                                const url = h.download_url ?? h.file_url;
-                                if (url) {
-                                  triggerDownload(
-                                    url,
-                                    `${h.template}-report.${h.format === "excel" ? "xlsx" : h.format}`
-                                  );
-                                } else {
-                                  downloadMut.mutate(h.id);
-                                }
-                              }}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                              title="Delete"
-                              onClick={() => deleteGenMut.mutate(h.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <DataTable
+                data={(generated.data ?? []).map((h) => ({ ...h, id: h.id ?? String(Math.random()) }))}
+                isLoading={generated.isLoading}
+                emptyMessage={t("reportCenter.emptyHistory", "No generated reports yet")}
+                columns={[
+                  { key: "title", header: "Title", render: (h) => <span className="font-medium">{h.title}</span> },
+                  { key: "template", header: "Template", render: (h) => <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">{h.template}</span> },
+                  { key: "format", header: "Format", render: (h) => <FormatChip format={h.format} /> },
+                  { key: "status", header: "Status", render: (h) => <StatusChip status={h.status} /> },
+                  { key: "generated_at", header: "Generated At", render: (h) => { const ts = h.generated_at ?? h.created_at; return <span className="text-sm text-muted-foreground">{ts ? new Date(ts).toLocaleString() : "—"}</span>; } },
+                  {
+                    key: "actions", header: "Actions", headClassName: "text-end", cellClassName: "text-end",
+                    render: (h) => (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Download"
+                          onClick={() => { const url = h.download_url ?? h.file_url; if (url) { triggerDownload(url, `${h.template}-report.${h.format === "excel" ? "xlsx" : h.format}`); } else { downloadMut.mutate(h.id); } }}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600" title="Delete" onClick={() => deleteGenMut.mutate(h.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -815,7 +712,8 @@ export default function ReportCenterView() {
                 </CardDescription>
               </div>
               <Button
-                onClick={() => setScheduleOpen(true)}
+                onClick={() => can.create && setScheduleOpen(true)}
+            disabled={!can.create}
                 className="gap-2 bg-slate-800 text-white hover:bg-slate-700"
                 size="sm"
               >
@@ -824,93 +722,20 @@ export default function ReportCenterView() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Template
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Format
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Frequency
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Recipients
-                    </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wide">
-                      Next Send
-                    </TableHead>
-                    <TableHead className="text-end text-[11px] uppercase tracking-wide">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scheduled.isLoading && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="py-10 text-center"
-                      >
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!scheduled.isLoading &&
-                    (scheduled.data ?? []).length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="py-10 text-center text-muted-foreground"
-                        >
-                          {t(
-                            "reportCenter.emptyScheduled",
-                            "No scheduled reports"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  {(scheduled.data ?? []).map((s) => {
-                    const nextDate = s.next_run ?? s.next_send;
-                    const recipients = Array.isArray(s.recipients)
-                      ? s.recipients.join(", ")
-                      : String(s.recipients ?? "—");
-                    return (
-                      <TableRow key={s.id}>
-                        <TableCell>
-                          <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
-                            {s.template}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <FormatChip format={s.format} />
-                        </TableCell>
-                        <TableCell>
-                          <FrequencyChip frequency={s.frequency} />
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                          {recipients}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {nextDate ? new Date(nextDate).toLocaleString() : "—"}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                            onClick={() => deleteSchedMut.mutate(s.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <DataTable
+                data={(scheduled.data ?? [])}
+                isLoading={scheduled.isLoading}
+                emptyMessage={t("reportCenter.emptyScheduled", "No scheduled reports")}
+                columns={[
+                  { key: "template", header: "Template", render: (s) => <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">{s.template}</span> },
+                  { key: "format", header: "Format", render: (s) => <FormatChip format={s.format} /> },
+                  { key: "frequency", header: "Frequency", render: (s) => <FrequencyChip frequency={s.frequency} /> },
+                  { key: "recipients", header: "Recipients", render: (s) => <span className="max-w-[200px] truncate text-sm text-muted-foreground">{Array.isArray(s.recipients) ? s.recipients.join(", ") : String(s.recipients ?? "—")}</span> },
+                  { key: "next_run", header: "Next Send", render: (s) => { const d = s.next_run ?? s.next_send; return <span className="text-sm text-muted-foreground">{d ? new Date(d).toLocaleString() : "—"}</span>; } },
+                  { key: "actions", header: "Actions", headClassName: "text-end", cellClassName: "text-end",
+                    render: (s) => <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteSchedMut.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button> },
+                ]}
+              />
             </CardContent>
           </Card>
         </TabsContent>

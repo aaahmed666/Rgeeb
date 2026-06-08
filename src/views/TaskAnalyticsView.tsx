@@ -19,6 +19,7 @@ import {
   Trophy,
   Users,
   Zap,
+ShieldAlert,
 } from "lucide-react";
 import {
   Area,
@@ -34,11 +35,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import { DataTable } from "@/components/ui/data-table";
 import { taskAnalyticsService } from "@/services/taskAnalyticsService";
 
 export default function TaskAnalyticsView() {
   const { t, i18n } = useTranslation();
+  const { hasPermission } = useAuth();
   const isRtl = i18n.dir() === "rtl";
 
   const slaQ = useQuery({
@@ -113,6 +116,8 @@ export default function TaskAnalyticsView() {
   const totalAssigned = workers.reduce((s, w) => s + w.tasks, 0);
   const totalCompleted = workers.reduce((s, w) => s + w.done, 0);
 
+
+  // Read guard via aliases in auth.tsx
   return (
     <div
       className="space-y-6 p-4 md:p-6"

@@ -95,7 +95,7 @@ function TypingIndicator({
 }: {
   visible: boolean;
   startTime: number | null;
-  t: (k: string) => string;
+  t: ReturnType<typeof useTranslation>["t"];
 }) {
   const [elapsed, setElapsed] = React.useState(0);
 
@@ -141,7 +141,8 @@ function ChatBubble({
 }: {
   msg: LocalMessage;
   lang: string;
-  t: (k: string) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: ReturnType<typeof useTranslation>["t"];
 }) {
   const isUser = msg.sender === "user";
   const dir = detectDirection(msg.language);
@@ -346,7 +347,7 @@ function ChatBubble({
         <span>{formatTime(msg.timestamp, lang)}</span>
         {msg.source && msg.source !== "keyword" && (
           <span className="rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-medium text-primary">
-            {msg.source === "gemini" ? "AI" : "KB"}
+            {msg.source === "gemini" ? t("assistant.sourceAi", "AI") : t("assistant.sourceKb", "KB")}
           </span>
         )}
         {msg.intent && msg.intent !== "unknown" && (
@@ -682,7 +683,7 @@ export function AIAssistant() {
           <button
             onClick={() => setMinimized((v) => !v)}
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100"
-            aria-label="minimize"
+            aria-label={t("assistant.minimize", "Minimize")}
           >
             <Minus className="h-3.5 w-3.5" />
           </button>

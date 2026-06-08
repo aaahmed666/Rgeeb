@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
+import { ShieldAlert } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Plus, Loader2, Pencil, Trash2, MoreVertical,
@@ -23,7 +26,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/admin/AdminPageHeader";
 // Postman: POST /admin/users/create  fields: name_ar, name_en, email, password, phone, active, main_admin, client_id
 // Postman: POST /admin/users/update  fields: name_ar, name_en, email, password, phone, active, id, main_admin, client_id
@@ -69,6 +72,8 @@ function UserDialog({ open, onOpenChange, user }: {
   open: boolean; onOpenChange: (v: boolean) => void; user: AdminUser | null;
 }) {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
+  const can = usePermission("admin");
   const qc = useQueryClient();
   const isEdit = !!user;
 
@@ -205,6 +210,8 @@ function UserDialog({ open, onOpenChange, user }: {
 // ─── Main view ────────────────────────────────────────────────────────────────
 export default function AdminUsersView() {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
+  const can = usePermission("admin");
   const qc = useQueryClient();
   const [open,    setOpen]    = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -240,6 +247,18 @@ export default function AdminUsersView() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.noAccess")}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Hero */}
@@ -256,12 +275,14 @@ export default function AdminUsersView() {
               </p>
             </div>
           </div>
+          {can.create && (
           <Button
             onClick={() => { setEditing(null); setOpen(true); }}
             className="shrink-0 gap-2 border-0 bg-white/20 text-white backdrop-blur hover:bg-white/30"
           >
             <Plus className="h-4 w-4" /> {t("users.addUser", "Add User")}
           </Button>
+          )}
         </div>
       </div>
 
@@ -339,12 +360,12 @@ export default function AdminUsersView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { setEditing(u); setOpen(true); }} className="gap-2">
+                  {can.update && (<DropdownMenuItem onClick={() => { setEditing(u); setOpen(true); }} className="gap-2">
                     <Pencil className="h-4 w-4" />{t("common.edit", "Edit")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDeleteTarget(u)} className="gap-2 text-destructive focus:text-destructive">
+                  </DropdownMenuItem>)}
+                  {can.delete && (<DropdownMenuItem onClick={() => setDeleteTarget(u)} className="gap-2 text-destructive focus:text-destructive">
                     <Trash2 className="h-4 w-4" />{t("common.delete", "Delete")}
-                  </DropdownMenuItem>
+                  </DropdownMenuItem>)}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BarChart3,
@@ -25,14 +25,6 @@ import {
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
@@ -59,43 +51,37 @@ export default function ProductivityView() {
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const filters = useMemo(
-    () => ({
-      dateFrom: dateRange?.[0]
-        ? dateRange[0].toISOString().slice(0, 10)
-        : undefined,
-      dateTo: dateRange?.[1]
-        ? dateRange[1].toISOString().slice(0, 10)
-        : undefined,
-    }),
-    [dateRange]
-  );
+  // Derive primitive date strings directly — no useMemo object
+  const dateFrom = dateRange?.[0] ? dateRange[0].toISOString().slice(0, 10) : undefined;
+  const dateTo   = dateRange?.[1] ? dateRange[1].toISOString().slice(0, 10) : undefined;
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const [s, l, d] = await Promise.all([
+    const filters = { dateFrom, dateTo };
+    void Promise.all([
       productivityService.summary(filters),
       productivityService.leaderboard(filters),
       productivityService.departments(filters),
-    ]);
-    setSummary(s);
-    setLeaderboard(l);
-    setDepartments(d);
-    if (l.length && !selectedEmployee) setSelectedEmployee(l[0].id);
-    setLoading(false);
-  }, [filters, selectedEmployee]);
-
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange]);
+    ]).then(([s, l, d]) => {
+      if (cancelled) return;
+      setSummary(s);
+      setLeaderboard(l);
+      setDepartments(d);
+      if (l.length && !selectedEmployee) setSelectedEmployee(l[0].id);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!selectedEmployee || tab !== "employee") return;
+    let cancelled = false;
     void productivityService
-      .employee(selectedEmployee, filters)
-      .then(setEmployee);
-  }, [selectedEmployee, tab, filters]);
+      .employee(selectedEmployee, { dateFrom, dateTo })
+      .then((e) => { if (!cancelled) setEmployee(e); });
+    return () => { cancelled = true; };
+  }, [selectedEmployee, tab, dateFrom, dateTo]);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     {
@@ -120,19 +106,7 @@ export default function ProductivityView() {
     },
   ];
 
-  if (!hasPermission("productivity.summary")) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-lg font-semibold text-muted-foreground">
-          Access Denied
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Productivity Analytics.
-        </p>
-      </div>
-    );
-  }
+  // Read guard via aliases in auth.tsx
 
   return (
     <div className="space-y-5 p-4 sm:p-6 lg:p-8">
@@ -155,11 +129,24 @@ export default function ProductivityView() {
             onChange={setDateRange}
             placeholder={t("productivity.selectDateRange", "Select date range")}
           />
-          <button className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+          <button
+            className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            onClick={() => window.print()}
+            title={t("productivity.pdf", "PDF")}
+          >
             <FileText className="h-4 w-4 text-rose-500" />
             {t("productivity.pdf", "PDF")}
           </button>
-          <button className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+          <button
+            className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            onClick={() => {
+              const link = document.createElement("a");
+              link.href = `/api/customer/productivity/export-excel${dateFrom ? `?date_from=${dateFrom}&date_to=${dateTo ?? ""}` : ""}`;
+              link.download = "productivity.xlsx";
+              link.click();
+            }}
+            title={t("productivity.excel", "Excel")}
+          >
             <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
             {t("productivity.excel", "Excel")}
           </button>
@@ -746,79 +733,27 @@ function EmployeeDetailTab({
               <CalendarDays className="h-5 w-5 text-slate-500" />
               {t("productivity.dailyTimeline", "Daily Timeline")}
             </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {t("productivity.date", "Date")}
-                    </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {t("productivity.checkIn", "Check In")}
-                    </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {t("productivity.checkOut", "Check Out")}
-                    </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {t("productivity.hours", "Hours")}
-                    </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {t("productivity.status", "Status")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(detail.timeline ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5}>
-                        <div className="flex flex-col items-center gap-3 py-10 text-sm text-slate-400">
-                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                            <CalendarDays className="h-6 w-6 text-slate-400" />
-                          </span>
-                          {t(
-                            "productivity.noAttendance",
-                            "No attendance records in this period"
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    (detail.timeline ?? []).map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">
-                          {row.date}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {row.check_in ?? "—"}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {row.check_out ?? "—"}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {row.hours ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-0.5 text-xs font-semibold capitalize",
-                              row.status === "present"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : row.status === "late"
-                                  ? "bg-amber-100 text-amber-700"
-                                  : row.status === "leave"
-                                    ? "bg-sky-100 text-sky-700"
-                                    : "bg-rose-100 text-rose-700"
-                            )}
-                          >
-                            {row.status}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              data={(detail.timeline ?? []).map((row, i) => ({ ...row, id: i }))}
+              emptyMessage={t("productivity.noAttendance", "No attendance records in this period")}
+              columns={[
+                { key: "date", header: t("productivity.date", "Date"), render: (r) => <span className="font-medium">{r.date}</span> },
+                { key: "check_in", header: t("productivity.checkIn", "Check In"), render: (r) => <span className="tabular-nums">{r.check_in ?? "—"}</span> },
+                { key: "check_out", header: t("productivity.checkOut", "Check Out"), render: (r) => <span className="tabular-nums">{r.check_out ?? "—"}</span> },
+                { key: "hours", header: t("productivity.hours", "Hours"), render: (r) => <span className="tabular-nums">{r.hours ?? "—"}</span> },
+                {
+                  key: "status", header: t("productivity.status", "Status"),
+                  render: (r) => (
+                    <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold capitalize",
+                      r.status === "present" ? "bg-emerald-100 text-emerald-700"
+                      : r.status === "late" ? "bg-amber-100 text-amber-700"
+                      : r.status === "leave" ? "bg-sky-100 text-sky-700"
+                      : "bg-rose-100 text-rose-700"
+                    )}>{r.status}</span>
+                  ),
+                },
+              ]}
+            />
           </Card>
         </>
       )}

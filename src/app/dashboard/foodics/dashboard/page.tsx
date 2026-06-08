@@ -1,2 +1,12 @@
+"use client";
 
-export { default } from "@/views/foodics/FoodicsDashboardPage";
+import React from "react";
+import dynamic from "next/dynamic";
+
+const View = dynamic(() => import("@/views/foodics/FoodicsDashboardPage"), {
+  ssr: false,
+});
+
+export default function Page() {
+  return <View />;
+}

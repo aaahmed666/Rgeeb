@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Plus, Pencil, Trash2, MoreVertical, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 // right= prop (not action=)
 import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader";
@@ -33,6 +33,9 @@ import {
   type AdminUserInput,
 } from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { useAuth } from "@/lib/auth";
+import { ShieldAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const EMPTY: Partial<AdminUserInput> = {
   name_ar: "", name_en: "", email: "", phone: "",
@@ -40,6 +43,8 @@ const EMPTY: Partial<AdminUserInput> = {
 };
 
 export default function AdminClientsView() {
+  const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const { searchValue, debouncedValue, handleSearchChange } = useDebounceSearch("", 300);
 
@@ -109,6 +114,18 @@ export default function AdminClientsView() {
   const f = (k: keyof AdminUserInput) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.noAccess")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">

@@ -10,6 +10,7 @@ import { AsyncPaginate } from "react-select-async-paginate";
 import type { LoadOptions } from "react-select-async-paginate";
 import type { GroupBase, StylesConfig, Theme } from "react-select";
 import { apiFetch } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@/components/auth-styles";
 
 export interface SelectOption {
@@ -86,7 +87,7 @@ export function AuthPaginatedSelect({
   valueKey = "id",
   value,
   onChange,
-  placeholder = "Select…",
+  placeholder,
   isClearable = true,
   isDisabled = false,
   extraParams,
@@ -106,6 +107,9 @@ export function AuthPaginatedSelect({
     if (!value) setResolvedOption(null);
   }, [value]);
 
+  const { t } = useTranslation();
+  const loadingText = placeholder ?? t("paginatedSelect.loading", "Loading options…");
+  const noOptionsText = t("paginatedSelect.noOptions", "No options found");
   const loadOptions: LoadOptions<
     SelectOption,
     GroupBase<SelectOption>,
@@ -321,7 +325,7 @@ export function AuthPaginatedSelect({
         typeof document !== "undefined" ? document.body : undefined
       }
       menuPosition="fixed"
-      loadingMessage={() => "Loading…"}
+      loadingMessage={() => loadingText}
       noOptionsMessage={({ inputValue }) =>
         inputValue ? `No results for "${inputValue}"` : "No options"
       }

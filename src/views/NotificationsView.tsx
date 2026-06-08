@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 import {
   notificationsService,
   type NotificationItem,
@@ -35,6 +37,7 @@ const PER_PAGE = 20;
 
 export default function NotificationsView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const qc = useQueryClient();
   const [tab, setTab] = React.useState<Tab>("all");
   const [page, setPage] = React.useState(1);
@@ -53,12 +56,17 @@ export default function NotificationsView() {
 
   const markAll = useMutation({
     mutationFn: () => notificationsService.markAllRead(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("All notifications marked as read");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const markOne = useMutation({
     mutationFn: (id: string) => notificationsService.markRead(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // Reset page when switching tabs

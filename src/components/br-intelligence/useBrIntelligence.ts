@@ -62,26 +62,27 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     updatedAt: null,
   });
 
-  const computedFilters = useMemo(
-    () => ({
-      dateFrom: rangeFor(filters.range, filters.customFrom, filters.customTo)
-        .from,
-      dateTo: rangeFor(filters.range, filters.customFrom, filters.customTo)
-        .to,
-      branchId:
-        filters.branchId === "all" ? undefined : filters.branchId,
-    }),
-    [filters.range, filters.customFrom, filters.customTo, filters.branchId]
+  // Compute primitive date strings — stable when filters don't change
+  const dateFrom = useMemo(
+    () => rangeFor(filters.range, filters.customFrom, filters.customTo).from,
+    [filters.range, filters.customFrom, filters.customTo]
   );
+  const dateTo = useMemo(
+    () => rangeFor(filters.range, filters.customFrom, filters.customTo).to,
+    [filters.range, filters.customFrom, filters.customTo]
+  );
+  const branchIdFilter = filters.branchId === "all" ? undefined : filters.branchId;
+  const { rankTop, activeService } = filters;
 
   const load = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true }));
+    const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
     const [eff, rnk, hm, hl, mx, ins, an, fc, hr, cp] = await Promise.all([
       intelligenceService.efficiency(computedFilters),
-      intelligenceService.rankings(computedFilters, filters.rankTop),
+      intelligenceService.rankings(computedFilters, rankTop),
       intelligenceService.heatmap(
         computedFilters,
-        filters.activeService === "All" ? undefined : filters.activeService
+        activeService === "All" ? undefined : activeService
       ),
       intelligenceService.branchHealth(computedFilters),
       intelligenceService.serviceMatrix(computedFilters),
@@ -108,7 +109,7 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       loading: false,
       updatedAt: new Date(),
     }));
-  }, [computedFilters, filters.rankTop, filters.activeService]);
+  }, [dateFrom, dateTo, branchIdFilter, rankTop, activeService]); // ← primitives only
 
   useEffect(() => {
     void analyticsService.getBranches().then((branches) => {

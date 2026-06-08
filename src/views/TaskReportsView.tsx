@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   FileSpreadsheet,
   Loader2,
+ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import {
   downloadTaskReport,
   type TaskReportType,
@@ -126,6 +128,7 @@ const REPORTS: ReportCardDef[] = [
 
 export default function TaskReportsView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const now = new Date();
   const monthAgo = new Date(now);
   monthAgo.setDate(monthAgo.getDate() - 30);
@@ -158,6 +161,16 @@ export default function TaskReportsView() {
     ? (mutation.variables as TaskReportType)
     : null;
 
+
+  if (!hasPermission("task_reports")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">Access Denied</p>
+        <p className="text-sm text-muted-foreground">You don&apos;t have permission to view this page.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header className="flex items-center gap-3">

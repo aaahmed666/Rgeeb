@@ -157,7 +157,7 @@ function unwrapArray<T>(res: unknown): T[] {
  */
 export async function fetchReportTemplates(): Promise<ReportTemplate[]> {
   try {
-    const res = await apiFetch<unknown>("/customer/reports/templates");
+    const res = await apiFetch<unknown>(endpoints.reportCenter.templates);
     const raw = unwrapArray<Record<string, unknown>>(res);
 
     if (!raw.length) return FALLBACK_TEMPLATES;
@@ -225,7 +225,7 @@ export async function fetchBranches(): Promise<
   Array<{ id: string; name: string }>
 > {
   try {
-    const res = await apiFetch<unknown>(endpoints.reportCenter.branches, {
+    const res = await apiFetch<unknown>(endpoints.organization.branches, {
       query: { all: 1 },
     });
     const list = unwrapArray<Record<string, unknown>>(res);
@@ -242,7 +242,7 @@ export async function fetchServices(): Promise<
   Array<{ id: string; name: string }>
 > {
   try {
-    const res = await apiFetch<unknown>(endpoints.reportCenter.services, {
+    const res = await apiFetch<unknown>(endpoints.services.list, {
       query: { all: 1 },
     });
     const list = unwrapArray<Record<string, unknown>>(res);
@@ -261,7 +261,7 @@ export async function fetchServices(): Promise<
  */
 export async function fetchGeneratedReports(): Promise<GeneratedReport[]> {
   try {
-    const res = await apiFetch<unknown>("/customer/reports/generated");
+    const res = await apiFetch<unknown>(endpoints.reportCenter.generated);
     return unwrapArray<GeneratedReport>(res);
   } catch {
     return [];
@@ -375,7 +375,7 @@ export async function downloadReport(id: string | number): Promise<void> {
 export async function deleteGeneratedReport(
   id: string | number
 ): Promise<void> {
-  await apiFetch(`/customer/reports/generated/${id}`, { method: "DELETE" });
+  await apiFetch(endpoints.reportCenter.generatedById(String(id)), { method: "DELETE" });
 }
 
 /** POST /customer/reports/schedule */

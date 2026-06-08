@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 /* ---------------- helpers ---------------- */
 function s(v: unknown): string | undefined {
@@ -24,6 +25,17 @@ function listFrom(res: unknown): Record<string, unknown>[] {
   const nested = (d as { data?: unknown })?.data;
   if (Array.isArray(nested)) return nested as Record<string, unknown>[];
   return [];
+}
+
+function totalFrom(res: unknown): number {
+  const r = res as Record<string, unknown>;
+  const meta = (r?.meta ?? (r?.data as Record<string, unknown>)?.meta ?? {}) as Record<string, unknown>;
+  return Number(meta?.total ?? r?.total ?? 0);
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
 }
 
 /* ================ Branches ================ */
@@ -66,29 +78,52 @@ function mapBranch(r: Record<string, unknown>): Branch {
 }
 
 /**
- * Fetches branches. Supports pagination params for programmatic use.
- * For SELECT DROPDOWNS use: <AsyncPaginatedSelect endpoint="/customer/branches" />
+ * Fetches branches.
+ * - No params → sends all=1, returns ALL active branches (for SELECT DROPDOWNS)
+ * - With { page, per_page } → returns paginated result (for TABLES)
  */
 export async function fetchBranches(params?: {
   page?: number;
   per_page?: number;
   keyword?: string;
-}): Promise<Branch[]> {
-  const res = await apiFetch<unknown>("/customer/branches", {
+  includeInactive?: boolean;
+}): Promise<Branch[]>;
+export async function fetchBranches(params: {
+  page: number;
+  per_page?: number;
+  keyword?: string;
+  includeInactive?: boolean;
+}): Promise<PaginatedResult<Branch>>;
+export async function fetchBranches(params?: {
+  page?: number;
+  per_page?: number;
+  keyword?: string;
+  includeInactive?: boolean;
+}): Promise<Branch[] | PaginatedResult<Branch>> {
+  const res = await apiFetch<unknown>(endpoints.organization.branches, {
     query: params?.page
       ? {
           page: params.page,
-          per_page: params.per_page ?? 20,
+          per_page: params.per_page ?? 15,
           ...(params.keyword ? { keyword: params.keyword } : {}),
         }
       : { all: 1 },
   });
-  return listFrom(res).map(mapBranch);
+  const items = listFrom(res).map(mapBranch);
+  if (params?.page) {
+    // Table mode: return all (active + inactive) with pagination
+    return { items, total: totalFrom(res) || items.length };
+  }
+  // Dropdown mode: filter to active only unless caller opts out
+  if (!params?.includeInactive) {
+    return items.filter((b) => b.active !== false);
+  }
+  return items;
 }
 
 export async function createBranch(input: BranchInput): Promise<Branch> {
   const res = await apiFetch<Record<string, unknown>>(
-    "/customer/branches/create",
+    endpoints.organization.branchCreate,
     {
       method: "POST",
       body: input,
@@ -102,7 +137,7 @@ export async function updateBranch(
   input: Partial<BranchInput>
 ): Promise<Branch> {
   const res = await apiFetch<Record<string, unknown>>(
-    "/customer/branches/update",
+    endpoints.organization.branchUpdate,
     {
       method: "POST",
       body: { id, ...input },
@@ -112,7 +147,7 @@ export async function updateBranch(
 }
 
 export async function deleteBranch(id: string): Promise<void> {
-  await apiFetch("/customer/branches/delete", { method: "POST", body: { id } });
+  await apiFetch(endpoints.organization.branchDelete, { method: "POST", body: { id } });
 }
 
 /* ================ Departments ================ */
@@ -151,31 +186,55 @@ function mapDepartment(r: Record<string, unknown>): Department {
 }
 
 /**
- * Fetches departments. Supports pagination params for programmatic use.
- * For SELECT DROPDOWNS use: <AsyncPaginatedSelect endpoint="/customer/departments" />
+ * Fetches departments.
+ * - No params → sends all=1, returns ALL active departments (for SELECT DROPDOWNS)
+ * - With { page, per_page } → returns paginated result (for TABLES)
  */
 export async function fetchDepartments(params?: {
   page?: number;
   per_page?: number;
   keyword?: string;
-}): Promise<Department[]> {
-  const res = await apiFetch<unknown>("/customer/departments", {
+  includeInactive?: boolean;
+}): Promise<Department[]>;
+export async function fetchDepartments(params: {
+  page: number;
+  per_page?: number;
+  keyword?: string;
+  includeInactive?: boolean;
+}): Promise<PaginatedResult<Department>>;
+export async function fetchDepartments(params?: {
+  page?: number;
+  per_page?: number;
+  keyword?: string;
+  /** Set true to return ALL statuses (table mode). Default (dropdown mode) returns active only. */
+  includeInactive?: boolean;
+}): Promise<Department[] | PaginatedResult<Department>> {
+  const res = await apiFetch<unknown>(endpoints.organization.departments, {
     query: params?.page
       ? {
           page: params.page,
-          per_page: params.per_page ?? 20,
+          per_page: params.per_page ?? 15,
           ...(params.keyword ? { keyword: params.keyword } : {}),
         }
       : { all: 1 },
   });
-  return listFrom(res).map(mapDepartment);
+  const items = listFrom(res).map(mapDepartment);
+  if (params?.page) {
+    // Table mode: return all (active + inactive) with pagination
+    return { items, total: totalFrom(res) || items.length };
+  }
+  // Dropdown mode (all=1): filter to active only unless caller opts out
+  if (!params?.includeInactive) {
+    return items.filter((d) => d.active !== false);
+  }
+  return items;
 }
 
 export async function createDepartment(
   input: DepartmentInput
 ): Promise<Department> {
   const res = await apiFetch<Record<string, unknown>>(
-    "/customer/departments/create",
+    endpoints.organization.departmentCreate,
     {
       method: "POST",
       body: input,
@@ -189,7 +248,7 @@ export async function updateDepartment(
   input: Partial<DepartmentInput>
 ): Promise<Department> {
   const res = await apiFetch<Record<string, unknown>>(
-    "/customer/departments/update",
+    endpoints.organization.departmentUpdate,
     {
       method: "POST",
       body: { id, ...input },
@@ -199,7 +258,7 @@ export async function updateDepartment(
 }
 
 export async function deleteDepartment(id: string): Promise<void> {
-  await apiFetch("/customer/departments/delete", {
+  await apiFetch(endpoints.organization.departmentDelete, {
     method: "POST",
     body: { id },
   });
@@ -225,8 +284,17 @@ export interface Employee {
   employeeCode?: string;
 }
 
+export interface WorkingHourDay {
+  day: string;
+  is_day_off: 0 | 1 | boolean;
+  start_time?: string;
+  end_time?: string;
+}
+
 export interface EmployeeInput {
-  name: string;
+  name: string;          // API primary (name_en in Postman)
+  name_en?: string;
+  name_ar?: string;
   email: string;
   phone?: string;
   password?: string;
@@ -234,12 +302,67 @@ export interface EmployeeInput {
   department_id?: string;
   role_id?: string;
   active?: boolean;
+  /** Postman: main_admin */
+  main_admin?: boolean;
   is_main_admin?: boolean;
-  name_ar?: string;
+  /** Postman: identity (national ID / iqama number) */
+  identity?: string;
   national_id?: string;
+  /** Postman: code (employee code) */
+  code?: string;
   employee_code?: string;
   certificate_number?: string;
   certificate_end_date?: string;
+  /** File upload */
+  avatar_file?: File | null;
+  /** Working schedule: working_hours[N][day/is_day_off/start_time/end_time] */
+  working_hours?: WorkingHourDay[];
+}
+
+function buildEmployeeFormData(
+  input: EmployeeInput & { id?: string }
+): FormData {
+  const fd = new FormData();
+  if (input.id) fd.append("id", input.id);
+  // name_en is the Postman field; also send "name" for compatibility
+  const nameEn = input.name_en || input.name || "";
+  fd.append("name",    nameEn);
+  fd.append("name_en", nameEn);
+  if (input.name_ar) fd.append("name_ar", input.name_ar);
+  fd.append("email",   input.email || "");
+  if (input.phone)    fd.append("phone",    input.phone);
+  if (input.password) fd.append("password", input.password);
+  if (input.branch_id)     fd.append("branch_id",     input.branch_id);
+  if (input.department_id) fd.append("department_id", input.department_id);
+  if (input.role_id)       fd.append("role_id",       input.role_id);
+  if (input.active !== undefined)
+    fd.append("active", input.active ? "1" : "0");
+  // main_admin (Postman field)
+  const isAdmin = input.main_admin ?? input.is_main_admin;
+  if (isAdmin !== undefined)
+    fd.append("main_admin", isAdmin ? "1" : "0");
+  // identity (was national_id)
+  const identity = input.identity ?? input.national_id;
+  if (identity) fd.append("identity", identity);
+  // code (was employee_code)
+  const code = input.code ?? input.employee_code;
+  if (code) fd.append("code", code);
+  if (input.certificate_number)
+    fd.append("certificate_number", input.certificate_number);
+  if (input.certificate_end_date)
+    fd.append("certificate_end_date", input.certificate_end_date);
+  if (input.avatar_file)
+    fd.append("avatar_file", input.avatar_file);
+  // working_hours[N][day], [is_day_off], [start_time], [end_time]
+  (input.working_hours ?? []).forEach((wh, i) => {
+    fd.append(`working_hours[${i}][day]`,        wh.day);
+    fd.append(`working_hours[${i}][is_day_off]`, wh.is_day_off ? "1" : "0");
+    if (!wh.is_day_off) {
+      if (wh.start_time) fd.append(`working_hours[${i}][start_time]`, wh.start_time);
+      if (wh.end_time)   fd.append(`working_hours[${i}][end_time]`,   wh.end_time);
+    }
+  });
+  return fd;
 }
 
 function pickName(r: Record<string, unknown>, key: string): string | undefined {
@@ -280,33 +403,54 @@ function mapEmployee(r: Record<string, unknown>): Employee {
 }
 
 /**
- * Fetches employees. Supports pagination params for programmatic use.
- * For SELECT DROPDOWNS use: <AsyncPaginatedSelect endpoint="/customer/employees" />
+ * Fetches employees.
+ * - No params → sends all=1, returns ALL active employees (for SELECT DROPDOWNS)
+ * - With { page, per_page } → returns paginated result (for TABLES)
  */
 export async function fetchEmployees(params?: {
   page?: number;
   per_page?: number;
   keyword?: string;
-}): Promise<Employee[]> {
-  const res = await apiFetch<unknown>("/customer/employees", {
+  includeInactive?: boolean;
+}): Promise<Employee[]>;
+export async function fetchEmployees(params: {
+  page: number;
+  per_page?: number;
+  keyword?: string;
+  includeInactive?: boolean;
+}): Promise<PaginatedResult<Employee>>;
+export async function fetchEmployees(params?: {
+  page?: number;
+  per_page?: number;
+  keyword?: string;
+  includeInactive?: boolean;
+}): Promise<Employee[] | PaginatedResult<Employee>> {
+  const res = await apiFetch<unknown>(endpoints.organization.employees, {
     query: params?.page
       ? {
           page: params.page,
-          per_page: params.per_page ?? 20,
+          per_page: params.per_page ?? 15,
           ...(params.keyword ? { keyword: params.keyword } : {}),
         }
       : { all: 1 },
   });
-  return listFrom(res).map(mapEmployee);
+  const items = listFrom(res).map(mapEmployee);
+  if (params?.page) {
+    // Table mode: return all (active + inactive) with pagination
+    return { items, total: totalFrom(res) || items.length };
+  }
+  // Dropdown mode: filter to active only unless caller opts out
+  if (!params?.includeInactive) {
+    return items.filter((e) => e.active !== false);
+  }
+  return items;
 }
 
 export async function createEmployee(input: EmployeeInput): Promise<Employee> {
+  const fd = buildEmployeeFormData(input);
   const res = await apiFetch<Record<string, unknown>>(
-    "/customer/employees/create",
-    {
-      method: "POST",
-      body: input,
-    }
+    endpoints.organization.employeeCreate,
+    { method: "POST", body: fd }
   );
   return mapEmployee((res?.data as Record<string, unknown>) ?? res ?? {});
 }
@@ -315,18 +459,16 @@ export async function updateEmployee(
   id: string,
   input: Partial<EmployeeInput>
 ): Promise<Employee> {
+  const fd = buildEmployeeFormData({ name: "", email: "", ...input, id });
   const res = await apiFetch<Record<string, unknown>>(
-    "/customer/employees/update",
-    {
-      method: "POST",
-      body: { id, ...input },
-    }
+    endpoints.organization.employeeUpdate,
+    { method: "POST", body: fd }
   );
   return mapEmployee((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
 export async function deleteEmployee(id: string): Promise<void> {
-  await apiFetch("/customer/employees/delete", {
+  await apiFetch(endpoints.organization.employeeDelete, {
     method: "POST",
     body: { id },
   });

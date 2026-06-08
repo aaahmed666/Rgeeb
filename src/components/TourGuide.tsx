@@ -19,11 +19,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
-/* ─── Storage keys ─────────────────────────────────────── */
-const TOUR_DONE_KEY = "app.tour.v2.done";
-const TOUR_STATUS_KEY = "app.tour.v2.status";
+/* ─── Storage keys ──────────────────────────────────────── */
+const TOUR_DONE_KEY   = "app.tour.v3.done";
+const TOUR_STATUS_KEY = "app.tour.v3.status";
 
-/* ─── Custom event fired so views can open their drawer ── */
+/* ─── Custom event so views can open their drawer ───────── */
 export const TOUR_OPEN_DRAWER_EVENT = "tour:open-drawer";
 
 /* ─── Step metadata ─────────────────────────────────────── */
@@ -32,10 +32,19 @@ interface StepMeta {
   bodyKey: string;
   icon?: React.ElementType;
   path?: string;
-  /** If true, the tour fires TOUR_OPEN_DRAWER_EVENT when this step is shown */
   opensDrawer?: boolean;
 }
 
+/**
+ * Correct order:
+ *  0 – Welcome (centre overlay)
+ *  1 – Branches page intro
+ *  2 – Branches: open Add drawer
+ *  3 – Departments page intro
+ *  4 – Departments: open Add drawer
+ *  5 – Employees page intro
+ *  6 – Employees: open Add drawer
+ */
 const STEP_META: StepMeta[] = [
   /* 0 — Welcome */
   { titleKey: "tour.s1Title", bodyKey: "tour.s1Body", icon: Sparkles },
@@ -46,7 +55,7 @@ const STEP_META: StepMeta[] = [
     icon: Building2,
     path: "/dashboard/organization/branches",
   },
-  /* 2 — Create branch (opens drawer automatically) */
+  /* 2 — Create branch */
   {
     titleKey: "tour.branchCreateTitle",
     bodyKey: "tour.branchCreateBody",
@@ -54,29 +63,14 @@ const STEP_META: StepMeta[] = [
     path: "/dashboard/organization/branches",
     opensDrawer: true,
   },
-  /* 3 — Employees page */
-  {
-    titleKey: "tour.employeePageTitle",
-    bodyKey: "tour.employeePageBody",
-    icon: Users,
-    path: "/dashboard/organization/employees",
-  },
-  /* 4 — Create employee (opens drawer automatically) */
-  {
-    titleKey: "tour.employeeCreateTitle",
-    bodyKey: "tour.employeeCreateBody",
-    icon: Users,
-    path: "/dashboard/organization/employees",
-    opensDrawer: true,
-  },
-  /* 5 — Departments page */
+  /* 3 — Departments page */
   {
     titleKey: "tour.deptPageTitle",
     bodyKey: "tour.deptPageBody",
     icon: LayoutGrid,
     path: "/dashboard/organization/departments",
   },
-  /* 6 — Create department (opens drawer automatically) */
+  /* 4 — Create department */
   {
     titleKey: "tour.deptCreateTitle",
     bodyKey: "tour.deptCreateBody",
@@ -84,16 +78,31 @@ const STEP_META: StepMeta[] = [
     path: "/dashboard/organization/departments",
     opensDrawer: true,
   },
+  /* 5 — Employees page */
+  {
+    titleKey: "tour.employeePageTitle",
+    bodyKey: "tour.employeePageBody",
+    icon: Users,
+    path: "/dashboard/organization/employees",
+  },
+  /* 6 — Create employee */
+  {
+    titleKey: "tour.employeeCreateTitle",
+    bodyKey: "tour.employeeCreateBody",
+    icon: Users,
+    path: "/dashboard/organization/employees",
+    opensDrawer: true,
+  },
 ];
 
 const JOYRIDE_TARGETS: string[] = [
-  "body",
-  "[data-tour='sidebar']",
-  "[data-tour='add-branch']",
-  "[data-tour='sidebar']",
-  "[data-tour='add-employee']",
-  "[data-tour='sidebar']",
-  "[data-tour='add-department']",
+  "body",                         // 0 — welcome (centered)
+  "[data-tour='sidebar']",        // 1 — branches page
+  "[data-tour='add-branch']",     // 2 — add branch button
+  "[data-tour='sidebar']",        // 3 — departments page
+  "[data-tour='add-department']", // 4 — add department button
+  "[data-tour='sidebar']",        // 5 — employees page
+  "[data-tour='add-employee']",   // 6 — add employee button
 ];
 
 function buildSteps(): JoyrideStep[] {
@@ -102,12 +111,11 @@ function buildSteps(): JoyrideStep[] {
     content: "",
     placement: i === 0 ? ("center" as const) : ("auto" as const),
     disableBeacon: true,
-    /* No spotlightClicks — the tour opens the drawer itself */
     spotlightClicks: false,
   }));
 }
 
-/* ─── Tooltip button prop types from react-joyride v2 ──── */
+/* ─── Tooltip button prop types ─────────────────────────── */
 interface JoyrideButtonProps {
   "aria-label": string;
   "data-action": string;
@@ -122,10 +130,7 @@ interface TooltipProps {
   primaryProps: JoyrideButtonProps;
   skipProps: JoyrideButtonProps;
   step: JoyrideStep;
-  tooltipProps: {
-    "aria-modal": boolean;
-    role: string;
-  };
+  tooltipProps: { "aria-modal": boolean; role: string };
   index: number;
   isLastStep: boolean;
   size: number;
@@ -183,12 +188,7 @@ function TourTooltip(
             isRtl && "flex-row-reverse"
           )}
         >
-          <div
-            className={cn(
-              "flex items-center gap-3",
-              isRtl && "flex-row-reverse"
-            )}
-          >
+          <div className={cn("flex items-center gap-3", isRtl && "flex-row-reverse")}>
             {Icon && (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
@@ -202,7 +202,6 @@ function TourTooltip(
             </div>
           </div>
 
-          {/* X close button */}
           <button
             {...skipProps}
             title={t("common.close")}
@@ -223,12 +222,7 @@ function TourTooltip(
           )}
         >
           {/* Step dots */}
-          <div
-            className={cn(
-              "flex items-center gap-1.5",
-              isRtl && "flex-row-reverse"
-            )}
-          >
+          <div className={cn("flex items-center gap-1.5", isRtl && "flex-row-reverse")}>
             {Array.from({ length: size }).map((_, i) => (
               <span
                 key={i}
@@ -240,13 +234,8 @@ function TourTooltip(
             ))}
           </div>
 
-          <div
-            className={cn(
-              "flex items-center gap-2",
-              isRtl && "flex-row-reverse"
-            )}
-          >
-            {/* Skip button */}
+          <div className={cn("flex items-center gap-2", isRtl && "flex-row-reverse")}>
+            {/* Skip */}
             <button
               {...skipProps}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground h-9 px-3 text-muted-foreground"
@@ -254,7 +243,7 @@ function TourTooltip(
               {t("common.skip")}
             </button>
 
-            {/* Back button */}
+            {/* Back */}
             {index > 0 && (
               <button
                 {...backProps}
@@ -264,7 +253,7 @@ function TourTooltip(
               </button>
             )}
 
-            {/* Next / Done button */}
+            {/* Next / Done */}
             <button
               {...primaryProps}
               className="inline-flex items-center gap-1.5 justify-center rounded-md text-sm font-medium h-9 px-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:opacity-95 transition-opacity"
@@ -277,9 +266,7 @@ function TourTooltip(
               ) : (
                 <>
                   {t("common.next")}
-                  <ArrowRight
-                    className={cn("h-3.5 w-3.5", isRtl && "rotate-180")}
-                  />
+                  <ArrowRight className={cn("h-3.5 w-3.5", isRtl && "rotate-180")} />
                 </>
               )}
             </button>
@@ -293,7 +280,7 @@ function TourTooltip(
 /* ─── Main component ─────────────────────────────────────── */
 export function TourGuide() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -301,14 +288,12 @@ export function TourGuide() {
   const [stepIndex, setStepIndex] = React.useState(0);
   const [steps] = React.useState<JoyrideStep[]>(buildSteps);
 
-  /**
-   * Guard: tracks whether the auto-open effect has already fired once
-   * so it never re-runs after startTour() clears localStorage.
-   */
+  // Guard: auto-open fires exactly once per mount
   const autoOpenFiredRef = React.useRef(false);
 
-  /* Auto-open for first-time visitors — runs exactly once per mount */
+  /* ── Auto-open for first-time visitors (non-admin only) ── */
   React.useEffect(() => {
+    if (isAdmin) return; // admins never see the tour
     if (typeof window === "undefined") return;
     if (autoOpenFiredRef.current) return;
     autoOpenFiredRef.current = true;
@@ -318,52 +303,42 @@ export function TourGuide() {
       const id = window.setTimeout(() => setRun(true), 900);
       return () => window.clearTimeout(id);
     }
-  }, []);
+  }, [isAdmin]);
 
-  /* Fire custom event so the active view can open its drawer */
+  /* ── Fire custom event so active view can open its drawer ── */
   const fireOpenDrawer = React.useCallback(() => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(new CustomEvent(TOUR_OPEN_DRAWER_EVENT));
   }, []);
 
-  /* Navigate to the required page before showing a step */
+  /* ── Navigate to the required page before showing a step ── */
   const navigateForStep = React.useCallback(
     async (idx: number) => {
       const path = STEP_META[idx]?.path;
       if (path && pathname !== path) {
         router.push(path);
-        /* Wait for navigation + page paint */
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 650));
       }
     },
     [pathname, router]
   );
 
-  /* Joyride onEvent handler (react-joyride v3) */
+  /* ── Joyride onEvent handler ── */
   const handleCallback = React.useCallback(
-    async (data: {
-      action: string;
-      index: number;
-      status: string;
-      type: string;
-    }) => {
+    async (data: { action: string; index: number; status: string; type: string }) => {
       const { action, index, status, type } = data;
 
-      /* ── Tour ended (finished, skipped, or X closed) ── */
+      /* Tour ended (finished, skipped, or X closed) */
       if (
         status === STATUS.FINISHED ||
         status === STATUS.SKIPPED ||
         action === ACTIONS.CLOSE
       ) {
         const value = status === STATUS.FINISHED ? "completed" : "cancelled";
-
         if (typeof window !== "undefined") {
           window.localStorage.setItem(TOUR_DONE_KEY, value);
           window.localStorage.setItem(TOUR_STATUS_KEY, value);
         }
-
-        /* requestAnimationFrame lets Joyride finish its own cleanup
-           before we unmount the overlay — prevents lag / zombie overlay */
         requestAnimationFrame(() => {
           setRun(false);
           setStepIndex(0);
@@ -371,7 +346,7 @@ export function TourGuide() {
         return;
       }
 
-      /* ── Step navigation ── */
+      /* Step navigation */
       if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
         const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
 
@@ -391,19 +366,19 @@ export function TourGuide() {
     [navigateForStep, fireOpenDrawer]
   );
 
-  /* Start / restart tour */
+  /* ── Manual start / restart ── */
   const startTour = React.useCallback(() => {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(TOUR_DONE_KEY);
       window.localStorage.removeItem(TOUR_STATUS_KEY);
     }
-    /* Hard-reset: stop → reset index → restart */
     setRun(false);
     setStepIndex(0);
-    requestAnimationFrame(() => {
-      setTimeout(() => setRun(true), 100);
-    });
+    requestAnimationFrame(() => setTimeout(() => setRun(true), 100));
   }, []);
+
+  /* ── Admins never see tour button or Joyride overlay ── */
+  if (isAdmin) return null;
 
   const tourStatus =
     typeof window !== "undefined"
@@ -412,7 +387,6 @@ export function TourGuide() {
 
   return (
     <>
-      {/* Always-visible trigger button */}
       <Button
         variant="outline"
         size="sm"
@@ -432,7 +406,7 @@ export function TourGuide() {
         steps={steps}
         stepIndex={stepIndex}
         run={run}
-        tooltipComponent={(props) => (
+        tooltipComponent={(props: unknown) => (
           <TourTooltip
             {...(props as unknown as TooltipProps)}
             user={user}

@@ -1,6 +1,7 @@
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BarChart3,
@@ -13,16 +14,10 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import {
   analyticsService,
   type AnalyticsSummary,
@@ -47,6 +42,7 @@ function rangeFor(key: RangeKey) {
 
 export default function AnalyticsView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [range, setRange] = useState<RangeKey>("7");
   const [branchId, setBranchId] = useState<string>("all");
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -57,39 +53,45 @@ export default function AnalyticsView() {
   const [byBranch, setByBranch] = useState<BranchRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { from, to } = useMemo(() => rangeFor(range), [range]);
+  // Compute date strings — stable references when range/branchId don't change
+  const from = useMemo(() => rangeFor(range).from, [range]);
+  const to   = useMemo(() => rangeFor(range).to,   [range]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // Single combined effect: runs when from/to/branchId change
+  useEffect(() => {
+    // Load branches once
+    void analyticsService.getBranches().then(setBranches);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false;
     const filters = {
       dateFrom: from,
-      dateTo: to,
+      dateTo:   to,
       branchId: branchId === "all" ? undefined : branchId,
     };
-    const [s, tr, sv, cm, br] = await Promise.all([
+    setLoading(true);
+    void Promise.all([
       analyticsService.getSummary(filters),
       analyticsService.getTrends(filters),
       analyticsService.getByService(filters),
       analyticsService.getByCamera(filters),
       analyticsService.getByBranch(filters),
-    ]);
-    setSummary(s);
-    setTrends(tr);
-    setByService(sv);
-    setByCamera(cm);
-    setByBranch(br);
-    setLoading(false);
-  }, [from, to, branchId]);
-
-  useEffect(() => {
-    void analyticsService.getBranches().then(setBranches);
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    ]).then(([s, tr, sv, cm, br]) => {
+      if (cancelled) return;
+      setSummary(s);
+      setTrends(tr);
+      setByService(sv);
+      setByCamera(cm);
+      setByBranch(br);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [from, to, branchId]); // ← string primitives, stable deps
 
   const maxDet = Math.max(1, ...trends.map((t) => t.detections));
+
+  // Read guard via aliases in auth.tsx
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -130,28 +132,16 @@ export default function AnalyticsView() {
                 </button>
               ))}
             </div>
-            <Select
-              value={branchId}
-              onValueChange={setBranchId}
-            >
-              <SelectTrigger className="h-9 w-44 border-white/30 bg-white/15 text-white backdrop-blur-sm [&>svg]:text-white">
-                <Building2 className="me-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {t("analytics.allBranches", "All Branches")}
-                </SelectItem>
-                {branches.map((b) => (
-                  <SelectItem
-                    key={b.id}
-                    value={b.id}
-                  >
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncPaginatedSelect
+                endpoint="/customer/branches"
+                labelKey="name"
+                valueKey="id"
+                extraParams={{ active: 1 }}
+                value={branchId === "all" ? null : branchId}
+                onChange={(v: string | null) => setBranchId(v ?? "all")}
+                placeholder="All Branches"
+                isClearable
+              />
           </div>
         </div>
       </div>

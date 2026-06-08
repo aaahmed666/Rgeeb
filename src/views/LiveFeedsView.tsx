@@ -1,28 +1,25 @@
 "use client";
 
 import * as React from "react";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, LayoutGrid, List, Video } from "lucide-react";
+import { Filter, LayoutGrid, List, Video, ShieldAlert,
+} from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import { liveFeedsService, type CameraFeed } from "@/services/liveFeedsService";
 
 const ALL = "__all__";
 
 export default function LiveFeedsView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [branchId, setBranchId] = React.useState<string>(ALL);
   const [view, setView] = React.useState<"list" | "grid">("list");
 
@@ -41,6 +38,16 @@ export default function LiveFeedsView() {
 
   const cameras = camerasQ.data ?? [];
 
+
+  if (!hasPermission("live_feeds")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">Access Denied</p>
+        <p className="text-sm text-muted-foreground">You don&apos;t have permission to view this page.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -83,21 +90,16 @@ export default function LiveFeedsView() {
               <label className="text-xs font-medium text-muted-foreground">
                 {t("liveFeeds.branch", "Branch")}
               </label>
-              <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("liveFeeds.allBranches", "All branches")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>
-                    {t("liveFeeds.allBranches", "All branches")}
-                  </SelectItem>
-                  {(branchesQ.data ?? []).map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AsyncPaginatedSelect
+              endpoint="/customer/branches"
+              labelKey="name"
+              valueKey="id"
+              extraParams={{ active: 1 }}
+              value={branchId === "all" ? null : branchId}
+              onChange={(v) => setBranchId(v ?? "all")}
+              placeholder="All Branches"
+              isClearable
+            />
             </div>
           </div>
         </CardContent>

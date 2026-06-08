@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
@@ -14,6 +16,7 @@ import {
   Trash2,
   Info,
   Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -24,14 +27,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -48,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { DataTable } from "@/components/ui/data-table";
 import { fetchAiServices } from "@/services/taskRulesService";
 import {
@@ -82,6 +78,8 @@ const TASK_TYPE_TONE: Record<string, string> = {
 
 export default function AiTaskRulesView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  const can = usePermission("ai_task_rules");
   const qc = useQueryClient();
   const [editing, setEditing] = useState<TaskRule | "new" | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRule | null>(null);
@@ -130,6 +128,17 @@ export default function AiTaskRulesView() {
   });
 
   const activeCount = rules.filter((r) => r.enabled).length;
+
+  // Permission read guard
+  if (!hasPermission("ai_task_rules")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -182,144 +191,103 @@ export default function AiTaskRulesView() {
           <div className="text-sm font-semibold">
             {t("rules.active", "Active Rules")} ({activeCount}/{rules.length})
           </div>
+          {can.create && (
           <Button
-            className="gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900"
+            className="gap-2"
             onClick={() => setEditing("new")}
           >
             <Plus className="h-4 w-4" />
             {t("rules.addRule", "Add Rule")}
           </Button>
+          )}
         </div>
         <CardContent className="p-0">
-          {rulesQ.isLoading ? (
-            <div className="flex h-48 items-center justify-center text-muted-foreground">
-              <Loader2 className="me-2 h-5 w-5 animate-spin" />
-              {t("common.loading", "Loading…")}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <TableHead>{t("rules.col.enabled", "Enabled")}</TableHead>
-                    <TableHead>{t("rules.col.service", "Service")}</TableHead>
-                    <TableHead>
-                      {t("rules.col.taskType", "Task Type")}
-                    </TableHead>
-                    <TableHead>{t("rules.col.priority", "Priority")}</TableHead>
-                    <TableHead>{t("rules.col.sla", "SLA (min)")}</TableHead>
-                    <TableHead>{t("rules.col.dedup", "Dedup (min)")}</TableHead>
-                    <TableHead>
-                      {t("rules.col.autoAssign", "Auto-Assign")}
-                    </TableHead>
-                    <TableHead className="text-end">
-                      {t("rules.col.actions", "Actions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="py-12 text-center text-sm text-muted-foreground"
-                      >
-                        {t("rules.empty", "No rules yet")}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filtered.map((r) => (
-                      <TableRow
-                        key={r.id}
-                        className="hover:bg-muted/40"
-                      >
-                        <TableCell>
-                          <Switch
-                            checked={r.enabled}
-                            onCheckedChange={(v) =>
-                              toggle.mutate({ id: r.id, enabled: v })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 font-medium">
-                            <span className="text-violet-500">⚛</span>
-                            {r.serviceName}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "rounded-full font-mono text-xs",
-                              TASK_TYPE_TONE[r.taskType] ??
-                                TASK_TYPE_TONE.manual
-                            )}
-                          >
-                            {r.taskType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "rounded-full capitalize",
-                              PRIORITY_TONE[r.priority]
-                            )}
-                          >
-                            {r.priority}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {r.slaMinutes} min
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {r.dedupMinutes} min
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "rounded-full",
-                              r.autoAssign
-                                ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-300"
-                                : "border-slate-200 text-slate-500 dark:border-slate-700"
-                            )}
-                          >
-                            {r.autoAssign
-                              ? t("common.yes", "Yes")
-                              : t("common.no", "No")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              onClick={() => setEditing(r)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-red-500 hover:bg-red-500/10"
-                              onClick={() => {
-                                setDeleteTarget(r);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <DataTable
+            data={filtered}
+            isLoading={rulesQ.isLoading}
+            isError={rulesQ.isError}
+            errorMessage={rulesQ.error instanceof Error ? rulesQ.error.message : undefined}
+            emptyMessage={t("rules.empty", "No rules yet")}
+            columns={[
+              {
+                key: "enabled",
+                header: t("rules.col.enabled", "Enabled"),
+                render: (r) => (
+                  <Switch
+                    checked={r.enabled}
+                    onCheckedChange={(v) => toggle.mutate({ id: r.id, enabled: v })}
+                  />
+                ),
+              },
+              {
+                key: "serviceName",
+                header: t("rules.col.service", "Service"),
+                render: (r) => (
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="text-violet-500">⚛</span>
+                    {r.serviceName}
+                  </div>
+                ),
+              },
+              {
+                key: "taskType",
+                header: t("rules.col.taskType", "Task Type"),
+                render: (r) => (
+                  <Badge variant="outline" className={cn("rounded-full font-mono text-xs", TASK_TYPE_TONE[r.taskType] ?? TASK_TYPE_TONE.manual)}>
+                    {r.taskType}
+                  </Badge>
+                ),
+              },
+              {
+                key: "priority",
+                header: t("rules.col.priority", "Priority"),
+                render: (r) => (
+                  <Badge variant="outline" className={cn("rounded-full capitalize", PRIORITY_TONE[r.priority])}>
+                    {r.priority}
+                  </Badge>
+                ),
+              },
+              {
+                key: "slaMinutes",
+                header: t("rules.col.sla", "SLA (min)"),
+                render: (r) => <span className="tabular-nums">{r.slaMinutes} min</span>,
+              },
+              {
+                key: "dedupMinutes",
+                header: t("rules.col.dedup", "Dedup (min)"),
+                render: (r) => <span className="tabular-nums">{r.dedupMinutes} min</span>,
+              },
+              {
+                key: "autoAssign",
+                header: t("rules.col.autoAssign", "Auto-Assign"),
+                render: (r) => (
+                  <Badge variant="outline" className={cn("rounded-full", r.autoAssign ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-300" : "border-slate-200 text-slate-500 dark:border-slate-700")}>
+                    {r.autoAssign ? t("common.yes", "Yes") : t("common.no", "No")}
+                  </Badge>
+                ),
+              },
+              {
+                key: "actions",
+                header: t("rules.col.actions", "Actions"),
+                headClassName: "text-end",
+                cellClassName: "text-end",
+                render: (r) => (
+                  <div className="flex justify-end gap-1">
+                    {can.update && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setEditing(r)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {can.delete && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-500/10" onClick={() => setDeleteTarget(r)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 
@@ -464,26 +432,14 @@ function RuleDialog({
         <div className="grid gap-4">
           <div className="space-y-1.5">
             <Label>{t("rules.col.service", "Service")}</Label>
-            <Select
-              value={form.service_id}
-              onValueChange={(v) => setForm({ ...form, service_id: v })}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={t("rules.pickService", "Pick a service")}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {serviceOptions.map((s) => (
-                  <SelectItem
-                    key={s.id}
-                    value={s.id}
-                  >
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncPaginatedSelect
+              endpoint="/customer/services"
+              labelKey="name"
+              valueKey="id"
+              value={form.service_id || null}
+              onChange={(v) => setForm({ ...form, service_id: v ?? "" })}
+              placeholder={t("rules.pickService", "Pick a service")}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

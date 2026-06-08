@@ -134,13 +134,19 @@ import type {
 
 export function AppSidebar() {
   const { t, i18n } = useTranslation();
-  const { logout, isAdmin, hasPermission } = useAuth();
+  const { logout, isAdmin, hasPermission, user } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = usePathname();
   const isRtl = i18n.dir() === "rtl";
   const [openGroup, setOpenGroup] = React.useState<string | null>(null);
-  const [openSubGroup, setOpenSubGroup] = React.useState<string | null>(null);
+  const [openSubGroups, setOpenSubGroups] = React.useState<Record<string, string | null>>({});
+
+  const getOpenSubGroup = (parentLabel: string): string | null =>
+    openSubGroups[parentLabel] ?? null;
+
+  const setOpenSubGroup = (parentLabel: string, subLabel: string | null) =>
+    setOpenSubGroups((prev) => ({ ...prev, [parentLabel]: subLabel }));
 
   const isActive = (href: string) => {
     // Root dashboard items (/dashboard and /dashboard/admin) must be exact-match
@@ -254,7 +260,7 @@ export function AppSidebar() {
       permission: "event-timeline",
     },
     {
-      href: "/dashboard/monitoring",
+      href: "/dashboard/notifications",
       icon: Bell,
       label: t("navigation.notifications"),
       badge: { text: "NEW", tone: "new" },
@@ -335,43 +341,43 @@ export function AppSidebar() {
         {
           href: "/dashboard/ai-services/safety",
           icon: ShieldAlert,
-          label: "Safety",
+          label: t("aiServices.safety", "Safety"),
           permission: "ai-services",
           children: [
             {
               href: "/dashboard/ai-services/safety/helmet-detection",
               icon: HardHat,
-              label: "Helmet Detection",
+              label: t("aiServices.helmetDetection", "Helmet Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/safety/kitchen-ppe",
               icon: ChefHat,
-              label: "Kitchen PPE",
+              label: t("aiServices.kitchenPpe", "Kitchen PPE"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/safety/restricted-area",
               icon: LockService,
-              label: "Restricted Area",
+              label: t("aiServices.restrictedArea", "Restricted Area"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/safety/smoke-fire",
               icon: Flame,
-              label: "Smoke & Fire",
+              label: t("aiServices.smokeFire", "Smoke & Fire"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/safety/smoking-detection",
               icon: Cigarette,
-              label: "Smoking Detection",
+              label: t("aiServices.smokingDetection", "Smoking Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/safety/spill-detection",
               icon: Droplets,
-              label: "Spill Detection",
+              label: t("aiServices.spillDetection", "Spill Detection"),
               permission: "ai-services",
             },
           ],
@@ -379,49 +385,49 @@ export function AppSidebar() {
         {
           href: "/dashboard/ai-services/analytics",
           icon: BarChart3,
-          label: "Analytics",
+          label: t("aiServices.analytics", "Analytics"),
           permission: "ai-services",
           children: [
             {
               href: "/dashboard/ai-services/analytics/age-gender",
               icon: AiUsers,
-              label: "Age Gender Analytics",
+              label: t("aiServices.ageGender", "Age Gender Analytics"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/analytics/behavior-analysis",
               icon: AiActivity,
-              label: "Behavior Analysis",
+              label: t("aiServices.behaviorAnalysis", "Behavior Analysis"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/analytics/customer-traffic",
               icon: AiTrendingUp,
-              label: "Customer Traffic",
+              label: t("aiServices.customerTraffic", "Customer Traffic"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/analytics/face-attendance",
               icon: AiUserCheck,
-              label: "Face Attendance",
+              label: t("aiServices.faceAttendance", "Face Attendance"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/analytics/face-detection",
               icon: ScanFace,
-              label: "Face Detection",
+              label: t("aiServices.faceDetection", "Face Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/analytics/queue-management",
               icon: AlignJustify,
-              label: "Queue Management",
+              label: t("aiServices.queueManagement", "Queue Management"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/analytics/waiting-customer",
               icon: Clock,
-              label: "Waiting Customer",
+              label: t("aiServices.waitingCustomer", "Waiting Customer"),
               permission: "ai-services",
             },
           ],
@@ -429,49 +435,49 @@ export function AppSidebar() {
         {
           href: "/dashboard/ai-services/operations",
           icon: Settings,
-          label: "Operations",
+          label: t("aiServices.operations", "Operations"),
           permission: "ai-services",
           children: [
             {
               href: "/dashboard/ai-services/operations/cash-register",
               icon: AiCreditCard,
-              label: "Cash Register",
+              label: t("aiServices.cashRegister", "Cash Register"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/operations/clean-tables",
               icon: UtensilsCrossed,
-              label: "Clean Tables",
+              label: t("aiServices.cleanTables", "Clean Tables"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/operations/cup-counting",
               icon: Coffee,
-              label: "Cup Counting",
+              label: t("aiServices.cupCounting", "Cup Counting"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/operations/delivery-tracking",
               icon: Truck,
-              label: "Delivery Tracking",
+              label: t("aiServices.deliveryTracking", "Delivery Tracking"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/operations/drive-thru",
               icon: Car,
-              label: "Drive Thru",
+              label: t("aiServices.driveThru", "Drive Thru"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/operations/receipt-detection",
               icon: Receipt,
-              label: "Receipt Detection",
+              label: t("aiServices.receiptDetection", "Receipt Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/operations/sandwich-counting",
               icon: Sandwich,
-              label: "Sandwich Counting",
+              label: t("aiServices.sandwichCounting", "Sandwich Counting"),
               permission: "ai-services",
             },
           ],
@@ -479,61 +485,61 @@ export function AppSidebar() {
         {
           href: "/dashboard/ai-services/monitoring",
           icon: Radar,
-          label: "Monitoring",
+          label: t("aiServices.monitoring", "Monitoring"),
           permission: "ai-services",
           children: [
             {
               href: "/dashboard/ai-services/monitoring/gate-monitoring",
               icon: Navigation,
-              label: "Gate Monitoring",
+              label: t("aiServices.gateMonitoring", "Gate Monitoring"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/license-plate",
               icon: IdCard,
-              label: "License Plate",
+              label: t("aiServices.licensePlate", "License Plate"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/mask-detection",
               icon: Eye,
-              label: "Mask Detection",
+              label: t("aiServices.maskDetection", "Mask Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/motion-detection",
               icon: Radio,
-              label: "Motion Detection",
+              label: t("aiServices.motionDetection", "Motion Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/object-detection",
               icon: Box,
-              label: "Object Detection",
+              label: t("aiServices.objectDetection", "Object Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/overcrowd-violation",
               icon: AlertOctagon,
-              label: "Overcrowd Violation",
+              label: t("aiServices.overcrowdViolation", "Overcrowd Violation"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/people-counting",
               icon: PersonStanding,
-              label: "People Counting",
+              label: t("aiServices.peopleCounting", "People Counting"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/person-detection",
               icon: SearchPerson,
-              label: "Person Detection",
+              label: t("aiServices.personDetection", "Person Detection"),
               permission: "ai-services",
             },
             {
               href: "/dashboard/ai-services/monitoring/vehicle-tracking",
               icon: Bus,
-              label: "Vehicle Tracking",
+              label: t("aiServices.vehicleTracking", "Vehicle Tracking"),
               permission: "ai-services",
             },
           ],
@@ -832,7 +838,7 @@ export function AppSidebar() {
           onMouseLeave={handleMouseLeave}
         >
           {/* Parent header */}
-          <Link
+          <Link prefetch={true}
             href={item.href}
             className={cn(
               "flex items-center gap-2.5 px-3 py-2 text-sm font-semibold",
@@ -869,7 +875,7 @@ export function AppSidebar() {
                       </div>
                       {/* Leaf children indented */}
                       {(sg.children ?? []).map((c) => (
-                        <Link
+                        <Link prefetch={true}
                           key={c.label}
                           href={c.href}
                           className={cn(
@@ -891,7 +897,7 @@ export function AppSidebar() {
                     </div>
                   ))
                 : (item.children ?? []).map((c) => (
-                    <Link
+                    <Link prefetch={true}
                       key={c.label}
                       href={c.href}
                       className={cn(
@@ -962,7 +968,7 @@ export function AppSidebar() {
         isActive={isActive(item.href)}
         tooltip={collapsed ? undefined : item.label}
       >
-        <Link
+        <Link prefetch={true}
           href={item.href}
           className={cn(
             "flex w-full items-center gap-2",
@@ -986,19 +992,20 @@ export function AppSidebar() {
     );
   };
 
-  const renderSubGroup = (subGroup: SubGroupItem) => {
+  const renderSubGroup = (subGroup: SubGroupItem, parentLabel: string) => {
     const Icon = subGroup.icon;
     const leafChildren = subGroup.children ?? [];
     const active =
       isActive(subGroup.href) || leafChildren.some((c) => isActive(c.href));
+    const currentOpen = getOpenSubGroup(parentLabel);
     const isOpen =
-      openSubGroup === subGroup.label || (openSubGroup === null && active);
+      currentOpen === subGroup.label || (currentOpen === null && active);
 
     return (
       <Collapsible
         key={subGroup.label}
         open={isOpen}
-        onOpenChange={(o) => setOpenSubGroup(o ? subGroup.label : null)}
+        onOpenChange={(o) => setOpenSubGroup(parentLabel, o ? subGroup.label : null)}
         className="group/subcollapsible"
       >
         <SidebarMenuSubItem>
@@ -1029,7 +1036,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive(c.href)}
                     >
-                      <Link
+                      <Link prefetch={true}
                         href={c.href}
                         className={cn(
                           "flex items-center gap-2",
@@ -1116,7 +1123,7 @@ export function AppSidebar() {
           <CollapsibleContent>
             <SidebarMenuSub>
               {hasSubGroups
-                ? item.subGroups!.map(renderSubGroup)
+                ? item.subGroups!.map((sg) => renderSubGroup(sg, item.label))
                 : (item.children ?? []).map((c) => {
                     const ChildIcon = c.icon;
                     return (
@@ -1125,7 +1132,7 @@ export function AppSidebar() {
                           asChild
                           isActive={isActive(c.href)}
                         >
-                          <Link
+                          <Link prefetch={true}
                             href={c.href}
                             className={cn(
                               "flex items-center gap-2",
@@ -1256,12 +1263,26 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
+        {/* User info row */}
+        {!collapsed && (
+          <div className={cn("flex items-center gap-2.5 px-3 py-2.5 border-b border-sidebar-border/50", isRtl && "flex-row-reverse")}>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+              {(user?.name ?? "?").charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-sidebar-foreground">{user?.name ?? ""}</p>
+              <p className="truncate text-[10px] text-sidebar-foreground/50">
+                {isAdmin ? t("common.roleAdmin", "Admin") : t("common.roleUser", "User")}
+              </p>
+            </div>
+          </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={logout}
               tooltip={t("common.logout")}
-              className={cn(isRtl && "flex-row-reverse")}
+              className={cn("text-destructive/80 hover:text-destructive hover:bg-destructive/10", isRtl && "flex-row-reverse")}
             >
               <LogOut className="h-4 w-4" />
               <span>{t("common.logout")}</span>

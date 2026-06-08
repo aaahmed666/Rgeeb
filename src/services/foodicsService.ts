@@ -5,6 +5,7 @@
  */
 
 import { api } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -272,20 +273,20 @@ export const foodicsService = {
   // Connection
   getStatus: () =>
     api
-      .get<{ data: FoodicsStatus }>("/customer/foodics/status")
+      .get<{ data: FoodicsStatus }>(endpoints.foodics.status)
       .then((r) => r.data),
   getConnectUrl: () =>
     api
-      .get<{ data: FoodicsConnectUrl }>("/customer/foodics/connect")
+      .get<{ data: FoodicsConnectUrl }>(endpoints.foodics.connect)
       .then((r) => r.data),
-  disconnect: () => api.post("/customer/foodics/disconnect"),
+  disconnect: () => api.post(endpoints.foodics.disconnect),
 
   // Dashboard (aggregate)
   getDashboard: (params?: FoodicsDateBranchFilter) =>
     api
       .get<{
         data: FoodicsDashboard;
-      }>("/customer/foodics/dashboard", { query: params as never })
+      }>(endpoints.foodics.dashboard, { query: params as never })
       .then((r) => r.data),
 
   // Orders
@@ -293,16 +294,16 @@ export const foodicsService = {
     api
       .get<{
         data: FoodicsOrdersResponse;
-      }>("/customer/foodics/orders", { query: params as never })
+      }>(endpoints.foodics.orders, { query: params as never })
       .then((r) => r.data),
-  syncOrders: () => api.post("/customer/foodics/orders/sync"),
+  syncOrders: () => api.post(endpoints.foodics.ordersSync),
 
   // Refund Verification
   getRefunds: (params?: FoodicsDateBranchFilter) =>
     api
       .get<{
         data: FoodicsRefundsResponse;
-      }>("/customer/foodics/refunds", { query: params as never })
+      }>(endpoints.foodics.refunds, { query: params as never })
       .then((r) => r.data),
 
   // Cash Drawer Audit
@@ -310,17 +311,17 @@ export const foodicsService = {
     api
       .get<{
         data: FoodicsDrawerResponse;
-      }>("/customer/foodics/drawer-audits", { query: params as never })
+      }>(endpoints.foodics.drawerAudits, { query: params as never })
       .then((r) => r.data),
   syncDrawerOperations: () =>
-    api.post("/customer/foodics/drawer-operations/sync"),
+    api.post(endpoints.foodics.drawerOperationsSync),
 
   // Prep Time Intelligence
   getPrepTime: (params?: FoodicsDateBranchFilter) =>
     api
       .get<{
         data: FoodicsPrepTimeResponse;
-      }>("/customer/foodics/prep-time", { query: params as never })
+      }>(endpoints.foodics.prepTime, { query: params as never })
       .then((r) => r.data),
 
   // Footfall vs Revenue
@@ -328,33 +329,33 @@ export const foodicsService = {
     api
       .get<{
         data: FoodicsFootfallResponse;
-      }>("/customer/foodics/footfall", { query: params as never })
+      }>(endpoints.foodics.footfall, { query: params as never })
       .then((r) => r.data),
 
   // Inventory Audit
   getInventoryZones: (branch_id?: string) =>
     api.get<{ data: FoodicsInventoryZone[] }>(
-      "/customer/foodics/inventory/zones",
+      endpoints.foodics.inventoryZones,
       {
         query: branch_id ? { branch_id } : undefined,
       }
     ),
   createInventoryZone: (data: { name: string; branch_id: string }) =>
-    api.post("/customer/foodics/inventory/zones/create", data),
+    api.post(endpoints.foodics.inventoryZoneCreate, data),
   updateInventoryZone: (id: string, data: { name: string }) =>
-    api.post(`/customer/foodics/inventory/zones/${id}/update`, data),
+    api.post(endpoints.foodics.inventoryZoneUpdate(id), data),
   deleteInventoryZone: (id: string) =>
-    api.post(`/customer/foodics/inventory/zones/${id}/delete`),
+    api.post(endpoints.foodics.inventoryZoneDelete(id)),
   getInventoryAuditHistory: (params?: FoodicsDateBranchFilter) =>
     api.get<{ data: FoodicsInventoryAudit[] }>(
-      "/customer/foodics/inventory/audits",
+      endpoints.foodics.inventoryAuditHistory,
       {
         query: params as never,
       }
     ),
 
   // Branches
-  importBranches: () => api.post("/customer/foodics/branches/import"),
+  importBranches: () => api.post(endpoints.foodics.importBranches),
   getBranches: () =>
-    api.get<{ data: { id: string; name: string }[] }>("/customer/branches"),
+    api.get<{ data: { id: string; name: string }[] }>(endpoints.organization.branches),
 };

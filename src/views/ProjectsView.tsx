@@ -7,6 +7,7 @@ import {
   CheckCircle2, Clock, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/usePermission";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ function statusBadge(status: string) {
 
 export default function ProjectsView() {
   const qc = useQueryClient();
+  const can = usePermission("projects");
   const [search, setSearch] = React.useState("");
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Project | null>(null);
@@ -93,7 +95,7 @@ export default function ProjectsView() {
   function openCreate() { setEditing(null); setForm(EMPTY); setOpen(true); }
   function openEdit(p: Project) {
     setEditing(p);
-    setForm({ name: p.name, description: p.description ?? "", status: p.status, branch_id: p.branchId, start_date: p.startDate, end_date: p.endDate });
+    setForm({ name: p.name, description: p.description ?? "", status: p.status, branch_ids: p.branchIds ?? (p.branchId ? [p.branchId] : []), start_date: p.startDate, end_date: p.endDate });
     setOpen(true);
   }
 
@@ -112,7 +114,7 @@ export default function ProjectsView() {
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`mr-1.5 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={openCreate}><Plus className="mr-1.5 h-4 w-4" /> New Project</Button>
+          {can.create && <Button size="sm" onClick={openCreate}><Plus className="mr-1.5 h-4 w-4" /> New Project</Button>}
         </div>
       </header>
 
@@ -167,11 +169,11 @@ export default function ProjectsView() {
                           <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(proj)}><Pencil className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
+                          {can.update && <DropdownMenuItem onClick={() => openEdit(proj)}><Pencil className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>}
                           {proj.status !== "cancelled" && (
                             <DropdownMenuItem onClick={() => setCancelId(proj.id)}><XCircle className="mr-2 h-4 w-4" />Cancel</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(proj.id)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
+                          {can.delete && <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(proj.id)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

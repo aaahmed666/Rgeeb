@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const BACKEND_URL = "https://api.dev.rgeeb.com";
 
 const nextConfig: NextConfig = {
+  // Gzip/Brotli compress all responses — reduces transfer size significantly
+  compress: true,
+
   async rewrites() {
     return [
       {

@@ -1,2 +1,12 @@
+"use client";
 
-export { default } from "@/views/TasksView";
+import React from "react";
+import dynamic from "next/dynamic";
+
+const View = dynamic(() => import("@/views/TasksView"), {
+  ssr: false,
+});
+
+export default function Page() {
+  return <View />;
+}

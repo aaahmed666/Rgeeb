@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -7,6 +8,9 @@ import {
   ClipboardList, TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
+import type { DateRange } from "rsuite/DateRangePicker";
 import { foodicsService, FoodicsDashboard } from "@/services/foodicsService";
 
 function fmt(n: number | null, decimals = 2): string {
@@ -16,12 +20,14 @@ function fmt(n: number | null, decimals = 2): string {
 
 export default function FoodicsDashboardPage() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const [data, setData] = useState<FoodicsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [branchId, setBranchId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [dateRange, setDateRange] = React.useState<DateRange | null>(null);
+  const from = dateRange ? dateRange[0].toISOString().split("T")[0] : "";
+  const to = dateRange ? dateRange[1].toISOString().split("T")[0] : "";
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -103,10 +109,10 @@ export default function FoodicsDashboardPage() {
             <option value="">Branch</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
+          <SharedDateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
         </div>
       </div>
 

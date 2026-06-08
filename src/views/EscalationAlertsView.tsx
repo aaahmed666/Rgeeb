@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
@@ -17,6 +19,7 @@ import {
   ArrowUp,
   Shuffle,
   Siren,
+  ShieldAlert,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -25,16 +28,9 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { toast } from "sonner";
 import {
   escalationService,
   type EscalationLogItem,
@@ -44,6 +40,7 @@ import {
 
 export default function EscalationAlertsView() {
   const { t, i18n } = useTranslation();
+  const { hasPermission } = useAuth();
   const isRtl = i18n.dir() === "rtl";
   const qc = useQueryClient();
   const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
@@ -67,14 +64,20 @@ export default function EscalationAlertsView() {
   const toggleM = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
       escalationService.toggleRule(id, active),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["escalation", "rules"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["escalation", "rules"] });
+      toast.success("Rule updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteM = useMutation({
     mutationFn: (id: string) => escalationService.deleteRule(id),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["escalation", "rules"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["escalation", "rules"] });
+      toast.success("Rule deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const refresh = () => {
@@ -82,6 +85,17 @@ export default function EscalationAlertsView() {
     notificationsQ.refetch();
     logQ.refetch();
   };
+
+  // Permission read guard
+  if (!hasPermission("escalation_alerts")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6" dir={isRtl ? "rtl" : "ltr"}>
@@ -173,6 +187,7 @@ function RulesPanel({
   onDelete: (id: string) => void;
 }) {
   const { t } = useTranslation();
+  const can = usePermission("escalation");
 
   return (
     <Card className="overflow-hidden">
@@ -180,75 +195,38 @@ function RulesPanel({
         <h2 className="text-lg font-semibold">
           {t("escalation.rulesTitle", "Escalation Rules")}
         </h2>
-        <Button size="sm" className="gap-2">
+        {can.create && (
+        <Button size="sm" className="gap-2 shadow-sm shadow-primary/20">
           <Plus className="h-4 w-4" />
           {t("escalation.addRule", "Add Rule")}
         </Button>
+        )}
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("escalation.colLevel", "Level")}</TableHead>
-            <TableHead>{t("escalation.colName", "Name")}</TableHead>
-            <TableHead>{t("escalation.colTrigger", "Trigger")}</TableHead>
-            <TableHead>{t("escalation.colAction", "Action")}</TableHead>
-            <TableHead>{t("escalation.colActive", "Active")}</TableHead>
-            <TableHead className="text-end">
-              {t("escalation.colActions", "Actions")}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                {t("common.loading", "Loading...")}
-              </TableCell>
-            </TableRow>
-          ) : rules.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                {t("escalation.noRules", "No rules configured yet.")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            rules.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  <LevelBadge level={r.level} />
-                </TableCell>
-                <TableCell className="font-medium">{r.name}</TableCell>
-                <TableCell className="text-muted-foreground">{r.trigger}</TableCell>
-                <TableCell>
-                  <ActionLabel action={r.action} type={r.actionType} />
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={r.active}
-                    onCheckedChange={(v) => onToggle(r.id, v)}
-                  />
-                </TableCell>
-                <TableCell className="text-end">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Pencil className="h-4 w-4 text-primary" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => onDelete(r.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        data={rules}
+        isLoading={loading}
+        emptyMessage={t("escalation.noRules", "No rules configured yet.")}
+        columns={[
+          { key: "level", header: t("escalation.colLevel", "Level"), render: (r) => <LevelBadge level={r.level} /> },
+          { key: "name", header: t("escalation.colName", "Name"), render: (r) => <span className="font-medium">{r.name}</span> },
+          { key: "trigger", header: t("escalation.colTrigger", "Trigger"), render: (r) => <span className="text-muted-foreground">{r.trigger}</span> },
+          { key: "action", header: t("escalation.colAction", "Action"), render: (r) => <ActionLabel action={r.action} type={r.actionType} /> },
+          { key: "active", header: t("escalation.colActive", "Active"), render: (r) => <Switch checked={r.active} onCheckedChange={(v) => onToggle(r.id, v)} /> },
+          {
+            key: "actions",
+            header: t("escalation.colActions", "Actions"),
+            headClassName: "text-end",
+            cellClassName: "text-end",
+            render: (r) => (
+              <div className="flex items-center justify-end gap-1">
+                {can.update && <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4 text-primary" /></Button>}
+                {can.delete && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+              </div>
+            ),
+          },
+        ]}
+      />
     </Card>
   );
 }
@@ -388,56 +366,19 @@ function LogPanel({
           {t("escalation.logTitle", "Escalation Log")}
         </h2>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("escalation.colLevel", "Level")}</TableHead>
-            <TableHead>{t("escalation.colTask", "Task")}</TableHead>
-            <TableHead>{t("escalation.colAction", "Action")}</TableHead>
-            <TableHead>{t("escalation.colRecipient", "Recipient")}</TableHead>
-            <TableHead>{t("escalation.colStatus", "Status")}</TableHead>
-            <TableHead>{t("escalation.colTime", "Time")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                {t("common.loading", "Loading...")}
-              </TableCell>
-            </TableRow>
-          ) : items.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                {t("escalation.noLog", "No escalation events yet.")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            items.map((l) => (
-              <TableRow key={l.id}>
-                <TableCell>
-                  {l.level ? <LevelBadge level={l.level} /> : "—"}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {l.taskTitle ?? l.taskId ?? "—"}
-                </TableCell>
-                <TableCell>{l.action ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {l.recipient ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {l.status ?? "—"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {l.triggeredAt ? formatDate(l.triggeredAt) : "—"}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        data={items}
+        isLoading={loading}
+        emptyMessage={t("escalation.noLog", "No escalation events yet.")}
+        columns={[
+          { key: "level", header: t("escalation.colLevel", "Level"), render: (l) => l.level ? <LevelBadge level={l.level} /> : "—" },
+          { key: "taskTitle", header: t("escalation.colTask", "Task"), render: (l) => <span className="font-medium">{l.taskTitle ?? l.taskId ?? "—"}</span> },
+          { key: "action", header: t("escalation.colAction", "Action"), render: (l) => l.action ?? "—" },
+          { key: "recipient", header: t("escalation.colRecipient", "Recipient"), render: (l) => <span className="text-muted-foreground">{l.recipient ?? "—"}</span> },
+          { key: "status", header: t("escalation.colStatus", "Status"), render: (l) => <Badge variant="outline" className="text-xs capitalize">{l.status ?? "—"}</Badge> },
+          { key: "triggeredAt", header: t("escalation.colTime", "Time"), render: (l) => <span className="text-xs text-muted-foreground">{l.triggeredAt ? formatDate(l.triggeredAt) : "—"}</span> },
+        ]}
+      />
     </Card>
   );
 }

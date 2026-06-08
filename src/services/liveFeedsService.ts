@@ -56,7 +56,7 @@ export const liveFeedsService = {
               ...(params.keyword ? { keyword: params.keyword } : {}),
             }
           : { all: 1 };
-        const raw = await api.get<unknown>(endpoints.dashboard.branches, {
+        const raw = await api.get<unknown>(endpoints.organization.branches, {
           query,
         });
         return unwrapList(raw).map((b, i) => {
@@ -76,7 +76,7 @@ export const liveFeedsService = {
   listCameras: (params: { branchId?: string } = {}) =>
     safe(
       (async () => {
-        const raw = await api.get<unknown>(endpoints.dashboard.cameras, {
+        const raw = await api.get<unknown>(endpoints.cameras.list, {
           query: { branch_id: params.branchId },
         });
         return unwrapList(raw).map((c, i) => {

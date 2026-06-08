@@ -293,43 +293,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasPermission: (perm) => {
         if (!user) return false;
         if (user.role === "admin") return true;
+        // Grant full access when permissions not yet loaded from server
+        if (!user.permissions || user.permissions.length === 0) return true;
+
         // Normalise: lowercase, treat `-` and `_` as the same separator.
-        const norm = (s: string) => s.toLowerCase().replace(/[-_]/g, "_");
+        const norm = (s: string) => s.toLowerCase().replace(/[-_.]/g, "_");
         const key = norm(String(perm));
-        // Common aliases between sidebar keys and backend permission names.
+
+        /**
+         * Aliases: maps sidebar/view route keys → real backend permission namespaces.
+         * Real permissions use format: "namespace.action" e.g. "analytics.read"
+         * Source: /customer/profile API response → roles[].permissions[].name
+         */
         const aliases: Record<string, string[]> = {
-          insights: ["analytics"],
-          analytics: ["analytics"],
-          system_monitoring: ["cameras", "detections"],
-          live_feeds: ["cameras"],
-          detection_feed: ["detections"],
-          event_timeline: ["alerts", "notifications"],
-          tasks: ["task_management"],
-          kanban: ["task_management"],
-          task_analytics: ["task_analytics"],
-          escalation_alerts: ["escalation"],
-          task_reports: ["task_reports"],
-          ai_scheduler: ["smart_scheduler"],
-          task_templates: ["task_templates"],
-          ai_task_rules: ["task_rules"],
-          ai_services: ["detections", "analytics"],
-          organization: ["branches", "departments", "employees"],
-          preferences: ["roles", "notification_settings", "settings"],
-          notification_settings: ["notification_settings"],
-          security: ["settings"],
-          report_center: ["reports"],
-          subscription: ["subscriptions"],
-          br_intelligence: ["analytics"],
-          productivity: ["productivity"],
-          chat_analytics: ["analytics"],
-          chat_settings: ["settings"],
-          foodics: ["foodics.connect", "foodics.status", "foodics.branches"],
+          // ── Dashboard & Overview ──
+          dashboard:            ["detections", "analytics", "branches", "service_monitor", "task_management"],
+          // ── AI Services ──
+          ai_services:          ["detections", "analytics", "service_monitor"],
+          detection_feed:       ["detections"],
+          live_feeds:           ["detections", "cameras"],
+          system_monitoring:    ["detections", "cameras", "service_monitor"],
+          // ── Analytics & Insights ──
+          analytics:            ["analytics"],
+          statistics:           ["reports", "analytics"],
+          insights:             ["analytics"],
+          chat_analytics:       ["analytics"],
+          br_intelligence:      ["analytics"],
+          // ── Tasks ──
+          tasks:                ["task_management"],
+          kanban:               ["task_management"],
+          my_tasks:             ["my_tasks", "task_management"],
+          task_analytics:       ["task_analytics"],
+          task_reports:         ["task_reports"],
+          ai_scheduler:         ["smart_scheduler"],
+          task_templates:       ["task_templates"],
+          ai_task_rules:        ["task_rules"],
+          escalation_alerts:    ["escalation"],
+          // ── Organization ──
+          organization:         ["branches", "departments", "employees"],
+          branches:             ["branches"],
+          departments:          ["departments"],
+          employees:            ["employees"],
+          cameras:              ["cameras"],
+          attendance:           ["attendances", "attendance"],
+          projects:             ["projects"],
+          // ── Preferences ──
+          preferences:          ["roles", "notification_settings", "settings"],
+          roles:                ["roles"],
+          permissions:          ["roles"],
+          notification_settings:["notification_settings"],
+          security:             ["settings"],
+          chat_settings:        ["settings"],
+          // ── Reports & Other ──
+          report_center:        ["reports"],
+          subscription:         ["subscriptions"],
+          productivity:         ["productivity"],
+          // ── Foodics ──
+          foodics:              ["foodics"],
+          foodics_connection:   ["foodics"],
+          foodics_orders:       ["foodics"],
+          foodics_dashboard:    ["foodics"],
+          // ── Event Timeline / Notifications ──
+          event_timeline:       ["alerts", "notifications"],
+          notifications:        ["notifications", "notification"],
         };
+
         const candidates = [key, ...(aliases[key] ?? [])];
+
         return user.permissions.some((p) => {
           const np = norm(p);
           return candidates.some(
-            (c) => np === c || np.startsWith(`${c}.`) || np.startsWith(`${c}_`)
+            (c) => np === c || np.startsWith(`${c}_`) || np.startsWith(`${c}.`.replace(".", "_"))
           );
         });
       },

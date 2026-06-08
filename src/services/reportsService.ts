@@ -142,16 +142,22 @@ export async function fetchReport(
   tab: ReportTab,
   filters: ReportFilters,
 ): Promise<ReportPayload> {
+  // Try the real statistics endpoint first; fall back to demo data
   try {
-    const data = await apiFetch<Partial<ReportPayload>>(endpoints.reports[tab], {
-      query: { date_from: filters.dateFrom, date_to: filters.dateTo },
-    });
-    return {
-      metrics: data.metrics ?? demo[tab].metrics,
-      columns: data.columns ?? demo[tab].columns,
-      rows: data.rows ?? demo[tab].rows,
-    };
+    const data = await apiFetch<Partial<ReportPayload>>(
+      endpoints.reports.statistics,
+      { query: { date_from: filters.dateFrom, date_to: filters.dateTo, type: tab } },
+    );
+    if (data && (data.metrics || data.rows)) {
+      return {
+        metrics: data.metrics ?? demo[tab].metrics,
+        columns: data.columns ?? demo[tab].columns,
+        rows:    data.rows    ?? demo[tab].rows,
+      };
+    }
+    return demo[tab];
   } catch {
+    // Endpoint not available yet — use demo data silently
     return demo[tab];
   }
 }

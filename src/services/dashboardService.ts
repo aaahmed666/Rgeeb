@@ -419,12 +419,29 @@ function fetchDashboard(
       >;
       return d ?? null;
     })
-    .catch(() => null)
+    .catch(() => {
+      inflight.delete(key); // evict on error so next call retries
+      return null;
+    })
     .finally(() => {
-      setTimeout(() => inflight.delete(key), 1000);
+      setTimeout(() => inflight.delete(key), 30_000); // 30s TTL — prevents duplicate calls on re-renders/navigation
     });
   inflight.set(key, p);
   return p;
+}
+
+/**
+ * Manually invalidate all cached dashboard entries (call before a forced refresh).
+ */
+export function invalidateDashboardCache(
+  f?: DashboardFilters & { assignedToMe?: boolean }
+) {
+  if (f) {
+    const q = buildDashboardQuery(f);
+    inflight.delete(JSON.stringify(q));
+  } else {
+    inflight.clear();
+  }
 }
 
 /* ------------------------- public service api ------------------------- */
@@ -674,7 +691,7 @@ export const dashboardService = {
         .get<{
           count?: number;
           data?: { count?: number };
-        }>(endpoints.customer.notificationsUnread)
+        }>(endpoints.notifications.unreadCount)
         .then((r) => Number(r?.count ?? r?.data?.count ?? 0)),
       0
     ),
@@ -682,7 +699,7 @@ export const dashboardService = {
   /** GET /customer/notifications?per_page=20 */
   listNotifications: (perPage = 20) =>
     safe(
-      api.get<{ data?: unknown[] }>(endpoints.customer.notifications, {
+      api.get<{ data?: unknown[] }>(endpoints.notifications.list, {
         query: { per_page: perPage },
       }),
       { data: [] }
@@ -690,5 +707,5 @@ export const dashboardService = {
 
   /** GET /customer/profile */
   getProfile: () =>
-    safe(api.get<Record<string, unknown>>(endpoints.customer.profile), {}),
+    safe(api.get<Record<string, unknown>>(endpoints.auth.profile), {}),
 };

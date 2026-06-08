@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AppHeader } from "@/components/AppHeader";
 import { AIAssistant } from "@/components/AIAssistant";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { NavigationProgress } from "@/components/NavigationProgress";
 
 /**
  * Skeleton that inherits the page background (dark or light) so there is
@@ -31,12 +32,17 @@ function AuthSkeleton() {
   );
 }
 
+// Memoize heavy stable components so they never re-render on page navigation
+const StableAppSidebar = React.memo(AppSidebar);
+const StableAppHeader = React.memo(AppHeader);
+const StableAIAssistant = React.memo(AIAssistant);
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
   const router = useRouter();
 
   React.useEffect(() => {
@@ -51,15 +57,17 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
+      {/* Progress bar — appears instantly on Link click, before new page loads */}
+      <NavigationProgress />
       <div className="flex min-h-screen w-full">
-        <AppSidebar />
+        <StableAppSidebar />
         <SidebarInset className="flex min-h-screen flex-1 flex-col">
-          <AppHeader />
+          <StableAppHeader />
           <main className="flex-1 overflow-y-auto bg-background">
             {children}
           </main>
           <ScrollToTop />
-          <AIAssistant />
+          {!isAdmin && <StableAIAssistant />}
         </SidebarInset>
       </div>
     </SidebarProvider>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Crown,
@@ -19,16 +20,9 @@ import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
   fetchSubscription,
@@ -77,6 +71,7 @@ function AddServicesModal({
   onSuccess: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const can = usePermission("subscription");
   const isAr = i18n.dir() === "rtl";
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -196,8 +191,8 @@ function AddServicesModal({
           </Button>
           <Button
             className="flex-1"
-            disabled={selected.length === 0 || addMut.isPending}
-            onClick={() => addMut.mutate()}
+            disabled={!can.create || selected.length === 0 || addMut.isPending}
+            onClick={() => can.create && addMut.mutate()}
           >
             {addMut.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -679,81 +674,20 @@ export default function SubscriptionView() {
                 )}
               </p>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("subscription.col.date", "Date")}</TableHead>
-                  <TableHead>{t("subscription.col.type", "Type")}</TableHead>
-                  <TableHead>
-                    {t("subscription.col.package", "Package")}
-                  </TableHead>
-                  <TableHead>
-                    {t("subscription.col.amount", "Amount")}
-                  </TableHead>
-                  <TableHead>
-                    {t("subscription.col.status", "Status")}
-                  </TableHead>
-                  <TableHead>
-                    {t("subscription.col.method", "Method")}
-                  </TableHead>
-                  <TableHead>
-                    {t("subscription.col.period", "Period")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tx.isLoading && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="py-10 text-center"
-                    >
-                      <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!tx.isLoading && (tx.data ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="py-10 text-center text-muted-foreground"
-                    >
-                      {t("subscription.emptyTx", "No transactions yet")}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {(tx.data ?? []).map((t2) => (
-                  <TableRow key={t2.id}>
-                    <TableCell>
-                      {t2.date ? new Date(t2.date).toLocaleDateString() : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="capitalize"
-                      >
-                        {t2.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{t2.package_name}</TableCell>
-                    <TableCell className="font-semibold">
-                      {t2.amount.toFixed(2)} {t2.currency}
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={t2.status} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {t2.method ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {t2.period_from && t2.period_to
-                        ? `${t2.period_from} → ${t2.period_to}`
-                        : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              data={tx.data ?? []}
+              isLoading={tx.isLoading}
+              emptyMessage={t("subscription.emptyTx", "No transactions yet")}
+              columns={[
+                { key: "date", header: t("subscription.col.date", "Date"), render: (t2) => t2.date ? new Date(t2.date).toLocaleDateString() : "—" },
+                { key: "type", header: t("subscription.col.type", "Type"), render: (t2) => <Badge variant="outline" className="capitalize">{t2.type}</Badge> },
+                { key: "package_name", header: t("subscription.col.package", "Package"), render: (t2) => t2.package_name },
+                { key: "amount", header: t("subscription.col.amount", "Amount"), render: (t2) => <span className="font-semibold">{t2.amount.toFixed(2)} {t2.currency}</span> },
+                { key: "status", header: t("subscription.col.status", "Status"), render: (t2) => <StatusPill status={t2.status} /> },
+                { key: "method", header: t("subscription.col.method", "Method"), render: (t2) => <span className="text-muted-foreground">{t2.method ?? "—"}</span> },
+                { key: "period_from", header: t("subscription.col.period", "Period"), render: (t2) => <span className="text-muted-foreground">{t2.period_from && t2.period_to ? `${t2.period_from} → ${t2.period_to}` : "—"}</span> },
+              ]}
+            />
           </CardContent>
         </Card>
       </div>

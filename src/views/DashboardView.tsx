@@ -20,6 +20,7 @@ import {
   Hand,
   ChevronDown,
   ChevronUp,
+  ShieldAlert,
 } from "lucide-react";
 
 import {
@@ -67,8 +68,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { useAuth } from "@/lib/auth";
-import { dashboardService } from "@/services/dashboardService";
+import { dashboardService, invalidateDashboardCache } from "@/services/dashboardService";
 import type {
   AIServiceItem,
   AttendanceData,
@@ -178,9 +180,11 @@ function serviceHref(s: AIServiceItem): string {
 
 export default function DashboardView() {
   const { t, i18n } = useTranslation();
+  const { hasPermission } = useAuth();
   const { user } = useAuth();
 
-  const today = new Date();
+  // useMemo so todayStr is computed once per mount, not on every render
+  const today = React.useMemo(() => new Date(), []);
   const todayStr = today.toISOString().slice(0, 10);
   const [dateRange, setDateRange] = React.useState<DateRange | null>([
     today,
@@ -206,9 +210,6 @@ export default function DashboardView() {
   );
   const [branches, setBranches] = React.useState<BranchSummary[]>([]);
   const [unread, setUnread] = React.useState(0);
-  const [profile, setProfile] = React.useState<Record<string, unknown> | null>(
-    null
-  );
   const [assignedToMe, setAssignedToMe] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
@@ -225,7 +226,8 @@ export default function DashboardView() {
       to,
       branchId: branchId === "all" ? undefined : branchId,
     };
-    const [s, ai, tk, vf, la, at, co, bd, br, un, pf] = await Promise.all([
+    // getUnreadNotifications is handled by the polling interval below — skip here
+    const [s, ai, tk, vf, la, at, co, bd, br] = await Promise.all([
       dashboardService.getSummary(filters),
       dashboardService.listAIServices(filters),
       dashboardService.getTaskSummary({ ...filters, assignedToMe }),
@@ -235,8 +237,6 @@ export default function DashboardView() {
       dashboardService.getCompliance(filters),
       dashboardService.getDetectionBreakdown(filters),
       dashboardService.getBranches(filters),
-      dashboardService.getUnreadNotifications(),
-      dashboardService.getProfile(),
     ]);
     setSummary(s);
     setServices(ai);
@@ -247,8 +247,6 @@ export default function DashboardView() {
     setCompliance(co);
     setBreakdown(bd);
     setBranches(br);
-    setUnread(un);
-    setProfile(pf);
     setLoading(false);
   }, [from, to, branchId, assignedToMe]);
 
@@ -256,19 +254,18 @@ export default function DashboardView() {
     load();
   }, [load]);
 
-  // Poll unread notifications every 30s for the bell badge
+  // Poll unread-count every 60s (initial fetch on mount, then every minute)
   React.useEffect(() => {
+    // Fetch immediately on mount
+    dashboardService.getUnreadNotifications().then(setUnread);
+    // Then poll every 60s
     const t = setInterval(() => {
       dashboardService.getUnreadNotifications().then(setUnread);
-    }, 30_000);
+    }, 60_000);
     return () => clearInterval(t);
-  }, []);
+  }, []); // empty deps → runs once, cleans up on unmount
 
-  const displayName =
-    (profile?.name as string | undefined) ??
-    (profile?.full_name as string | undefined) ??
-    user?.name ??
-    "there";
+  const displayName = user?.name ?? "there";
 
   const filteredServices = React.useMemo(() => {
     let list = services;
@@ -286,6 +283,8 @@ export default function DashboardView() {
   const visitorIn = flow.reduce((acc, p) => acc + p.in, 0);
   const visitorOut = flow.reduce((acc, p) => acc + p.out, 0);
   const maxFlow = Math.max(1, ...flow.map((p) => p.in));
+
+  // Read guard handled via auth aliases — isAdmin bypasses all
 
   return (
     <div
@@ -342,32 +341,24 @@ export default function DashboardView() {
               <span className="mb-1 font-medium text-white/80">
                 {t("dashboard.branch")}
               </span>
-              <Select
-                value={branchId}
-                onValueChange={setBranchId}
-              >
-                <SelectTrigger className="h-9 w-[170px] bg-white text-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {t("dashboard.allBranches")}
-                  </SelectItem>
-                  {summary?.branches.map((b) => (
-                    <SelectItem
-                      key={b.id}
-                      value={b.id}
-                    >
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AsyncPaginatedSelect
+                  endpoint="/customer/branches"
+                  labelKey="name"
+                  valueKey="id"
+                  extraParams={{ active: 1 }}
+                  value={branchId === "all" ? null : branchId}
+                  onChange={(v) => setBranchId(v ?? "all")}
+                  placeholder="All Branches"
+                  isClearable
+                />
             </div>
             <Button
               size="icon"
               variant="secondary"
-              onClick={load}
+              onClick={() => {
+                invalidateDashboardCache({ from, to, branchId: branchId === "all" ? undefined : branchId });
+                load();
+              }}
               disabled={loading}
               className="h-9 w-9"
               aria-label={t("common.refresh")}

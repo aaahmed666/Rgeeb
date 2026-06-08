@@ -58,6 +58,7 @@ import {
 } from "@/services/camerasService";
 import { DataTable } from "@/components/ui/data-table";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { usePermission } from "@/hooks/usePermission";
 
 const EMPTY: CameraInput = {
   name: "",
@@ -68,6 +69,7 @@ const EMPTY: CameraInput = {
 
 export default function CamerasView() {
   const qc = useQueryClient();
+  const can = usePermission("cameras");
   const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange, clearSearch, isSearching } = useDebounceSearch("", 300);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<CameraType | null>(null);
@@ -183,12 +185,14 @@ export default function CamerasView() {
             />{" "}
             Refresh
           </Button>
+          {can.create && (
           <Button
             size="sm"
             onClick={openCreate}
           >
             <Plus className="mr-1.5 h-4 w-4" /> Add Camera
           </Button>
+          )}
         </div>
       </header>
 
@@ -335,10 +339,13 @@ export default function CamerasView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {can.update && (
                   <DropdownMenuItem onClick={() => openEdit(cam)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
+                  )}
+                  {can.delete && (
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => setDeleteId(cam.id)}
@@ -346,6 +353,7 @@ export default function CamerasView() {
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),

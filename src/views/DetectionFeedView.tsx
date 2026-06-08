@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/lib/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Camera,
@@ -12,19 +14,13 @@ import {
   List,
   RefreshCw,
   Trash2,
+  ShieldAlert,
 } from "lucide-react";
 import type { DateRange } from "rsuite/DateRangePicker";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import {
   AlertDialog,
@@ -41,12 +37,15 @@ import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { detectionFeedService } from "@/services/detectionFeedService";
 import { endpoints } from "@/lib/endpoints";
+import { toast } from "sonner";
 
 const ALL = "__all__";
 const PER_PAGE = 15;
 
 export default function DetectionFeedView() {
   const { t, i18n } = useTranslation();
+  const can = usePermission("detections");
+  const { hasPermission } = useAuth();
   const qc = useQueryClient();
 
   const [view, setView] = React.useState<"list" | "grid">("list");
@@ -81,10 +80,6 @@ export default function DetectionFeedView() {
   );
 
   // Services list — small so we fetch once
-  const servicesQ = useQuery({
-    queryKey: ["detection-feed", "services"],
-    queryFn: () => detectionFeedService.listServices(),
-  });
 
   const dataQ = useQuery({
     queryKey: ["detection-feed", "list", filters],
@@ -102,7 +97,9 @@ export default function DetectionFeedView() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["detection-feed", "list"] });
       setDeleteId(null);
+      toast.success("Detection deleted successfully");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const items = dataQ.data?.items ?? [];
@@ -130,6 +127,17 @@ export default function DetectionFeedView() {
       : s >= 75
         ? "bg-amber-500/15 text-amber-600"
         : "bg-destructive/15 text-destructive";
+
+  // Permission read guard
+  if (!hasPermission("detection_feed")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -190,7 +198,7 @@ export default function DetectionFeedView() {
           {/* Branch — AsyncPaginatedSelect */}
           <FilterField label={t("detectionFeed.branch", "Branch")}>
             <AsyncPaginatedSelect
-              endpoint={endpoints.dashboard.branches}
+              endpoint={endpoints.organization.branches}
               value={branchId}
               onChange={(v) => {
                 setBranchId(v);
@@ -205,7 +213,7 @@ export default function DetectionFeedView() {
           {/* Camera — AsyncPaginatedSelect, filtered by branch */}
           <FilterField label={t("detectionFeed.camera", "Camera")}>
             <AsyncPaginatedSelect
-              endpoint={endpoints.dashboard.cameras}
+              endpoint={endpoints.cameras.list}
               extraParams={branchId ? { branch_id: branchId } : undefined}
               value={cameraId}
               onChange={setCameraId}
@@ -214,29 +222,17 @@ export default function DetectionFeedView() {
             />
           </FilterField>
 
-          {/* Service — plain Select (small finite list) */}
+          {/* Service — AsyncPaginatedSelect */}
           <FilterField label={t("detectionFeed.service", "Service")}>
-            <Select
-              value={service}
-              onValueChange={setService}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("detectionFeed.all", "All")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>
-                  {t("detectionFeed.all", "All")}
-                </SelectItem>
-                {(servicesQ.data ?? []).map((s) => (
-                  <SelectItem
-                    key={s.id}
-                    value={s.id}
-                  >
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncPaginatedSelect
+              endpoint={endpoints.services.list}
+              labelKey="name"
+              valueKey="id"
+              value={service === ALL ? null : service}
+              onChange={(v) => { setService(v ?? ALL); setPage(1); }}
+              placeholder={t("detectionFeed.all", "All")}
+              isClearable
+            />
           </FilterField>
 
           {/* Date range — SharedDateRangePicker spanning 2 columns */}
@@ -338,6 +334,7 @@ export default function DetectionFeedView() {
                   size="icon"
                   onClick={() => setDeleteId(d.id)}
                   aria-label="Delete"
+                  className={!can.delete ? "hidden" : ""}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -372,14 +369,16 @@ export default function DetectionFeedView() {
                   >
                     {d.type.replaceAll("_", " ")}
                   </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleteId(d.id)}
-                    aria-label="Delete"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {can.delete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteId(d.id)}
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
                 <p className="text-sm font-medium">{d.service}</p>
                 <p className="text-xs text-muted-foreground">

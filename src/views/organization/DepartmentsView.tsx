@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronLeft,
+  ChevronRight,
   LayoutGrid,
   Plus,
   Loader2,
@@ -42,6 +44,7 @@ import { DataTable } from "@/components/ui/data-table";
 import {
   Department,
   DepartmentInput,
+  PaginatedResult,
   createDepartment,
   deleteDepartment,
   fetchDepartments,
@@ -50,12 +53,16 @@ import {
   fetchEmployees,
 } from "@/services/organizationService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function DepartmentsView() {
   const { t } = useTranslation();
+  const can = usePermission("departments");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Department | null>(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 15;
   const {
     searchValue: search,
     debouncedValue: debouncedSearch,
@@ -63,23 +70,22 @@ export default function DepartmentsView() {
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
 
+  React.useEffect(() => { setPage(1); }, [debouncedSearch]);
+
   const {
-    data: departments = [],
+    data: deptPage,
     isLoading,
     isError,
     error,
   } = useQuery({
-    queryKey: ["org", "departments"],
-    queryFn: () => fetchDepartments(),
+    queryKey: ["org", "departments", { page, per_page: PER_PAGE, keyword: debouncedSearch }],
+    queryFn: () => fetchDepartments({ page, per_page: PER_PAGE, keyword: debouncedSearch || undefined }),
   });
 
-  const filtered = useMemo(() => {
-    const s = debouncedSearch.trim().toLowerCase();
-    if (!s) return departments;
-    return departments.filter((d) =>
-      [d.nameEn, d.nameAr].filter(Boolean).join(" ").toLowerCase().includes(s)
-    );
-  }, [departments, debouncedSearch]);
+  const departments = (deptPage as unknown as PaginatedResult<Department>)?.items ?? (deptPage as Department[] ?? []);
+  const total = (deptPage as unknown as PaginatedResult<Department>)?.total ?? (departments as Department[]).length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const filtered = departments as Department[];
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteDepartment(id),
@@ -94,7 +100,7 @@ export default function DepartmentsView() {
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 p-3 text-white shadow-lg">
+          <div className="rounded-xl bg-primary/10 p-3 text-primary ring-1 ring-primary/20">
             <LayoutGrid className="h-6 w-6" />
           </div>
           <div>
@@ -106,9 +112,10 @@ export default function DepartmentsView() {
             </p>
           </div>
         </div>
+        {can.create && (
         <Button
           data-tour="add-department"
-          className="gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow hover:opacity-95"
+          className="gap-2 shadow-sm shadow-primary/20"
           onClick={() => {
             setEditing(null);
             setOpen(true);
@@ -117,10 +124,11 @@ export default function DepartmentsView() {
           <Plus className="h-4 w-4" />
           {t("departments.new", "Add New Department")}
         </Button>
+        )}
       </header>
 
       <DataTable
-        data={filtered}
+        data={filtered as (Department & { id: string | number })[]}
         isLoading={isLoading}
         isError={isError}
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
@@ -131,19 +139,6 @@ export default function DepartmentsView() {
           "departments.searchPlaceholder",
           "Search departments…"
         )}
-        actions={
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />{" "}
-            {t("departments.new", "Add New Department")}
-          </Button>
-        }
         columns={[
           {
             key: "nameEn",
@@ -190,6 +185,7 @@ export default function DepartmentsView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {can.update && (
                   <DropdownMenuItem
                     onClick={() => {
                       setEditing(d);
@@ -199,6 +195,8 @@ export default function DepartmentsView() {
                     <Pencil className="me-2 h-4 w-4" />{" "}
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
+                  )}
+                  {can.delete && (
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
                     onClick={() => setDeleteTarget(d)}
@@ -206,12 +204,29 @@ export default function DepartmentsView() {
                     <Trash2 className="me-2 h-4 w-4" />{" "}
                     {t("common.delete", "Delete")}
                   </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),
           },
         ]}
       />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-3 text-sm text-muted-foreground">
+          <span>{t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", { start: (page-1)*PER_PAGE+1, end: Math.min(page*PER_PAGE, total), total })}</span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2">{page} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p+1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <DepartmentDrawer
         open={open}
@@ -325,7 +340,7 @@ function DepartmentDrawer({
         {/* Header */}
         <SheetHeader className="border-b px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
               <LayoutGrid className="h-4 w-4" />
             </div>
             <SheetTitle className="text-base font-semibold">
@@ -425,7 +440,7 @@ function DepartmentDrawer({
             {t("common.cancel", "Cancel")}
           </Button>
           <Button
-            className="flex-1 gap-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:opacity-95"
+            className="flex-1 gap-2"
             disabled={!form.name_en || mut.isPending}
             onClick={() => mut.mutate()}
           >

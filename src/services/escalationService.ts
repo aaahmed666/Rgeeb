@@ -107,13 +107,13 @@ export const escalationService = {
     return api.delete(endpoints.escalation.rule(id));
   },
   async notifications(perPage = 20): Promise<NotificationItem[]> {
-    const r = await api.get<unknown>(endpoints.escalation.notifications, {
+    const r = await api.get<unknown>(endpoints.notifications.list, {
       query: { per_page: perPage },
     });
     return pickArray(r).map(mapNotification);
   },
   async unreadCount(): Promise<number> {
-    const r = await api.get<unknown>(endpoints.escalation.unreadCount);
+    const r = await api.get<unknown>(endpoints.notifications.unreadCount);
     if (typeof r === "object" && r !== null) {
       const obj = r as Record<string, unknown>;
       const nested = obj.data as Record<string, unknown> | undefined;
@@ -126,6 +126,6 @@ export const escalationService = {
     return pickArray(r).map(mapLog);
   },
   async markAllRead() {
-    return api.post(`${endpoints.escalation.notifications}/mark-all-read`, {});
+    return api.post(`${endpoints.notifications.list}/mark-all-read`, {});
   },
 };

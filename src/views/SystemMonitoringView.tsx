@@ -10,12 +10,14 @@ import {
   AlertTriangle,
   MapPin,
   Clock,
+ShieldAlert,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import {
   systemMonitoringService,
   type AlertItem,
@@ -24,6 +26,7 @@ import {
 
 export default function SystemMonitoringView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [now, setNow] = React.useState(Date.now());
 
   const pulseQ = useQuery({
@@ -53,6 +56,16 @@ export default function SystemMonitoringView() {
     alertsQ.refetch();
   };
 
+
+  if (!hasPermission("system_monitoring")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">Access Denied</p>
+        <p className="text-sm text-muted-foreground">You don&apos;t have permission to view this page.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}

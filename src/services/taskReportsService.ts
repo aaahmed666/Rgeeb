@@ -1,4 +1,5 @@
 import { API_BASE_URL, getAuthToken } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 export type TaskReportType =
   | "performance"
@@ -12,10 +13,10 @@ export interface ReportDateRange {
 }
 
 const PATHS: Record<TaskReportType, { path: string; ext: "pdf" | "csv" }> = {
-  performance: { path: "/customer/task-reports/performance", ext: "pdf" },
-  "sla-compliance": { path: "/customer/task-reports/sla-compliance", ext: "pdf" },
-  "verification-accuracy": { path: "/customer/task-reports/verification-accuracy", ext: "pdf" },
-  "export-csv": { path: "/customer/task-reports/export", ext: "csv" },
+  performance:           { path: endpoints.taskReports.performance,          ext: "pdf" },
+  "sla-compliance":     { path: endpoints.taskReports.slaCompliance,         ext: "pdf" },
+  "verification-accuracy": { path: endpoints.taskReports.verificationAccuracy, ext: "pdf" },
+  "export-csv":         { path: endpoints.taskReports.exportCsv,             ext: "csv" },
 };
 
 export async function downloadTaskReport(

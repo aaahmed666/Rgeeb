@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -7,9 +8,11 @@ import {
 } from "lucide-react";
 import { foodicsService, FoodicsInventoryZone, FoodicsInventoryAudit } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
+import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 
 export default function FoodicsInventoryAuditPage() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const [zones, setZones] = useState<FoodicsInventoryZone[]>([]);
   const [auditHistory, setAuditHistory] = useState<FoodicsInventoryAudit[]>([]);
   const [loading, setLoading] = useState(true);

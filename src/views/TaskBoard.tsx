@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Play,
   Trash2,
   UserCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +94,7 @@ export function TaskBoard({
   onDelete: (id: string) => void;
 }) {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [dragOver, setDragOver] = React.useState<string | null>(null);
   const total = tasks.length || summary.total;
   const completedPct =
@@ -114,6 +117,17 @@ export function TaskBoard({
     const fromStatus = e.dataTransfer.getData("text/from-status");
     if (id && fromStatus !== columnId) onMove(id, columnId);
   };
+
+  // Permission read guard
+  if (!hasPermission("tasks")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

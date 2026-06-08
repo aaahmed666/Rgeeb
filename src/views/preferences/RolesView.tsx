@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
@@ -35,15 +36,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import {
   Role,
@@ -168,6 +162,7 @@ function resourceIcon(r: string) {
 
 export default function RolesView() {
   const { t } = useTranslation();
+  const can = usePermission("roles");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Role | null>(null);
@@ -182,9 +177,9 @@ export default function RolesView() {
     queryKey: ["roles"],
     queryFn: () => fetchRoles(),
   });
-  const { data: allPerms = [] } = useQuery({
+  const { data: allPerms = [] } = useQuery<Permission[]>({
     queryKey: ["roles", "permissions"],
-    queryFn: fetchAllPermissions,
+    queryFn: () => fetchAllPermissions(),
   });
 
   const totalPermissions = allPerms.length;
@@ -269,6 +264,7 @@ export default function RolesView() {
                 }}
               />
             ))}
+            {can.create && (
             <button
               type="button"
               onClick={() => {
@@ -283,6 +279,7 @@ export default function RolesView() {
                 {t("roles.addHint", "Add role, if it doesn't exist.")}
               </p>
             </button>
+            )}
           </>
         )}
       </div>
@@ -303,86 +300,42 @@ export default function RolesView() {
               />
             </div>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("roles.name", "Role Name")}</TableHead>
-                <TableHead>{t("roles.permissions", "Permissions")}</TableHead>
-                <TableHead>{t("roles.createdAt", "Created At")}</TableHead>
-                <TableHead className="text-right">
-                  {t("common.actions", "Actions")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold uppercase text-indigo-600">
-                        {r.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-medium">{r.name}</div>
-                        {r.guard && (
-                          <div className="text-xs text-muted-foreground">
-                            {r.guard}
-                          </div>
-                        )}
-                      </div>
+          <DataTable
+            data={filtered}
+            isLoading={isLoading}
+            emptyMessage={t("roles.noResults", "No roles found")}
+            columns={[
+              {
+                key: "name", header: t("roles.name", "Role Name"),
+                render: (r) => (
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold uppercase text-indigo-600">{r.name.charAt(0)}</div>
+                    <div>
+                      <div className="font-medium">{r.name}</div>
+                      {r.guard && <div className="text-xs text-muted-foreground">{r.guard}</div>}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
-                    >
-                      {r.permissionsCount}{" "}
-                      {t("roles.permissionsShort", "permissions")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {r.createdAt
-                      ? new Date(r.createdAt).toLocaleDateString()
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setEditing(r);
-                          setOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600"
-                        onClick={() => setDeleteTarget(r)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="py-10 text-center text-muted-foreground"
-                  >
-                    {t("roles.noResults", "No roles found")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </div>
+                ),
+              },
+              {
+                key: "permissionsCount", header: t("roles.permissions", "Permissions"),
+                render: (r) => <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">{r.permissionsCount} {t("roles.permissionsShort", "permissions")}</Badge>,
+              },
+              {
+                key: "createdAt", header: t("roles.createdAt", "Created At"),
+                render: (r) => <span className="text-sm text-muted-foreground">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}</span>,
+              },
+              {
+                key: "actions", header: t("common.actions", "Actions"), headClassName: "text-right", cellClassName: "text-right",
+                render: (r) => (
+                  <div className="flex items-center justify-end gap-1">
+                    {can.update && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>}
+                    {can.delete && <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => setDeleteTarget(r)}><Trash2 className="h-4 w-4" /></Button>}
+                  </div>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 
@@ -576,9 +529,9 @@ function RoleDialog({
   >([]);
   const [showMissingDepsDialog, setShowMissingDepsDialog] = useState(false);
 
-  const { data: allPerms = [], isLoading: permsLoading } = useQuery({
+  const { data: allPerms = [], isLoading: permsLoading } = useQuery<Permission[]>({
     queryKey: ["roles", "permissions"],
-    queryFn: fetchAllPermissions,
+    queryFn: () => fetchAllPermissions(),
     staleTime: 5 * 60 * 1000,
   });
   // Keep a ref to allPerms so useEffect can read latest value without it in deps

@@ -125,7 +125,7 @@ function OtpDigits({
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function RegisterView() {
   const { isDark, isRtl } = useAuthUI();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { register, isAdmin } = useAuth();
 
@@ -172,7 +172,7 @@ export default function RegisterView() {
   });
   const categoriesQ = useQuery({
     queryKey: ["categories"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(i18n.language),
   });
   const packagesQ = useQuery({
     queryKey: ["packages", categoryId],

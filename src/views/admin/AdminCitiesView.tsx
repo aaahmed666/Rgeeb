@@ -20,8 +20,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { useTranslation } from "react-i18next";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
+import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
+import { ShieldAlert, Download } from "lucide-react";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 // All mutations go through the service layer — no raw api/endpoints in views
 import {
@@ -57,6 +62,9 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function AdminCitiesView() {
+  const { t } = useTranslation();
+  const { isAdmin } = useAuth();
+  const can = usePermission("admin");
   const qc = useQueryClient();
   const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } =
     useDebounceSearch("", 300);
@@ -137,6 +145,18 @@ export default function AdminCitiesView() {
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.noAccess")}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <AdminPageHeader
@@ -145,9 +165,11 @@ export default function AdminCitiesView() {
         onRefresh={() => citiesQ.refetch()}
         isRefreshing={citiesQ.isFetching}
         right={
+          can.create ? (
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-1.5 h-4 w-4" /> Add City
           </Button>
+          ) : undefined
         }
       />
 
@@ -168,7 +190,7 @@ export default function AdminCitiesView() {
           },
           {
             key: "nameAr",
-            header: "Name (AR)",
+            header: t("admin.cities_nameAr", "Name (AR)"),
             render: (c) => <span dir="rtl">{c.nameAr ?? "—"}</span>,
           },
           {
@@ -188,15 +210,19 @@ export default function AdminCitiesView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {can.update && (
                   <DropdownMenuItem onClick={() => openEdit(c)}>
                     <Pencil className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
+                  )}
+                  {can.delete && (
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => setDeleteId(c.id)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),
@@ -208,7 +234,7 @@ export default function AdminCitiesView() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit City" : "Add City"}</DialogTitle>
+            <DialogTitle>{editing ? t("admin.cities_editCity", "Edit City") : t("admin.cities_addCity", "Add City")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -221,29 +247,14 @@ export default function AdminCitiesView() {
             </div>
             <div className="grid gap-1.5">
               <Label>Country *</Label>
-              {countriesQ.data?.length ? (
-                <Select
-                  value={form.country_id}
-                  onValueChange={(v) => setForm((f) => ({ ...f, country_id: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select country…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(countriesQ.data as AdminCountry[]).map((country) => (
-                      <SelectItem key={country.id} value={country.id}>
-                        {country.nameEn ?? country.nameAr ?? country.id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={form.country_id}
-                  onChange={set("country_id")}
-                  placeholder="Country ID"
+              <AsyncPaginatedSelect
+                  endpoint="/admin/countries"
+                  labelKey="name_en"
+                  valueKey="id"
+                  value={form.country_id || null}
+                  onChange={(v) => setForm((f) => ({ ...f, country_id: v ?? "" }))}
+                  placeholder={t("admin.cities_selectCountry", "Select country…")}
                 />
-              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
@@ -274,7 +285,7 @@ export default function AdminCitiesView() {
               onClick={() => saveMut.mutate(form)}
               disabled={saveMut.isPending || !form.name_en.trim() || !form.country_id}
             >
-              {saveMut.isPending ? "Saving…" : "Save"}
+              {saveMut.isPending ? t("validation.saving", "Saving…") : t("admin.form_save", "Save")}
             </Button>
           </DialogFooter>
         </DialogContent>

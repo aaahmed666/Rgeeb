@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Loader2,
   Phone,
@@ -41,18 +43,23 @@ import { DataTable } from "@/components/ui/data-table";
 import {
   Branch,
   BranchInput,
+  PaginatedResult,
   createBranch,
   deleteBranch,
   fetchBranches,
   updateBranch,
 } from "@/services/organizationService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function BranchesView() {
   const { t } = useTranslation();
+  const can = usePermission("branches");
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Branch | null>(null);
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 15;
   const {
     searchValue: search,
     debouncedValue: debouncedSearch,
@@ -60,27 +67,31 @@ export default function BranchesView() {
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
 
+  // Reset page on search change
+  React.useEffect(() => { setPage(1); }, [debouncedSearch]);
+
   const {
-    data: branches = [],
+    data: branchPage,
     isLoading,
     isError,
     error,
   } = useQuery({
-    queryKey: ["org", "branches"],
-    queryFn: () => fetchBranches(),
+    queryKey: ["org", "branches", { page, per_page: PER_PAGE, keyword: debouncedSearch }],
+    queryFn: () => fetchBranches({ page, per_page: PER_PAGE, keyword: debouncedSearch || undefined }),
   });
 
-  const filtered = useMemo(() => {
-    const s = debouncedSearch.trim().toLowerCase();
-    if (!s) return branches;
-    return branches.filter((b) =>
-      [b.name, b.nameAr, b.phone, b.address]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(s)
-    );
-  }, [branches, debouncedSearch]);
+  const branches = (branchPage as unknown as PaginatedResult<Branch>)?.items ?? (branchPage as Branch[] ?? []);
+  const total = (branchPage as unknown as PaginatedResult<Branch>)?.total ?? (branches as Branch[]).length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
+  // all=1 for dropdown inside form (active only, no pagination)
+  const { data: allBranches = [] } = useQuery({
+    queryKey: ["org", "branches", "all"],
+    queryFn: () => fetchBranches(),
+    enabled: open,
+  });
+
+  const filtered = branches as Branch[];
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteBranch(id),
@@ -107,6 +118,7 @@ export default function BranchesView() {
             </p>
           </div>
         </div>
+        {can.create && (
         <Button
           className="gap-2 shadow-sm shadow-primary/20"
           data-tour="add-branch"
@@ -118,10 +130,11 @@ export default function BranchesView() {
           <Plus className="h-4 w-4" />
           {t("branches.new", "Add New Branch")}
         </Button>
+        )}
       </header>
 
       <DataTable
-        data={filtered}
+        data={filtered as (Branch & { id: string | number })[]}
         isLoading={isLoading}
         isError={isError}
         errorMessage={error instanceof Error ? error.message : "Failed to load"}
@@ -129,19 +142,6 @@ export default function BranchesView() {
         searchValue={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder={t("branches.searchPlaceholder", "Search branches…")}
-        actions={
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            {t("branches.new", "Add New Branch")}
-          </Button>
-        }
         columns={[
           {
             key: "name",
@@ -236,6 +236,7 @@ export default function BranchesView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {can.update && (
                   <DropdownMenuItem
                     onClick={() => {
                       setEditing(b);
@@ -245,6 +246,8 @@ export default function BranchesView() {
                     <Pencil className="me-2 h-4 w-4" />{" "}
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
+                  )}
+                  {can.delete && (
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
                     onClick={() => setDeleteTarget(b)}
@@ -252,12 +255,29 @@ export default function BranchesView() {
                     <Trash2 className="me-2 h-4 w-4" />{" "}
                     {t("common.delete", "Delete")}
                   </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),
           },
         ]}
       />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-3 text-sm text-muted-foreground">
+          <span>{t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", { start: (page-1)*PER_PAGE+1, end: Math.min(page*PER_PAGE, total), total })}</span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2">{page} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p+1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <BranchDrawer
         open={open}

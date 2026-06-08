@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 import { useMutation } from "@tanstack/react-query";
 import {
   Brain,
@@ -12,6 +13,7 @@ import {
   Check,
   Loader2,
   Lightbulb,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,6 +54,7 @@ function initials(name: string) {
 
 export default function AiSchedulerView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [taskId, setTaskId] = useState<string>("");
   const [rec, setRec] = useState<SchedulerRecommendation | null>(null);
 
@@ -82,6 +85,17 @@ export default function AiSchedulerView() {
     onError: (e: Error) =>
       toast.error(e.message || t("scheduler.applyFailed", "Failed to apply")),
   });
+
+  // Permission read guard
+  if (!hasPermission("ai_scheduler")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

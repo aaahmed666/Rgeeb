@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 export type TaskTemplateCategory =
   | "operations"
@@ -59,7 +60,7 @@ function mapTemplate(raw: Record<string, unknown>): TaskTemplate {
 }
 
 export async function fetchTaskTemplates(): Promise<TaskTemplate[]> {
-  const res = await apiFetch<unknown>("/customer/task-templates");
+  const res = await apiFetch<unknown>(endpoints.taskTemplates.list);
   const arr =
     (res as { data?: unknown[] })?.data ??
     (Array.isArray(res) ? (res as unknown[]) : []);
@@ -67,7 +68,7 @@ export async function fetchTaskTemplates(): Promise<TaskTemplate[]> {
 }
 
 export async function createTaskTemplate(input: TaskTemplateInput): Promise<TaskTemplate> {
-  const res = await apiFetch<Record<string, unknown>>("/customer/task-templates", {
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskTemplates.list, {
     method: "POST",
     body: input,
   });
@@ -75,7 +76,7 @@ export async function createTaskTemplate(input: TaskTemplateInput): Promise<Task
 }
 
 export async function deleteTaskTemplate(id: string): Promise<void> {
-  await apiFetch(`/customer/task-templates/${id}`, { method: "DELETE" });
+  await apiFetch(endpoints.taskTemplates.delete(id), { method: "DELETE" });
 }
 
 export async function useTemplate(
@@ -83,7 +84,7 @@ export async function useTemplate(
   vars: { branch_id?: string; customer_name?: string },
 ): Promise<{ taskId?: string }> {
   const res = await apiFetch<Record<string, unknown>>(
-    `/customer/task-templates/${id}/use`,
+    endpoints.taskTemplates.use(id),
     { method: "POST", body: vars },
   );
   const data = (res?.data as Record<string, unknown>) ?? res ?? {};

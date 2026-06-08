@@ -9,7 +9,6 @@ import {
   Clock,
   RefreshCw,
   Search,
-  Calendar,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -18,16 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { SharedDateRangePicker } from "@/components/Shareddaterangepicker";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 import {
@@ -214,110 +205,93 @@ export default function AttendanceView() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                className="w-36"
-                value={dateFrom}
-                onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  setPage(1);
-                }}
-              />
-              <span className="text-muted-foreground">–</span>
-              <Input
-                type="date"
-                className="w-36"
-                value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value);
-                  setPage(1);
-                }}
+              <SharedDateRangePicker
+                from={dateFrom}
+                to={dateTo}
+                onFromChange={(v: string) => { setDateFrom(v); setPage(1); }}
+                onToChange={(v: string) => { setDateTo(v); setPage(1); }}
               />
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          {listQ.isLoading ? (
-            <div className="space-y-2 p-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className="h-12 w-full"
-                />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Check In</TableHead>
-                  <TableHead>Check Out</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Face Verified</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paged.map((rec) => (
-                  <TableRow key={rec.id}>
-                    <TableCell className="font-medium">
-                      {rec.employeeName ?? "—"}
-                    </TableCell>
-                    <TableCell>{rec.branchName ?? "—"}</TableCell>
-                    <TableCell>{rec.date ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {rec.checkIn
-                        ? new Date(rec.checkIn).toLocaleTimeString()
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {rec.checkOut
-                        ? new Date(rec.checkOut).toLocaleTimeString()
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{formatDuration(rec.duration)}</TableCell>
-                    <TableCell>{statusBadge(rec.status)}</TableCell>
-                    <TableCell>
-                      {rec.faceVerified !== undefined ? (
-                        <Badge
-                          variant="outline"
-                          className={
-                            rec.faceVerified
-                              ? "border-emerald-500/40 text-emerald-600"
-                              : "border-muted text-muted-foreground"
-                          }
-                        >
-                          {rec.faceVerified ? "✓ Verified" : "Not verified"}
-                        </Badge>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {paged.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="py-10 text-center text-sm text-muted-foreground"
+        <CardContent className="p-0">
+          <DataTable
+            data={paged}
+            isLoading={listQ.isLoading}
+            isError={listQ.isError}
+            errorMessage={listQ.error instanceof Error ? listQ.error.message : "Failed to load"}
+            emptyMessage="No attendance records found"
+            columns={[
+              {
+                key: "employeeName",
+                header: "Employee",
+                render: (r) => <span className="font-medium">{r.employeeName ?? "—"}</span>,
+              },
+              {
+                key: "branchName",
+                header: "Branch",
+                render: (r) => r.branchName ?? "—",
+              },
+              {
+                key: "date",
+                header: "Date",
+                render: (r) => r.date ?? "—",
+              },
+              {
+                key: "checkIn",
+                header: "Check In",
+                render: (r) => (
+                  <span className="font-mono text-xs">
+                    {r.checkIn ? new Date(r.checkIn).toLocaleTimeString() : "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "checkOut",
+                header: "Check Out",
+                render: (r) => (
+                  <span className="font-mono text-xs">
+                    {r.checkOut ? new Date(r.checkOut).toLocaleTimeString() : "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "duration",
+                header: "Duration",
+                render: (r) => formatDuration(r.duration),
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (r) => statusBadge(r.status),
+              },
+              {
+                key: "faceVerified",
+                header: "Face Verified",
+                render: (r) =>
+                  r.faceVerified !== undefined ? (
+                    <Badge
+                      variant="outline"
+                      className={
+                        r.faceVerified
+                          ? "border-emerald-500/40 text-emerald-600"
+                          : "border-muted text-muted-foreground"
+                      }
                     >
-                      No attendance records found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+                      {r.faceVerified ? "✓ Verified" : "Not verified"}
+                    </Badge>
+                  ) : (
+                    "—"
+                  ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-1">
           <p className="text-sm text-muted-foreground">
             Showing {(page - 1) * PER_PAGE + 1}–
             {Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}

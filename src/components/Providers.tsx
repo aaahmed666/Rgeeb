@@ -26,7 +26,18 @@ function DirectionSync({ children }: { children: React.ReactNode }) {
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { staleTime: 60 * 1000 },
+      queries: {
+        // Data stays fresh for 5 minutes — no re-fetch when navigating between pages
+        staleTime: 5 * 60 * 1000,
+        // Keep unused data in cache for 10 minutes so back-navigation is instant
+        gcTime: 10 * 60 * 1000,
+        // Don't retry on 4xx errors (auth, not found) — only on network failures
+        retry: (failureCount, error: unknown) => {
+          const status = (error as { status?: number })?.status;
+          if (status && status >= 400 && status < 500) return false;
+          return failureCount < 2;
+        },
+      },
     },
   });
 }

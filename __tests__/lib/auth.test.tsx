@@ -212,7 +212,7 @@ describe('Authentication Flow', () => {
     const TestComponent = () => {
       const { register } = useAuth();
       return (
-        <button onClick={() => register({ email: 'new@example.com', password: 'pass' })}>
+        <button onClick={() => register({ email: 'new@example.com', password: 'pass', password_confirmation: 'pass', otp_code: '000000', name_ar: 'مستخدم', name_en: 'User', phone: '0500000000', country_id: '1', city_id: '1', category_id: '1' })}>
           Register
         </button>
       );

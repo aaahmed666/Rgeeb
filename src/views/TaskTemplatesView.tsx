@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
 import {
   createTaskTemplate,
   deleteTaskTemplate,
@@ -76,6 +77,7 @@ const PRIORITY_TONE: Record<TaskTemplatePriority, string> = {
 export default function TaskTemplatesView() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const can = usePermission("task_templates");
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskTemplate | null>(null);
@@ -121,15 +123,17 @@ export default function TaskTemplatesView() {
             </p>
           </div>
         </div>
+        {can.create && (
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white shadow hover:opacity-95">
+            <Button className="gap-2 shadow-sm shadow-primary/20">
               <Plus className="h-4 w-4" />
               {t("templates.new", "New Template")}
             </Button>
           </DialogTrigger>
           <CreateTemplateDialog onClose={() => setCreateOpen(false)} />
         </Dialog>
+        )}
       </header>
 
       {isLoading ? (

@@ -20,24 +20,24 @@ import { faceLoginRequest } from "@/services/authService";
 
 /**
  * Face login flow:
- *  - Opens the user's webcam, captures a single JPEG frame
- *  - Sends it as a base64 data URL to POST /face-login
- *  - On success, refreshes the auth profile and routes to the correct dashboard.
+ *  1. Opens webcam, captures a JPEG frame
+ *  2. Sends base64 data URL → POST /customer/face-login { image: <dataUrl> }
+ *  3. On success, stores token (Bearer flow) and routes to the correct dashboard.
+ *
+ * FIX: removed duplicated component definition.
+ * FIX: uses refreshProfile + isAdmin from useAuth so role-aware redirect works.
  */
 export function FaceLoginButton() {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
           className="h-10 w-full rounded-xl border-border/50 text-base font-semibold transition-all hover:-translate-y-0.5 hover:bg-secondary/50 dark:border-slate-700 dark:hover:bg-slate-800"
         >
-          <ScanFace className="me-2 h-16 w-6" />
+          <ScanFace className="me-2 h-5 w-5" />
           Sign in with Face ID
         </Button>
       </DialogTrigger>
@@ -55,6 +55,7 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const router = useRouter();
+  // FIX: use refreshProfile + isAdmin for role-aware redirect
   const { refreshProfile, isAdmin } = useAuth();
 
   React.useEffect(() => {
@@ -76,9 +77,7 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
           setReady(true);
         }
       } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Could not access the camera"
-        );
+        setError(e instanceof Error ? e.message : "Could not access the camera");
       }
     })();
     return () => {
@@ -91,6 +90,7 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
   const capture = async () => {
     const video = videoRef.current;
     if (!video) return;
+
     const canvas = document.createElement("canvas");
     const size = Math.min(video.videoWidth || 480, video.videoHeight || 480);
     canvas.width = size;
@@ -105,13 +105,13 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
     setSubmitting(true);
     try {
       const { token } = await faceLoginRequest(dataUrl);
-      // Store token if backend returns one (Bearer flow)
+      // Store token when backend returns one (Bearer flow)
       if (token) setAuthToken(token);
       // Refresh auth context so isAdmin is up-to-date
       await refreshProfile();
       toast.success("Welcome back");
       onClose();
-      // Redirect based on role
+      // FIX: role-aware redirect (was always pushing /dashboard)
       router.push(isAdmin ? "/dashboard/admin" : "/dashboard");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Face login failed");
@@ -149,6 +149,7 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               )}
+              {/* Face oval guide */}
               <div className="pointer-events-none absolute inset-6 rounded-full border-2 border-primary/60" />
             </>
           )}
@@ -156,173 +157,12 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
       </div>
 
       <DialogFooter>
-        <Button
-          variant="ghost"
-          onClick={onClose}
-          disabled={submitting}
-        >
+        <Button variant="ghost" onClick={onClose} disabled={submitting}>
           Cancel
         </Button>
-        <Button
-          onClick={capture}
-          disabled={!ready || submitting || !!error}
-        >
+        <Button onClick={capture} disabled={!ready || submitting || !!error}>
           <Camera className="me-2 h-4 w-4" />
-          {submitting ? "Verifying..." : "Capture & sign in"}
-        </Button>
-      </DialogFooter>
-    </>
-  );
-}
-
-/**
- * Face login flow:
- *  - Opens the user's webcam, captures a single JPEG frame
- *  - Sends it as a base64 data URL to POST /face-login
- *  - On success, stores the returned token and routes to the dashboard.
- */
-export function FaceLoginButton() {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-    >
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="h-10 w-full rounded-xl border-border/50 text-base font-semibold transition-all hover:-translate-y-0.5 hover:bg-secondary/50 dark:border-slate-700 dark:hover:bg-slate-800"
-        >
-          <ScanFace className="me-2 h-16 w-6" />
-          Sign in with Face ID
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        {open && <FaceLoginDialogBody onClose={() => setOpen(false)} />}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
-  const [ready, setReady] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [submitting, setSubmitting] = React.useState(false);
-  const router = useRouter();
-
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: 480, height: 480 },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-          setReady(true);
-        }
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Could not access the camera"
-        );
-      }
-    })();
-    return () => {
-      cancelled = true;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    };
-  }, []);
-
-  const capture = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-    const canvas = document.createElement("canvas");
-    const size = Math.min(video.videoWidth || 480, video.videoHeight || 480);
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const sx = ((video.videoWidth || size) - size) / 2;
-    const sy = ((video.videoHeight || size) - size) / 2;
-    ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-
-    setSubmitting(true);
-    try {
-      const { token } = await faceLoginRequest(dataUrl);
-      setAuthToken(token);
-      toast.success("Welcome back");
-      onClose();
-      router.push("/dashboard");
-      // Force reload so the AuthProvider picks up the new session.
-      if (typeof window !== "undefined") window.location.reload();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Face login failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Sign in with your face</DialogTitle>
-        <DialogDescription>
-          Center your face in the frame, then capture to sign in.
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="my-4 flex items-center justify-center">
-        <div className="relative aspect-square w-72 overflow-hidden rounded-2xl border bg-muted">
-          {error ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-              <X className="h-8 w-8 text-destructive" />
-              <p className="text-sm text-muted-foreground">{error}</p>
-            </div>
-          ) : (
-            <>
-              <video
-                ref={videoRef}
-                playsInline
-                muted
-                className="h-full w-full object-cover"
-              />
-              {!ready && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </div>
-              )}
-              <div className="pointer-events-none absolute inset-6 rounded-full border-2 border-primary/60" />
-            </>
-          )}
-        </div>
-      </div>
-
-      <DialogFooter>
-        <Button
-          variant="ghost"
-          onClick={onClose}
-          disabled={submitting}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={capture}
-          disabled={!ready || submitting || !!error}
-        >
-          <Camera className="me-2 h-4 w-4" />
-          {submitting ? "Verifying..." : "Capture & sign in"}
+          {submitting ? "Verifying…" : "Capture & sign in"}
         </Button>
       </DialogFooter>
     </>

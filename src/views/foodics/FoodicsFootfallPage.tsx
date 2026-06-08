@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -7,6 +8,9 @@ import {
 } from "lucide-react";
 import { foodicsService, FoodicsFootfallRecord, FoodicsFootfallStats, HourlyBreakdown } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
+import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
+import type { DateRange } from "rsuite/DateRangePicker";
 
 function fmt(n: number | null, decimals = 2): string {
   if (n == null) return "—";
@@ -15,6 +19,7 @@ function fmt(n: number | null, decimals = 2): string {
 
 export default function FoodicsFootfallPage() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const [records, setRecords] = useState<FoodicsFootfallRecord[]>([]);
   const [hourly, setHourly] = useState<HourlyBreakdown[]>([]);
   const [stats, setStats] = useState<FoodicsFootfallStats>({
@@ -26,8 +31,9 @@ export default function FoodicsFootfallPage() {
   const [activeTab, setActiveTab] = useState<"daily" | "hourly">("daily");
 
   const [branchId, setBranchId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [dateRange, setDateRange] = React.useState<DateRange | null>(null);
+  const from = dateRange ? dateRange[0].toISOString().split("T")[0] : "";
+  const to = dateRange ? dateRange[1].toISOString().split("T")[0] : "";
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -123,10 +129,10 @@ export default function FoodicsFootfallPage() {
               <option value="">Branch</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none" />
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none" />
+            <SharedDateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
           </div>
 
           {loading ? (

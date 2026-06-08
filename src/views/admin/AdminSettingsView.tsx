@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Settings as SettingsIcon,
@@ -10,6 +10,9 @@ import {
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
+import { ShieldAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,6 +55,8 @@ function SaveBar({ onSave, isPending }: { onSave: () => void; isPending: boolean
 
 // ─── Main view ─────────────────────────────────────────────────────────────────
 export default function AdminSettingsView() {
+  const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const qc = useQueryClient();
 
   // AdminSettings.raw is Record<string,string> — flat key/value map

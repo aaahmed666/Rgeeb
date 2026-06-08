@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -21,6 +22,7 @@ import {
   Sparkles,
   UserCheck,
   Video,
+  ShieldAlert,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { myTasksService, type MyTaskItem, type MyTaskStats } from "@/services/myTasksService";
+import { toast } from "sonner";
 
 const ACTIVE_STATUSES = new Set(["pending", "assigned", "in_progress"]);
 const REVIEW_STATUSES = new Set(["pending_review", "review"]);
@@ -38,6 +41,7 @@ type TFn = (k: string, d?: string) => string;
 
 export default function MyTasksView() {
   const { t, i18n } = useTranslation();
+  const { hasPermission } = useAuth();
   const qc = useQueryClient();
   const isRtl = i18n.dir() === "rtl";
   const [tab, setTab] = React.useState<"active" | "review" | "done">("active");
@@ -75,20 +79,35 @@ export default function MyTasksView() {
     mutationFn: (id: string) => myTasksService.start(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success("Task started");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const completeM = useMutation({
     mutationFn: (id: string) => myTasksService.complete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success("Task completed");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const refresh = () => {
     statsQ.refetch();
     listQ.refetch();
   };
+
+  // Permission read guard
+  if (!hasPermission("my_tasks")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6" dir={isRtl ? "rtl" : "ltr"}>

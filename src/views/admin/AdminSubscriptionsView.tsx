@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
+import { ShieldAlert } from "lucide-react";
 import { CreditCard, CheckCircle2 } from "lucide-react";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -16,25 +19,38 @@ function formatDate(d?: string) {
 }
 
 const COLUMNS = [
-  { key: "userName",  header: "Client",  render: (s: any) => <span className="font-medium">{s.userName ?? "—"}</span> },
-  { key: "userEmail", header: "Email",   render: (s: any) => <span className="text-sm text-muted-foreground">{s.userEmail ?? "—"}</span> },
-  { key: "package",   header: "Package", render: (s: any) => <Badge variant="secondary">{s.package ?? "—"}</Badge> },
-  { key: "price",     header: "Price",   render: (s: any) => <span>{s.price != null ? `$${s.price}` : "—"}</span> },
-  { key: "status",    header: "Status",  render: (s: any) => <StatusPill status={s.status} /> },
-  { key: "startDate", header: "Start",   render: (s: any) => <span className="text-sm">{formatDate(s.startDate)}</span> },
-  { key: "endDate",   header: "End",     render: (s: any) => <span className="text-sm">{formatDate(s.endDate)}</span> },
+  { key: "userName",  header: "Client",  render: (s: Record<string, unknown>) => <span className="font-medium">{String(s.userName ?? "—")}</span> },
+  { key: "userEmail", header: "Email",   render: (s: Record<string, unknown>) => <span className="text-sm text-muted-foreground">{String(s.userEmail ?? "—")}</span> },
+  { key: "package",   header: "Package", render: (s: Record<string, unknown>) => <Badge variant="secondary">{String(s.package ?? "—")}</Badge> },
+  { key: "price",     header: "Price",   render: (s: Record<string, unknown>) => <span>{s.price != null ? `$${String(s.price)}` : "—"}</span> },
+  { key: "status",    header: "Status",  render: (s: Record<string, unknown>) => <StatusPill status={s.status as string | undefined} /> },
+  { key: "startDate", header: "Start",   render: (s: Record<string, unknown>) => <span className="text-sm">{formatDate(s.startDate as string | undefined)}</span> },
+  { key: "endDate",   header: "End",     render: (s: Record<string, unknown>) => <span className="text-sm">{formatDate(s.endDate as string | undefined)}</span> },
   {
     key: "daysRemaining",
     header: "Days Left",
-    render: (s: any) => s.daysRemaining != null
-      ? <span className={s.daysRemaining < 30 ? "text-destructive font-semibold" : ""}>{s.daysRemaining}d</span>
+    render: (s: Record<string, unknown>) => s.daysRemaining != null
+      ? <span className={(s.daysRemaining as number) < 30 ? "text-destructive font-semibold" : ""}>{s.daysRemaining as number}d</span>
       : <span>—</span>,
   },
 ];
 
 export default function AdminSubscriptionsView() {
+  const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const allQ    = useQuery({ queryKey: ["admin", "subscriptions"],        queryFn: fetchAdminSubscriptions });
   const activeQ = useQuery({ queryKey: ["admin", "subscriptions-active"], queryFn: fetchAdminActiveSubscriptions });
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -60,18 +76,18 @@ export default function AdminSubscriptionsView() {
 
         <TabsContent value="all">
           <DataTable
-            data={allQ.data ?? []}
+            data={(allQ.data ?? []) as unknown as (Record<string, unknown> & { id: string | number })[]}
             isLoading={allQ.isLoading}
             isError={allQ.isError}
             errorMessage={allQ.error instanceof Error ? allQ.error.message : "Failed to load"}
-            emptyMessage="No subscriptions found"
+            emptyMessage={t("admin.subscriptions_empty", "No subscriptions found")}
             columns={COLUMNS}
           />
         </TabsContent>
 
         <TabsContent value="active">
           <DataTable
-            data={activeQ.data ?? []}
+            data={(activeQ.data ?? []) as unknown as (Record<string, unknown> & { id: string | number })[]}
             isLoading={activeQ.isLoading}
             isError={activeQ.isError}
             errorMessage={activeQ.error instanceof Error ? activeQ.error.message : "Failed to load"}

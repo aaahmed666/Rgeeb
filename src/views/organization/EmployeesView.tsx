@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronLeft,
+  ChevronRight,
   Users,
   Plus,
   Loader2,
@@ -36,6 +38,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import {
   Select,
   SelectContent,
@@ -51,10 +54,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import {
   Employee,
   EmployeeInput,
+  PaginatedResult,
   createEmployee,
   deleteEmployee,
   fetchEmployees,
@@ -87,7 +92,7 @@ function defaultWorkingHours(): WorkingHours {
   }, {} as WorkingHours);
 }
 
-interface ExtendedEmployeeInput extends EmployeeInput {
+interface ExtendedEmployeeInput extends Omit<EmployeeInput, "working_hours"> {
   name_ar?: string;
   national_id?: string;
   employee_code?: string;
@@ -141,9 +146,12 @@ function StatCard({
 
 export default function EmployeesView() {
   const { t } = useTranslation();
+  const can = usePermission("employees");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 15;
   const {
     searchValue: search,
     debouncedValue: debouncedSearch,
@@ -151,31 +159,25 @@ export default function EmployeesView() {
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
+  React.useEffect(() => { setPage(1); }, [debouncedSearch]);
+
   const {
-    data: employees = [],
+    data: empPage,
     isLoading,
     isError,
     error,
   } = useQuery({
-    queryKey: ["org", "employees"],
-    queryFn: () => fetchEmployees(),
+    queryKey: ["org", "employees", { page, per_page: PER_PAGE, keyword: debouncedSearch }],
+    queryFn: () => fetchEmployees({ page, per_page: PER_PAGE, keyword: debouncedSearch || undefined }),
   });
 
-  const filtered = useMemo(() => {
-    const q = debouncedSearch.trim().toLowerCase();
-    if (!q) return employees;
-    return employees.filter((e) =>
-      [e.name, e.email, e.phone, e.branchName, e.departmentName]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [employees, debouncedSearch]);
+  const employees = (empPage as unknown as PaginatedResult<Employee>)?.items ?? (empPage as Employee[] ?? []);
+  const total = (empPage as unknown as PaginatedResult<Employee>)?.total ?? (employees as Employee[]).length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const filtered = employees as Employee[];
 
-  const total = employees.length;
-  const active = employees.filter((e) => e.active).length;
-  const inactive = total - active;
+  const active = filtered.filter((e) => e.active).length;
+  const inactive = filtered.length - active;
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteEmployee(id),
@@ -242,10 +244,11 @@ export default function EmployeesView() {
           "Search employees..."
         )}
         actions={
+          can.create ? (
           <Button
             size="sm"
             data-tour="add-employee"
-            className="gap-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:opacity-95"
+            className="gap-1.5"
             onClick={() => {
               setEditing(null);
               setOpen(true);
@@ -254,6 +257,7 @@ export default function EmployeesView() {
             <Plus className="h-4 w-4" />{" "}
             {t("employees.new", "Add New Employee")}
           </Button>
+          ) : null
         }
         columns={[
           {
@@ -351,6 +355,7 @@ export default function EmployeesView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {can.update && (
                   <DropdownMenuItem
                     onClick={() => {
                       setEditing(e);
@@ -360,6 +365,8 @@ export default function EmployeesView() {
                     <Pencil className="me-2 h-4 w-4" />{" "}
                     {t("common.edit", "Edit")}
                   </DropdownMenuItem>
+                  )}
+                  {can.delete && (
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
                     onClick={() => setDeleteTarget(e)}
@@ -367,12 +374,29 @@ export default function EmployeesView() {
                     <Trash2 className="me-2 h-4 w-4" />{" "}
                     {t("common.delete", "Delete")}
                   </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),
           },
         ]}
       />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-3 text-sm text-muted-foreground">
+          <span>{t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", { start: (page-1)*PER_PAGE+1, end: Math.min(page*PER_PAGE, total), total })}</span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2">{page} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p+1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <EmployeeDrawer
         open={open}
@@ -719,48 +743,28 @@ function EmployeeDrawer({
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t("employees.department", "Department")}</Label>
-                  <Select
-                    value={form.department_id || undefined}
-                    onValueChange={(v) =>
-                      setForm({ ...form, department_id: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("common.select", "Select")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((d) => (
-                        <SelectItem
-                          key={d.id}
-                          value={d.id}
-                        >
-                          {d.nameEn}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AsyncPaginatedSelect
+                    endpoint="/customer/departments"
+                    labelKey="name_en"
+                    valueKey="id"
+                    extraParams={{ active: 1 }}
+                    value={form.department_id || null}
+                    onChange={(opt) => setForm({ ...form, department_id: opt ?? "" })}
+                    placeholder={t("common.select", "Select")}
+                  />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label>{t("employees.branch", "Branch")}</Label>
-                <Select
-                  value={form.branch_id || undefined}
-                  onValueChange={(v) => setForm({ ...form, branch_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("common.select", "Select")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches.map((b) => (
-                      <SelectItem
-                        key={b.id}
-                        value={b.id}
-                      >
-                        {b.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AsyncPaginatedSelect
+                  endpoint="/customer/branches"
+                  labelKey="name"
+                  valueKey="id"
+                  extraParams={{ active: 1 }}
+                  value={form.branch_id || null}
+                  onChange={(opt) => setForm({ ...form, branch_id: opt ?? "" })}
+                  placeholder={t("common.select", "Select")}
+                />
               </div>
             </div>
           </div>
@@ -1006,7 +1010,7 @@ function EmployeeDrawer({
             {t("common.cancel", "Cancel")}
           </Button>
           <Button
-            className="flex-1 gap-2 bg-gradient-to-r from-slate-700 to-orange-500 text-white hover:opacity-95"
+            className="flex-1 gap-2"
             disabled={
               !form.name ||
               !form.email ||

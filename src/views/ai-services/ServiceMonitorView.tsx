@@ -19,10 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, ExportCSVButton, ExportPDFButton, ExportExcelButton } from "@/components/ui/data-table";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
+import type { DateRange } from "rsuite/DateRangePicker";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 import { cn } from "@/lib/utils";
+import { serviceMonitorCache, serviceMonitorKey, invalidateService } from "@/lib/serviceMonitorCache";
 import type { AIServiceMeta } from "./AIServiceDetailView";
 
 // ─── API shape ─────────────────────────────────────────────────────────────
@@ -123,9 +126,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const { t } = useTranslation();
   const Icon = service.icon;
   const today = new Date().toISOString().slice(0, 10);
-
-  const [from, setFrom] = React.useState(today);
-  const [to, setTo] = React.useState(today);
+  const [dateRange, setDateRange] = React.useState<DateRange | null>([new Date(), new Date()]);
+  const from = dateRange ? dateRange[0].toISOString().slice(0, 10) : today;
+  const to = dateRange ? dateRange[1].toISOString().slice(0, 10) : today;
   const [branchId, setBranchId] = React.useState("all");
   const [data, setData] = React.useState<MonitorDashboard | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -135,9 +138,13 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     try {
       const q: Record<string, string> = { date_from: from, date_to: to };
       if (branchId !== "all") q.branch_id = branchId;
-      const res = await apiFetch<
-        { data?: MonitorDashboard } | MonitorDashboard
-      >(endpoints.serviceMonitor.dashboard(serviceApiId), { query: q });
+      const cacheKey = serviceMonitorKey(serviceApiId, from, to, branchId);
+      const res = await serviceMonitorCache.get(cacheKey, () =>
+        apiFetch<{ data?: MonitorDashboard } | MonitorDashboard>(
+          endpoints.serviceMonitor.dashboard(serviceApiId),
+          { query: q }
+        )
+      );
       const d =
         (res as { data?: MonitorDashboard }).data ?? (res as MonitorDashboard);
       setData(d);
@@ -184,15 +191,15 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   // label 4th stat per category
   const fourthLabel =
     service.category === "Safety"
-      ? "COMPLIANCE RATE"
+      ? t("serviceMonitor.complianceRate", "COMPLIANCE RATE")
       : service.category === "Analytics"
-        ? "AVG WAIT TIME"
-        : "AVG SCORE";
+        ? t("serviceMonitor.avgWaitTime", "AVG WAIT TIME")
+        : t("serviceMonitor.avgScore", "AVG SCORE");
   const fourthSub =
     service.category === "Safety"
-      ? "Detection confidence"
+      ? t("serviceMonitor.detectionConfidence", "Detection confidence")
       : service.category === "Analytics"
-        ? "minutes average"
+        ? t("serviceMonitor.minutesAverage", "minutes average")
         : "Detection confidence";
 
   const alertPct = alertStatus.percentage ?? 0;
@@ -211,10 +218,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     {
       label:
         service.category === "Analytics" && service.id === "waiting-customer"
-          ? "CUSTOMERS TODAY"
+          ? t("serviceMonitor.customersToday", "CUSTOMERS TODAY")
           : service.id === "customer-traffic"
-            ? "VISITORS IN"
-            : "TOTAL DETECTIONS",
+            ? t("serviceMonitor.visitorsIn", "VISITORS IN")
+            : t("serviceMonitor.totalDetections", "TOTAL DETECTIONS"),
       value: totalDet,
       sub: `Yesterday: ${Math.round(totalDet * 1.2)}`,
       color: "",
@@ -228,7 +235,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           ? `NO ${service.label.toUpperCase()} VIOLATIONS`
           : service.id === "waiting-customer"
             ? "LONG WAIT ALERTS"
-            : "PPE VIOLATIONS",
+            : t("serviceMonitor.ppeViolations", "PPE VIOLATIONS"),
       value: violations,
       sub: `${warning} warnings`,
       color: "",
@@ -237,7 +244,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       icon: <AlertTriangle className="h-7 w-7" />,
     },
     {
-      label: "ACTIVE CAMERAS",
+      label: t("serviceMonitor.activeCameras", "ACTIVE CAMERAS"),
       value: activeCams,
       sub: undefined,
       color: "",
@@ -283,18 +290,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
 
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="rounded-md border px-3 py-1.5 text-sm bg-background"
-          />
-          <span className="text-muted-foreground text-sm">To</span>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="rounded-md border px-3 py-1.5 text-sm bg-background"
+          <SharedDateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
           />
           {branches.length > 0 && (
             <Select
@@ -302,10 +300,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
               onValueChange={setBranchId}
             >
               <SelectTrigger className="w-36 h-9 text-sm">
-                <SelectValue placeholder="All Branches" />
+                <SelectValue placeholder={t("serviceMonitor.allBranches", "All Branches")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Branches</SelectItem>
+                <SelectItem value="all">{t("serviceMonitor.allBranches", "All Branches")}</SelectItem>
                 {branches.map((b) => (
                   <SelectItem
                     key={b.id}
@@ -319,7 +317,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           )}
           {branches.length === 0 && (
             <div className="flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm text-muted-foreground">
-              <Camera className="h-4 w-4" /> All Branches
+              <Camera className="h-4 w-4" /> {t("serviceMonitor.allBranches", "All Branches")}
             </div>
           )}
           <Badge
@@ -331,13 +329,13 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                 : "bg-muted text-muted-foreground"
             )}
           >
-            {fmt(todayCount)} today
+            {fmt(todayCount)} {t("common.today", "today")}
           </Badge>
           <Button
             variant="ghost"
             size="icon"
             className="h-9 w-9"
-            onClick={load}
+            onClick={() => { invalidateService(serviceApiId); void load(); }}
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </Button>
@@ -379,7 +377,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             y2="10"
           />
         </svg>
-        Select a date above to view data for another day.
+        {t("serviceMonitor.selectDate", "Select a date to view data")}
       </div>
 
       {/* ── Stat Cards ──────────────────────────────────────────────────── */}
@@ -406,7 +404,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             >
               <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            <h2 className="text-sm font-semibold">Alert Status</h2>
+            <h2 className="text-sm font-semibold">{t("serviceMonitor.alertStatus", "Alert Status")}</h2>
           </div>
 
           <div className="flex flex-col items-center justify-center py-4">
@@ -453,19 +451,19 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                 fill="#94a3b8"
                 fontSize="11"
               >
-                {arcPct === 0 ? "NO DATA" : "SAFE"}
+                {arcPct === 0 ? t("serviceMonitor.noData", "NO DATA") : t("serviceMonitor.safe", "SAFE")}
               </text>
             </svg>
 
             <div className="mt-4 flex gap-4 text-sm">
               <span className="text-red-500 font-semibold">
-                {critical} Critical
+                {critical} {t("serviceMonitor.critical", "Critical")}
               </span>
               <span className="text-amber-500 font-semibold">
-                {warning} Warning
+                {warning} {t("serviceMonitor.warning", "Warning")}
               </span>
               <span className="text-emerald-500 font-semibold">
-                {normal} Normal
+                {normal} {t("serviceMonitor.normal", "Normal")}
               </span>
             </div>
           </div>
@@ -501,10 +499,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                   y2="14"
                 />
               </svg>
-              <h2 className="text-sm font-semibold">Detections Per Hour</h2>
+              <h2 className="text-sm font-semibold">{t("serviceMonitor.detectionsPerHour", "Detections Per Hour")}</h2>
             </div>
             <span className="text-xs font-semibold text-muted-foreground bg-muted rounded px-2 py-0.5">
-              {fmt(totalDet)} total
+              {fmt(totalDet)} {t("common.total", "total")}
             </span>
           </div>
 
@@ -580,15 +578,15 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
 
       {/* ── Recent Detections ───────────────────────────────────────────── */}
       <DataTable
-        title="Recent Detections"
+        title={t("serviceMonitor.recentDetections", "Recent Detections")}
         data={detections.map((d, i) => ({ ...d, id: d.id ?? i }))}
         isLoading={loading}
-        emptyMessage="No detections"
+        emptyMessage={t("serviceMonitor.noDetections", "No detections")}
         skeletonRows={5}
         columns={[
           {
             key: "image",
-            header: "Image",
+            header: t("serviceMonitor.colImage", "Image"),
             headClassName: "w-24",
             render: (det) =>
               det.image ? (
@@ -602,7 +600,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           },
           {
             key: "type",
-            header: "Type",
+            header: t("serviceMonitor.colType", "Type"),
             render: (det) => (
               <Badge variant="secondary" className="text-xs font-medium">
                 {det.type ?? "—"}
@@ -611,7 +609,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           },
           {
             key: "camera",
-            header: "Camera",
+            header: t("serviceMonitor.colCamera", "Camera"),
             render: (det) => (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Camera className="h-3 w-3" />
@@ -621,7 +619,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           },
           {
             key: "branch",
-            header: "Branch",
+            header: t("serviceMonitor.colBranch", "Branch"),
             render: (det) => (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -634,7 +632,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           ...(service.id === "waiting-customer"
             ? [{
                 key: "wait_time",
-                header: "Wait Time",
+                header: t("serviceMonitor.colWaitTime", "Wait Time"),
                 render: (det: typeof detections[number] & { id: string | number }) => (
                   <span className="text-xs font-semibold text-amber-600">{det.wait_time ?? "—"}</span>
                 ),
@@ -642,7 +640,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             : []),
           {
             key: "score",
-            header: "Score",
+            header: t("serviceMonitor.colScore", "Score"),
             render: (det) =>
               det.score != null ? (
                 <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -654,7 +652,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           },
           {
             key: "time",
-            header: "Time",
+            header: t("serviceMonitor.colTime", "Time"),
             render: (det) => (
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {det.time ?? det.created_at ?? "—"}

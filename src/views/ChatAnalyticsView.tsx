@@ -1,6 +1,6 @@
 "use client";
 
-import {
+import React, {
   Fragment as FragmentWithKey,
   useCallback,
   useEffect,
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import {
   chatAnalyticsService,
   type ChatSummary,
@@ -39,6 +40,7 @@ import {
   type Paginated,
   type SeriesPoint,
 } from "@/services/chatAnalyticsService";
+import { SharedDateRangePicker } from "@/components/Shareddaterangepicker";
 
 const INTENT_COLORS = [
   "#1e3a8a",
@@ -55,12 +57,15 @@ const INTENT_COLORS = [
 
 export default function ChatAnalyticsView() {
   const { t, i18n } = useTranslation();
+  const { hasPermission } = useAuth();
   const isRTL = i18n.dir() === "rtl";
 
   const [channel, setChannel] = useState("all");
   const [intent, setIntent] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const perPage = 10;
 
   const [summary, setSummary] = useState<ChatSummary | null>(null);
@@ -72,44 +77,43 @@ export default function ChatAnalyticsView() {
   const [logs, setLogs] = useState<Paginated<ConversationLog> | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const baseFilters = useMemo(() => ({}), []);
-  const logFilters = useMemo(
-    () => ({ channel, intent, search, page, perPage }),
-    [channel, intent, search, page]
-  );
-
-  const loadCore = useCallback(async () => {
-    const [s, ot, it, ch, lg, hr] = await Promise.all([
+  // Use primitive deps directly to avoid spurious re-fires from object reference changes
+  useEffect(() => {
+    let cancelled = false;
+    const baseFilters = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+    void Promise.all([
       chatAnalyticsService.summary(baseFilters),
       chatAnalyticsService.conversationsOverTime(baseFilters),
       chatAnalyticsService.intentDistribution(baseFilters),
       chatAnalyticsService.messagesByChannel(baseFilters),
       chatAnalyticsService.languageDistribution(baseFilters),
       chatAnalyticsService.hourlyActivity(baseFilters),
-    ]);
-    setSummary(s);
-    setOverTime(ot);
-    setIntents(it);
-    setChannels(ch);
-    setLangs(lg);
-    setHourly(hr);
-  }, [baseFilters]);
-
-  const loadLogs = useCallback(async () => {
-    const l = await chatAnalyticsService.conversations(logFilters);
-    setLogs(l);
-  }, [logFilters]);
+    ]).then(([s, ot, it, ch, lg, hr]) => {
+      if (cancelled) return;
+      setSummary(s);
+      setOverTime(ot);
+      setIntents(it);
+      setChannels(ch);
+      setLangs(lg);
+      setHourly(hr);
+    });
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo]); // ← primitives only, no object refs
 
   useEffect(() => {
-    void loadCore();
-  }, [loadCore]);
-  useEffect(() => {
-    void loadLogs();
-  }, [loadLogs]);
+    let cancelled = false;
+    const logFilters = { channel, intent, search, page, perPage, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+    void chatAnalyticsService.conversations(logFilters).then((l) => {
+      if (!cancelled) setLogs(l);
+    });
+    return () => { cancelled = true; };
+  }, [channel, intent, search, page, perPage, dateFrom, dateTo]); // ← all primitives
 
   const totalPages = logs
     ? Math.max(1, Math.ceil(logs.total / logs.per_page))
     : 1;
+
+  // Read guard via aliases in auth.tsx
 
   return (
     <div className="space-y-6 p-6">
@@ -235,6 +239,12 @@ export default function ChatAnalyticsView() {
               className="ps-9"
             />
           </div>
+          <SharedDateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onFromChange={(v: string) => { setDateFrom(v); setPage(1); }}
+            onToChange={(v: string) => { setDateTo(v); setPage(1); }}
+          />
           <div className="min-w-[160px]">
             <label className="mb-1 block text-xs text-muted-foreground">
               {t("chatAnalytics.channel", "Channel")}
@@ -461,7 +471,7 @@ function StatCard({
   );
 }
 
-function AreaChart({ points }: { points: SeriesPoint[] }) {
+function AreaChart({ points, uid = "caArea" }: { points: SeriesPoint[]; uid?: string }) {
   const w = 800,
     h = 240,
     pad = 32;
@@ -492,7 +502,7 @@ function AreaChart({ points }: { points: SeriesPoint[] }) {
     >
       <defs>
         <linearGradient
-          id="caArea"
+          id={uid}
           x1="0"
           x2="0"
           y1="0"
@@ -525,7 +535,7 @@ function AreaChart({ points }: { points: SeriesPoint[] }) {
       {fill && (
         <path
           d={fill}
-          fill="url(#caArea)"
+          fill={`url(#${uid})`}
         />
       )}
       {path && (

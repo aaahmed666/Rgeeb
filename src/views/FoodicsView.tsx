@@ -24,11 +24,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
 
 import { foodicsService } from "@/services/foodicsService";
 
 export default function FoodicsView() {
   const qc = useQueryClient();
+  const can = usePermission("foodics");
   const { hasPermission } = useAuth();
 
   const statusQ = useQuery({
@@ -163,8 +165,8 @@ export default function FoodicsView() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => importMut.mutate()}
-              disabled={importMut.isPending || !status?.connected}
+              onClick={() => can.create && importMut.mutate()}
+              disabled={!can.create || importMut.isPending || !status?.connected}
               className="w-full"
             >
               {importMut.isPending ? "Importing…" : "Import Branches"}
@@ -190,8 +192,8 @@ export default function FoodicsView() {
           <CardContent>
             <Button
               variant="outline"
-              onClick={() => syncMut.mutate()}
-              disabled={syncMut.isPending || !status?.connected}
+              onClick={() => can.update && syncMut.mutate()}
+              disabled={!can.update || syncMut.isPending || !status?.connected}
               className="w-full"
             >
               {syncMut.isPending ? "Syncing…" : "Sync Now"}

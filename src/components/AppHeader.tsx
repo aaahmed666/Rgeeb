@@ -46,7 +46,11 @@ export function AppHeader() {
           <div className="hidden text-sm leading-tight md:block">
             <div className="font-medium">{user.name}</div>
             <div className="text-xs text-muted-foreground">
-              {isAdmin ? "Admin · " : ""}
+              {isAdmin ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary me-1">
+                {t("common.roleAdmin", "Admin")}
+              </span>
+            ) : null}
               {user.email}
             </div>
           </div>

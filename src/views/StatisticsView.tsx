@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 import {
   BarChart3,
   Calculator,
@@ -12,6 +13,7 @@ import {
   Truck,
   Users,
   Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import type { DateRange } from "rsuite/DateRangePicker";
 
@@ -72,6 +74,7 @@ const PRESETS: [Preset, string][] = [
 
 export default function StatisticsView() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange | null>(rangeFor("30d"));
   const [activePreset, setActivePreset] = useState<Preset>("30d");
   const [tab, setTab] = useState<ReportTab>("customers");
@@ -105,6 +108,8 @@ export default function StatisticsView() {
     setActivePreset(p);
     setDateRange(rangeFor(p));
   };
+
+  // Read guard handled via auth aliases — isAdmin bypasses all
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

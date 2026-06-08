@@ -32,6 +32,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
+import { toast } from "sonner";
 import {
   tasksService,
   type TaskItem,
@@ -537,6 +539,7 @@ function DeleteConfirm({
 
 function KanbanPageRoute() {
   const { t, i18n } = useTranslation();
+  const can = usePermission("kanban");
   const qc = useQueryClient();
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -614,7 +617,9 @@ function KanbanPageRoute() {
     onSuccess: () => {
       invalidate();
       setCreateOpen(false);
+      toast.success("Task created");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateM = useMutation({
@@ -623,13 +628,16 @@ function KanbanPageRoute() {
     onSuccess: () => {
       invalidate();
       setEditTask(null);
+      toast.success("Task updated");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const moveM = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       tasksService.updateStatus(id, status),
     onSuccess: () => invalidate(),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteM = useMutation({
@@ -637,7 +645,9 @@ function KanbanPageRoute() {
     onSuccess: () => {
       invalidate();
       setDeleteTask(null);
+      toast.success("Task deleted");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // ── Grouped tasks ────────────────────────────────────────────────────────
@@ -708,13 +718,15 @@ function KanbanPageRoute() {
             />
             {t("common.refresh", "Refresh")}
           </Button>
-          <Button
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="me-2 h-4 w-4" />
-            {t("kanban.newTask", "New Task")}
-          </Button>
+          {can.create && (
+            <Button
+              size="sm"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="me-2 h-4 w-4" />
+              {t("kanban.newTask", "New Task")}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -819,8 +831,8 @@ function KanbanPageRoute() {
                       key={task.id}
                       task={task}
                       formatDate={formatDate}
-                      onEdit={() => setEditTask(task)}
-                      onDelete={() => setDeleteTask(task)}
+                      onEdit={can.update ? () => setEditTask(task) : undefined}
+                      onDelete={can.delete ? () => setDeleteTask(task) : undefined}
                     />
                   ))
                 )}
@@ -902,8 +914,8 @@ function BoardCard({
 }: {
   task: TaskItem;
   formatDate: (s: string) => string;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   const priorityTone =
     task.priority === "urgent"
@@ -1006,24 +1018,28 @@ function BoardCard({
           )}
           {/* Edit + Delete buttons — visible on hover */}
           <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={onEdit}
-              aria-label="Edit task"
-            >
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={onDelete}
-              aria-label="Delete task"
-            >
-              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-            </Button>
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={onEdit}
+                aria-label="Edit task"
+              >
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={onDelete}
+                aria-label="Delete task"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

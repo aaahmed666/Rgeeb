@@ -266,7 +266,7 @@ function parseProfile(raw: Record<string, unknown>): UserProfile {
 
 /** GET /customer/profile */
 export async function fetchProfile(): Promise<UserProfile> {
-  const res = await apiFetch<Record<string, unknown>>(endpoints.user.profile);
+  const res = await apiFetch<Record<string, unknown>>(endpoints.auth.profile);
   const raw = unwrap<Record<string, unknown>>(res);
   return parseProfile(raw);
 }
@@ -287,7 +287,7 @@ export async function updateProfile(
   if (input.avatar_file) formData.append("avatar_file", input.avatar_file);
 
   const res = await apiFetch<Record<string, unknown>>(
-    endpoints.user.updateProfile,
+    endpoints.auth.updateProfile,
     { method: "POST", body: formData }
   );
   const raw = unwrap<Record<string, unknown>>(res);
@@ -313,7 +313,7 @@ export async function updateClient(
   if (input.avatar_file) formData.append("avatar_file", input.avatar_file);
 
   const res = await apiFetch<Record<string, unknown>>(
-    endpoints.user.updateClient,
+    endpoints.auth.updateClient,
     { method: "POST", body: formData }
   );
   const raw = unwrap<Record<string, unknown>>(res);
@@ -322,11 +322,16 @@ export async function updateClient(
   return parseClient(clientRaw);
 }
 
-/** POST /customer/profile/update with password fields */
+/**
+ * Change password.
+ * FIX: tries POST /customer/profile/update with password fields (Postman-documented flow).
+ * If a dedicated /customer/password/change endpoint exists on backend, it would be preferable —
+ * but it is not in the Postman collection, so we use profile/update.
+ */
 export async function changePassword(
   input: ChangePasswordInput
 ): Promise<void> {
-  await apiFetch(endpoints.user.updateProfile, {
+  await apiFetch(endpoints.auth.updateProfile, {
     method: "POST",
     body: {
       current_password: input.current_password,

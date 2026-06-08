@@ -64,7 +64,7 @@ export function ErrorFallback({
 
           {showDetails && details && (
             <div className="mt-4 space-y-2 rounded-md bg-muted p-3 text-xs font-mono text-muted-foreground">
-              {details.map((detail, idx) => (
+              {(details as unknown as { field?: string; message?: string }[]).map((detail, idx: number) => (
                 <div key={idx}>
                   <strong>{detail.field}:</strong> {detail.message}
                 </div>

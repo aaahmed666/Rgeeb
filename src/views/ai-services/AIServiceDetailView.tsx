@@ -18,8 +18,10 @@ import {
   Download,
   Eye,
   Zap,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -157,7 +159,7 @@ function StaticDetailView({ service }: Props) {
                   isActive ? "bg-emerald-500 hover:bg-emerald-600" : ""
                 }
               >
-                {isActive ? "Active" : "Inactive"}
+                {isActive ? t("aiServices.activeStatus", "Active") : t("aiServices.inactiveStatus", "Inactive")}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -186,7 +188,7 @@ function StaticDetailView({ service }: Props) {
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
-            {isActive ? "Deactivate" : "Activate"}
+            {isActive ? t("aiServices.deactivate", "Deactivate") : t("aiServices.activate", "Activate")}
           </Button>
         </div>
       </div>
@@ -195,37 +197,37 @@ function StaticDetailView({ service }: Props) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {[
           {
-            label: "Total Detections",
+            label: t("aiServices.totalDetections", "Total Detections"),
             value: stats.totalDetections.toLocaleString(),
             icon: Activity,
             color: "text-blue-500",
           },
           {
-            label: "Today",
+            label: t("aiServices.today", "Today"),
             value: stats.todayDetections.toLocaleString(),
             icon: Clock,
             color: "text-purple-500",
           },
           {
-            label: "Accuracy",
+            label: t("aiServices.accuracy", "Accuracy"),
             value: `${stats.accuracy}%`,
             icon: TrendingUp,
             color: "text-emerald-500",
           },
           {
-            label: "Uptime",
+            label: t("aiServices.uptime", "Uptime"),
             value: `${stats.uptime}%`,
             icon: CheckCircle2,
             color: "text-emerald-500",
           },
           {
-            label: "Avg Response",
+            label: t("aiServices.avgResponse", "Avg Response"),
             value: `${stats.avgResponseMs}ms`,
             icon: Zap,
             color: "text-amber-500",
           },
           {
-            label: "Cameras",
+            label: t("aiServices.cameras", "Cameras"),
             value: stats.cameras.toString(),
             icon: Camera,
             color: "text-cyan-500",
@@ -251,7 +253,7 @@ function StaticDetailView({ service }: Props) {
         <div className="lg:col-span-1 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">About this Service</CardTitle>
+              <CardTitle className="text-base">{t("aiServices.about", "About this Service")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -276,14 +278,14 @@ function StaticDetailView({ service }: Props) {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Performance</CardTitle>
+              <CardTitle className="text-base">{t("aiServices.performance", "Performance")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: "Detection Accuracy", value: stats.accuracy },
-                { label: "Service Uptime", value: stats.uptime },
+                { label: t("aiServices.detectionAccuracy", "Detection Accuracy"), value: stats.accuracy },
+                { label: t("aiServices.serviceUptime", "Service Uptime"), value: stats.uptime },
                 {
-                  label: "Camera Coverage",
+                  label: t("aiServices.cameraCoverage", "Camera Coverage"),
                   value: Math.min(100, stats.cameras * 12),
                 },
               ].map((m) => (
@@ -306,7 +308,7 @@ function StaticDetailView({ service }: Props) {
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">Recent Events</CardTitle>
+              <CardTitle className="text-base">{t("aiServices.recentEvents", "Recent Events")}</CardTitle>
               <div className="flex gap-2">
                 <Button
                   variant="ghost"

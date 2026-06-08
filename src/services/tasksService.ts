@@ -103,6 +103,55 @@ export interface TaskPayload {
   assigned_user_ids?: (string | number)[];
   branch_ids?: (string | number)[];
   is_draft?: 0 | 1;
+  /** Main task image (Postman: main_image) */
+  main_image?: File | null;
+  /** Additional task images (Postman: images[]) */
+  images?: File[];
+}
+
+/**
+ * Build the request body for task create/update.
+ * Uses FormData when files are present (main_image or images[]),
+ * otherwise sends a plain JSON-serialisable object.
+ */
+function buildTaskBody(
+  payload: TaskPayload
+): FormData | Record<string, unknown> {
+  const hasFiles = !!(payload.main_image || (payload.images && payload.images.length));
+
+  if (!hasFiles) {
+    // Plain object — branch_ids and assigned_user_ids are arrays but
+    // apiFetch handles JSON serialisation correctly.
+    const { main_image, images, ...rest } = payload;
+    return rest as Record<string, unknown>;
+  }
+
+  const fd = new FormData();
+  if (payload.id !== undefined) fd.append("id", String(payload.id));
+  fd.append("name", payload.name);
+  if (payload.description)         fd.append("description", payload.description);
+  if (payload.type)                fd.append("type", payload.type);
+  if (payload.project_id)          fd.append("project_id", String(payload.project_id));
+  if (payload.department_id)       fd.append("department_id", String(payload.department_id));
+  if (payload.priority)            fd.append("priority", payload.priority);
+  if (payload.status)              fd.append("status", payload.status);
+  if (payload.time)                fd.append("time", payload.time);
+  if (payload.scheduled_date)      fd.append("scheduled_date", payload.scheduled_date);
+  if (payload.start_date)          fd.append("start_date", payload.start_date);
+  if (payload.end_date)            fd.append("end_date", payload.end_date);
+  if (payload.recurring_every_days !== undefined)
+    fd.append("recurring_every_days", String(payload.recurring_every_days));
+  if (payload.is_draft !== undefined)
+    fd.append("is_draft", String(payload.is_draft));
+  (payload.assigned_user_ids ?? []).forEach((uid) =>
+    fd.append("assigned_user_ids[]", String(uid))
+  );
+  (payload.branch_ids ?? []).forEach((bid) =>
+    fd.append("branch_ids[]", String(bid))
+  );
+  if (payload.main_image) fd.append("main_image", payload.main_image);
+  (payload.images ?? []).forEach((img) => fd.append("images[]", img));
+  return fd as unknown as Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -343,8 +392,7 @@ export const tasksService = {
       } satisfies TaskSummary
     ),
 
-  // ── KANBAN  (uses /tasks/board, not /tasks/list) ──────────────────────────
-
+  // ── KANBAN  (uses /tasks/list since /tasks/board returns 404) ──────────────
   kanban: async (
     page = 1,
     perPage = 15,
@@ -360,8 +408,9 @@ export const tasksService = {
       byStatus: {},
     };
     try {
+      // /customer/tasks/board → 404; use /customer/tasks list endpoint instead
       const raw = await api.get<Record<string, unknown>>(
-        endpoints.tasks.board,
+        endpoints.tasks.list,
         {
           query: {
             page,
@@ -397,18 +446,24 @@ export const tasksService = {
         }
         return undefined;
       };
+      // Build byStatus client-side from items (API list doesn't return by_status)
       const byStatusRaw =
-        ((raw as Record<string, unknown>)?.by_status as Record<
-          string,
-          unknown
-        >) ??
+        ((raw as Record<string, unknown>)?.by_status as Record<string, unknown>) ??
         (meta.by_status as Record<string, unknown>) ??
         (dataMeta.by_status as Record<string, unknown>) ??
-        {};
+        null;
       const byStatus: Record<string, number> = {};
-      Object.entries(byStatusRaw).forEach(([k, v]) => {
-        byStatus[k] = num(v);
-      });
+      if (byStatusRaw) {
+        Object.entries(byStatusRaw).forEach(([k, v]) => {
+          byStatus[k] = num(v);
+        });
+      } else {
+        // Derive from items when API doesn't return by_status
+        items.forEach((item) => {
+          const st = (item as { status?: string }).status ?? "pending";
+          byStatus[st] = (byStatus[st] ?? 0) + 1;
+        });
+      }
       const total = num(get("total"), items.length);
       const perPageOut = num(get("per_page", "perPage"), perPage);
       const currentPage = num(get("current_page", "currentPage", "page"), page);
@@ -439,12 +494,12 @@ export const tasksService = {
   },
 
   // ── CREATE ────────────────────────────────────────────────────────────────
-  // POST /customer/tasks/create  (formdata fields)
+  // POST /customer/tasks/create  (supports FormData when images present)
 
   create: async (payload: TaskPayload): Promise<TaskItem> => {
     const raw = await api.post<Record<string, unknown>>(
       endpoints.tasks.create,
-      payload
+      buildTaskBody(payload)
     );
     const r = (raw?.data as Record<string, unknown>) ?? raw;
     return mapTask(r, 0);
@@ -452,14 +507,13 @@ export const tasksService = {
 
   // ── UPDATE ────────────────────────────────────────────────────────────────
   // POST /customer/tasks/update  with {id, ...fields}
-  // This is also used for status-only changes (move between kanban columns).
 
   update: async (
     payload: TaskPayload & { id: string | number }
   ): Promise<TaskItem> => {
     const raw = await api.post<Record<string, unknown>>(
       endpoints.tasks.update,
-      payload
+      buildTaskBody(payload)
     );
     const r = (raw?.data as Record<string, unknown>) ?? raw;
     return mapTask(r, 0);

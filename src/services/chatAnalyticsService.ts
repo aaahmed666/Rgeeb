@@ -302,7 +302,7 @@ function fetchAll(f: ChatFilters): Promise<ChatAnalyticsPayload> {
     })
     .catch(() => ({}) as ChatAnalyticsPayload);
   cache.set(key, p);
-  setTimeout(() => cache.delete(key), 5000);
+  setTimeout(() => cache.delete(key), 30_000); // 30s TTL — prevents duplicate calls on re-renders
   return p;
 }
 
@@ -339,13 +339,16 @@ export const chatAnalyticsService = {
     ),
   conversations: (f: ChatFilters) =>
     safe(
+      // Try the dedicated conversations endpoint first; falls back to demo on 400/404
       apiFetch<
         | Paginated<ConversationLog>
         | {
             data: ConversationLog[];
             meta?: { total: number; per_page: number; current_page: number };
           }
-      >(endpoints.chatAnalytics.conversations, { query: q(f) }).then((r) => {
+      >(endpoints.chatAnalytics.conversations, {
+        query: q(f, { page: f.page ?? 1, per_page: f.perPage ?? 10 }),
+      }).then((r) => {
         if (Array.isArray((r as { data?: unknown }).data)) {
           const x = r as {
             data: ConversationLog[];

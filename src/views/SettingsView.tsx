@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bell, Eye, Globe, Info, Moon, Shield } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -17,14 +19,60 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
-function Toggle({ label, hint }: { label: string; hint?: string }) {
+/**
+ * FIX: All Toggle switches now have local state with onChange handlers.
+ * Previously every Switch was uncontrolled with no state — checking/unchecking
+ * had no effect and nothing was persisted.
+ *
+ * Notification settings (real API) → handled in /preferences/notification-settings
+ * Security (2FA) → handled in /preferences/security
+ * These toggles are local UI preferences stored in localStorage.
+ */
+
+function useLocalToggle(key: string, defaultValue = false) {
+  const stored =
+    typeof window !== "undefined" ? localStorage.getItem(key) : null;
+  const [value, setValue] = useState<boolean>(
+    stored !== null ? stored === "true" : defaultValue
+  );
+
+  const set = (v: boolean) => {
+    setValue(v);
+    if (typeof window !== "undefined") localStorage.setItem(key, String(v));
+  };
+  return [value, set] as const;
+}
+
+function Toggle({
+  label,
+  hint,
+  storageKey,
+  defaultValue,
+  onToggle,
+}: {
+  label: string;
+  hint?: string;
+  storageKey: string;
+  defaultValue?: boolean;
+  onToggle?: (v: boolean) => void;
+}) {
+  const [checked, setChecked] = useLocalToggle(storageKey, defaultValue);
+
+  const handleChange = (v: boolean) => {
+    setChecked(v);
+    onToggle?.(v);
+  };
+
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div>
         <Label className="font-medium">{label}</Label>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       </div>
-      <Switch />
+      <Switch
+        checked={checked}
+        onCheckedChange={handleChange}
+      />
     </div>
   );
 }
@@ -58,6 +106,7 @@ export default function SettingsView() {
           </TabsTrigger>
         </TabsList>
 
+        {/* ── Display ── */}
         <TabsContent value="display" className="mt-6">
           <Card>
             <CardHeader>
@@ -84,44 +133,90 @@ export default function SettingsView() {
           </Card>
         </TabsContent>
 
+        {/* ── Notifications ── */}
         <TabsContent value="notifications" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>{t("settings.notifications")}</CardTitle>
+              <CardDescription>
+                {t(
+                  "settings.notificationsDesc",
+                  "For detailed channel settings (Telegram, Email) go to Notification Settings."
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className="divide-y">
-              <Toggle label="Email notifications" hint="Receive product updates by email" />
-              <Toggle label="Push notifications" hint="Browser push for important alerts" />
-              <Toggle label="Weekly digest" hint="Summary of activity each Monday" />
+              <Toggle
+                storageKey="pref_email_notif"
+                label={t("settings.emailNotifications", "Email notifications")}
+                hint={t("settings.emailNotificationsHint", "Receive product updates by email")}
+              />
+              <Toggle
+                storageKey="pref_push_notif"
+                label={t("settings.pushNotifications", "Push notifications")}
+                hint={t("settings.pushNotificationsHint", "Browser push for important alerts")}
+              />
+              <Toggle
+                storageKey="pref_weekly_digest"
+                label={t("settings.weeklyDigest", "Weekly digest")}
+                hint={t("settings.weeklyDigestHint", "Summary of activity each Monday")}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* ── Security ── */}
         <TabsContent value="security" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>{t("settings.security")}</CardTitle>
+              <CardDescription>
+                {t(
+                  "settings.securityDesc",
+                  "For 2FA setup go to Preferences → Security."
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className="divide-y">
-              <Toggle label="Two-factor authentication" hint="Require a one-time code at sign in" />
-              <Toggle label="Sign-in alerts" hint="Notify me of new sign-ins" />
-              <Toggle label="Trusted devices only" hint="Block sessions from unknown devices" />
+              <Toggle
+                storageKey="pref_signin_alerts"
+                label={t("settings.signInAlerts", "Sign-in alerts")}
+                hint={t("settings.signInAlertsHint", "Notify me of new sign-ins")}
+                onToggle={(v) => {
+                  if (v) toast.info("Sign-in alerts enabled (local preference).");
+                }}
+              />
+              <Toggle
+                storageKey="pref_trusted_devices"
+                label={t("settings.trustedDevices", "Trusted devices only")}
+                hint={t("settings.trustedDevicesHint", "Block sessions from unknown devices")}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* ── Privacy ── */}
         <TabsContent value="privacy" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>{t("settings.privacy")}</CardTitle>
             </CardHeader>
             <CardContent className="divide-y">
-              <Toggle label="Share usage analytics" hint="Help us improve the product" />
-              <Toggle label="Personalised content" hint="Use my activity to tailor results" />
+              <Toggle
+                storageKey="pref_usage_analytics"
+                label={t("settings.shareAnalytics", "Share usage analytics")}
+                hint={t("settings.shareAnalyticsHint", "Help us improve the product")}
+              />
+              <Toggle
+                storageKey="pref_personalised"
+                label={t("settings.personalisedContent", "Personalised content")}
+                hint={t("settings.personalisedContentHint", "Use my activity to tailor results")}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* ── About ── */}
         <TabsContent value="about" className="mt-6">
           <Card>
             <CardHeader>
@@ -129,9 +224,18 @@ export default function SettingsView() {
               <CardDescription>App information and credits</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Version</span><span>1.0.0</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Build</span><span>2026.05.21</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">License</span><span>MIT</span></div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Version</span>
+                <span>1.0.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Build</span>
+                <span>2026.05.21</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">License</span>
+                <span>MIT</span>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

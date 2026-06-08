@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link2,
@@ -61,6 +62,7 @@ async function unlinkFatoorah(): Promise<void> {
 /* ------------------------------------------------------------------ */
 export default function FatoorahView() {
   const { t } = useTranslation();
+  const can = usePermission("fatoorah");
   const qc = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -150,7 +152,7 @@ export default function FatoorahView() {
               )
                 unlinkMut.mutate();
             }}
-            disabled={unlinkMut.isPending}
+            disabled={!can.delete || unlinkMut.isPending}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 px-6 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
           >
             {unlinkMut.isPending ? (
@@ -224,7 +226,7 @@ export default function FatoorahView() {
           {/* Submit */}
           <button
             onClick={() => linkMut.mutate()}
-            disabled={!email.trim() || !password.trim() || linkMut.isPending}
+            disabled={!can.create || !email.trim() || !password.trim() || linkMut.isPending}
             style={{ color: "#ffffff" }}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a2744] py-3 text-sm font-semibold transition hover:bg-[#243460] disabled:opacity-60"
           >

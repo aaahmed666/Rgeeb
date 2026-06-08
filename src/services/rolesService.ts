@@ -131,9 +131,28 @@ export async function fetchRoles(params?: {
   return listFrom(res).map(mapRole);
 }
 
-export async function fetchAllPermissions(): Promise<Permission[]> {
-  const res = await apiFetch<unknown>(endpoints.roles.permissions);
+export async function fetchAllPermissions(lang?: string): Promise<Permission[]> {
+  const res = await apiFetch<unknown>(endpoints.roles.permissions, {
+    query: lang ? { lang } : undefined,
+  });
   return listFrom(res).map(mapPermission);
+}
+
+/**
+ * Build FormData with indexed permission_ids.
+ * Postman: permission_ids[0]=31, permission_ids[1]=32, ...
+ * Plain JSON array is not guaranteed to be accepted by the backend.
+ */
+function buildRoleFormData(
+  data: { id?: string; name?: string; permission_ids?: string[] }
+): FormData {
+  const fd = new FormData();
+  if (data.id) fd.append("id", data.id);
+  if (data.name !== undefined) fd.append("name", data.name);
+  (data.permission_ids ?? []).forEach((pid, i) => {
+    fd.append(`permission_ids[${i}]`, pid);
+  });
+  return fd;
 }
 
 // POST /customer/roles/create  { name, permission_ids[0]=31, permission_ids[1]=32, ... }
@@ -143,7 +162,7 @@ export async function createRole(input: {
 }): Promise<Role> {
   const res = await apiFetch<Record<string, unknown>>(endpoints.roles.create, {
     method: "POST",
-    body: input,
+    body: buildRoleFormData(input),
   });
   return mapRole((res?.data as Record<string, unknown>) ?? res ?? {});
 }
@@ -155,7 +174,7 @@ export async function updateRole(
 ): Promise<Role> {
   const res = await apiFetch<Record<string, unknown>>(endpoints.roles.update, {
     method: "POST",
-    body: { id, ...input },
+    body: buildRoleFormData({ id, ...input }),
   });
   return mapRole((res?.data as Record<string, unknown>) ?? res ?? {});
 }

@@ -17,7 +17,7 @@
  * permission registry itself.
  */
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -440,9 +440,9 @@ export default function PermissionsView() {
   const [search, setSearch] = useState("");
   const [flatSearch, setFlatSearch] = useState("");
 
-  const { data: permissions = [], isLoading: loadingPerms } = useQuery({
+  const { data: permissions = [], isLoading: loadingPerms } = useQuery<Permission[]>({
     queryKey: ["roles", "permissions"],
-    queryFn: fetchAllPermissions,
+    queryFn: () => fetchAllPermissions(),
   });
 
   const { data: roles = [], isLoading: loadingRoles } = useQuery({

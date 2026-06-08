@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   User, Shield, Upload, Trash2, Eye, EyeOff,
-  Crown, Clock, CheckCircle2, Circle, Loader2,
+  Crown, Clock, CheckCircle2, Circle, Loader2, Building2,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,8 +20,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import {
-  fetchProfile, updateProfile, changePassword,
-  type UserProfile,
+  fetchProfile, updateProfile, updateClient, changePassword,
+  type UserProfile, type UpdateClientInput,
 } from "@/services/profileService";
 import {
   fetchCountries, fetchCities,
@@ -188,6 +188,45 @@ export default function ProfileView() {
     pwMut.mutate();
   }, [curPw, newPw, confPw, pwMut, t]);
 
+  // ── Client / Company settings ─────────────────────────────────────────────
+  const [clientNameEn, setClientNameEn] = useState("");
+  const [clientNameAr, setClientNameAr] = useState("");
+  const [clientEmail, setClientEmail]   = useState("");
+  const [clientPhone, setClientPhone]   = useState("");
+  const [clientAddress, setClientAddress] = useState("");
+
+  // Sync client form from profile
+  useEffect(() => {
+    if (!profile?.client) return;
+    const c = profile.client;
+    setClientNameEn(c.name_en ?? c.name ?? "");
+    setClientNameAr(c.name_ar ?? "");
+    setClientEmail(c.email ?? "");
+    setClientPhone(c.phone ?? "");
+    setClientAddress(c.address ?? "");
+  }, [profile]);
+
+  const clientMut = useMutation({
+    mutationFn: () =>
+      updateClient({
+        name_en: clientNameEn,
+        name_ar: clientNameAr,
+        email: clientEmail,
+        phone: clientPhone,
+        address: clientAddress,
+        country_id: selectedCountry || undefined,
+        city_id: cityId || undefined,
+      }),
+    onSuccess: async () => {
+      toast.success(t("profile.clientUpdateSuccess", "Company info updated"));
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+      await refreshProfile();
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || t("profile.updateError"));
+    },
+  });
+
   // ── Derived values ────────────────────────────────────────────────────────
   const roleName = profile?.roles?.[0]?.name ?? "client";
   const packageName =
@@ -250,6 +289,12 @@ export default function ProfileView() {
             <User className="h-4 w-4" />
             {t("profile.accountTab")}
           </TabsTrigger>
+          {profile?.client && (
+            <TabsTrigger value="company" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              {t("profile.companyTab", "Company")}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             {t("profile.securityTab")}
@@ -442,6 +487,83 @@ export default function ProfileView() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ═══ COMPANY TAB ═══ */}
+        {profile?.client && (
+          <TabsContent value="company">
+            <div className="rounded-2xl border bg-card shadow-sm p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold">{t("profile.companyInfo", "Company Information")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("profile.companyInfoHint", "Update your organisation details")}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>{t("profile.companyNameEn", "Company Name (EN)")}</Label>
+                  <Input
+                    value={clientNameEn}
+                    onChange={(e) => setClientNameEn(e.target.value)}
+                    placeholder="Company Inc."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("profile.companyNameAr", "Company Name (AR)")}</Label>
+                  <Input
+                    dir="rtl"
+                    value={clientNameAr}
+                    onChange={(e) => setClientNameAr(e.target.value)}
+                    placeholder="اسم الشركة"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("profile.companyEmail", "Company Email")}</Label>
+                  <Input
+                    type="email"
+                    value={clientEmail}
+                    onChange={(e) => setClientEmail(e.target.value)}
+                    placeholder="info@company.com"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("profile.companyPhone", "Company Phone")}</Label>
+                  <Input
+                    type="tel"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    placeholder="+966 11 000 0000"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>{t("profile.companyAddress", "Address")}</Label>
+                  <Input
+                    value={clientAddress}
+                    onChange={(e) => setClientAddress(e.target.value)}
+                    placeholder="123 Main St, Riyadh"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-start pt-2">
+                <Button
+                  onClick={() => clientMut.mutate()}
+                  disabled={clientMut.isPending}
+                  className="flex items-center gap-2 min-w-[160px]"
+                >
+                  {clientMut.isPending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />{t("profile.saving")}</>
+                  ) : (
+                    <>{t("profile.saveChanges")}</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        )}
 
         {/* ═══ SECURITY TAB ═══ */}
         <TabsContent value="security">

@@ -170,16 +170,24 @@ export async function sendOtpRequest(
   return { message: raw?.message ?? "Verification code sent." };
 }
 
+/**
+ * POST /customer/face-login
+ * Sends the captured frame as a base64 data URL in the `image` field.
+ * FIX: wrapped in FormData so multipart-expecting backends also accept it.
+ */
 export async function faceLoginRequest(
   imageDataUrl: string
 ): Promise<LoginResult> {
+  // Try FormData first (multipart) — more compatible with file-processing backends
+  const fd = new FormData();
+  fd.append("image", imageDataUrl);
+
   const raw = await apiFetch<Envelope>(endpoints.auth.face, {
     method: "POST",
-    body: { image: imageDataUrl },
+    body: fd,
     skipAuthRedirect: true,
   });
-  // With httpOnly cookies, the token is managed by the backend.
-  return { token: null, user: pickUser(raw), raw };
+  return { token: pickToken(raw), user: pickUser(raw), raw };
 }
 
 /**
@@ -204,9 +212,8 @@ export interface ResetPasswordPayload {
 /**
  * Reset password via POST /customer/profile/update.
  * After OTP verification, the user submits their new password here.
- * The `token` and `email` fields are still accepted for compatibility
- * with the ResetPasswordView form, but the actual API only needs
- * password + password_confirmation (the session/token is already set).
+ * The `token` field is the OTP code from /otp page — sent as otp_code.
+ * The `email` field is included for the unauthenticated reset flow.
  */
 export async function resetPasswordRequest(
   payload: ResetPasswordPayload
@@ -216,8 +223,9 @@ export async function resetPasswordRequest(
     body: {
       password: payload.password,
       password_confirmation: payload.password_confirmation,
-      // Include email in case the backend needs it for the unauthenticated reset flow
       email: payload.email,
+      // Send the OTP code as otp_code so backend can validate the reset session
+      ...(payload.token ? { otp_code: payload.token } : {}),
     },
     skipAuthRedirect: true,
   });

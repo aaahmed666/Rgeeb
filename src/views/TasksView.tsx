@@ -55,6 +55,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Plus } from "lucide-react";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -63,6 +73,9 @@ import {
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { toast } from "sonner";
 import {
   tasksService,
   type TaskItem,
@@ -215,28 +228,55 @@ function NumberedPagination({
 
 export default function TasksView() {
   const { t, i18n } = useTranslation();
+  const can = usePermission("tasks");
   const qc = useQueryClient();
 
   const [page, setPage] = React.useState(1);
-  const [search, setSearch] = React.useState("");
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
   const [status, setStatus] = React.useState(ALL);
   const [type, setType] = React.useState(ALL);
   const [priority, setPriority] = React.useState(ALL);
   const [branchId, setBranchId] = React.useState<string | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
   const [view, setView] = React.useState<"table" | "board">("table");
+  const [taskOpen, setTaskOpen] = React.useState(false);
+  const [editingTask, setEditingTask] = React.useState<TaskItem | null>(null);
+  const EMPTY_TASK = { name: "", description: "", priority: "medium", type: "manual", status: "pending", scheduled_date: "", branch_id: "", department_id: "" };
+  const [taskForm, setTaskForm] = React.useState<typeof EMPTY_TASK>(EMPTY_TASK);
+
+  function openCreateTask() { setEditingTask(null); setTaskForm(EMPTY_TASK); setTaskOpen(true); }
+  function openEditTask(t: TaskItem) {
+    setEditingTask(t);
+    setTaskForm({ name: t.title, description: t.description ?? "", priority: t.priority, type: t.type, status: t.status, scheduled_date: t.scheduledDate ?? t.dueDate ?? "", branch_id: t.branchIds?.[0] ?? "", department_id: t.departmentId ?? "" });
+    setTaskOpen(true);
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      const payload = { name: taskForm.name, description: taskForm.description || undefined, priority: taskForm.priority, type: taskForm.type, status: taskForm.status, scheduled_date: taskForm.scheduled_date || undefined, branch_ids: taskForm.branch_id ? [taskForm.branch_id] : undefined, department_id: taskForm.department_id || undefined };
+      return editingTask
+        ? tasksService.update({ ...payload, id: editingTask.id })
+        : tasksService.create(payload);
+    },
+    onSuccess: () => {
+      invalidate();
+      setTaskOpen(false);
+      toast.success(editingTask ? "Task updated" : "Task created");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const filters = React.useMemo(
     () => ({
       page,
       perPage: PER_PAGE,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       status: status === ALL ? undefined : status,
       type: type === ALL ? undefined : type,
       priority: priority === ALL ? undefined : priority,
       branchId: branchId ?? undefined,
     }),
-    [page, search, status, type, priority, branchId]
+    [page, debouncedSearch, status, type, priority, branchId]
   );
 
   const dashQ = useQuery({
@@ -252,7 +292,7 @@ export default function TasksView() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [search, status, type, priority, branchId]);
+  }, [debouncedSearch, status, type, priority, branchId]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["tasks", "list"] });
@@ -264,13 +304,19 @@ export default function TasksView() {
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
+      toast.success("Task deleted");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const statusM = useMutation({
     mutationFn: (p: { id: string; status: string }) =>
       tasksService.updateStatus(p.id, p.status),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      toast.success("Status updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const items = dataQ.data?.items ?? [];
@@ -406,14 +452,18 @@ export default function TasksView() {
       cellClassName: "text-end w-[80px]",
       render: (task) => (
         <div className="inline-flex items-center justify-end gap-0.5">
+          {can.update && (
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8"
             aria-label="Edit"
+            onClick={() => openEditTask(task)}
           >
             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
+          )}
+          {can.delete && (
           <Button
             variant="ghost"
             size="icon"
@@ -423,6 +473,7 @@ export default function TasksView() {
           >
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </Button>
+          )}
         </div>
       ),
     },
@@ -469,6 +520,12 @@ export default function TasksView() {
               className={cn("h-4 w-4", dataQ.isFetching && "animate-spin")}
             />
           </Button>
+          {can.create && (
+          <Button size="sm" className="gap-1.5" onClick={openCreateTask}>
+            <Plus className="h-4 w-4" />
+            {t("tasks.newTask", "New Task")}
+          </Button>
+          )}
         </div>
       </header>
 
@@ -516,7 +573,7 @@ export default function TasksView() {
                 <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder={t("tasks.searchPlaceholder", "Search tasks...")}
                   className="ps-9"
                 />
@@ -584,6 +641,7 @@ export default function TasksView() {
               </label>
               <AsyncPaginatedSelect
                 endpoint="/customer/branches"
+                extraParams={{ active: 1 }}
                 value={branchId}
                 onChange={setBranchId}
                 placeholder={t("tasks.allBranches", "All Branches")}
@@ -653,6 +711,94 @@ export default function TasksView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Create / Edit Task Dialog ── */}
+      <Dialog open={taskOpen} onOpenChange={(o) => { if (!saveMutation.isPending) setTaskOpen(o); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingTask ? t("tasks.editTask", "Edit Task") : t("tasks.newTask", "New Task")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>{t("tasks.form.name", "Task Name")} <span className="text-destructive">*</span></Label>
+              <Input
+                value={taskForm.name}
+                onChange={(e) => setTaskForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder={t("tasks.form.namePlaceholder", "Enter task name")}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("tasks.form.description", "Description")}</Label>
+              <Textarea
+                value={taskForm.description}
+                onChange={(e) => setTaskForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder={t("tasks.form.descPlaceholder", "Task description...")}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>{t("tasks.form.priority", "Priority")}</Label>
+                <Select value={taskForm.priority} onValueChange={(v) => setTaskForm((f) => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("tasks.form.type", "Type")}</Label>
+                <Select value={taskForm.type} onValueChange={(v) => setTaskForm((f) => ({ ...f, type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TYPES.map((tp) => <SelectItem key={tp} value={tp}>{tp.replace(/_/g, " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>{t("tasks.form.status", "Status")}</Label>
+                <Select value={taskForm.status} onValueChange={(v) => setTaskForm((f) => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("tasks.form.scheduledDate", "Scheduled Date")}</Label>
+                <Input type="date" value={taskForm.scheduled_date} onChange={(e) => setTaskForm((f) => ({ ...f, scheduled_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("tasks.form.branch", "Branch")}</Label>
+              <AsyncPaginatedSelect
+                endpoint="/customer/branches"
+                extraParams={{ active: 1 }}
+                labelKey="name"
+                valueKey="id"
+                value={taskForm.branch_id || null}
+                onChange={(opt) => setTaskForm((f) => ({ ...f, branch_id: opt ?? "" }))}
+                placeholder={t("common.selectBranch", "Select branch")}
+                isClearable
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTaskOpen(false)} disabled={saveMutation.isPending}>
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={!taskForm.name.trim() || saveMutation.isPending}
+            >
+              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editingTask ? t("common.save", "Save") : t("tasks.createTask", "Create Task")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

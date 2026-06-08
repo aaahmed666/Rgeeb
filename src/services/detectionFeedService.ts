@@ -138,7 +138,7 @@ export const detectionFeedService = {
               ...(params.keyword ? { keyword: params.keyword } : {}),
             }
           : { all: 1 };
-        const raw = await api.get<unknown>(endpoints.dashboard.branches, {
+        const raw = await api.get<unknown>(endpoints.organization.branches, {
           query,
         });
         return unwrapList(raw).map((b, i) => {
@@ -155,7 +155,7 @@ export const detectionFeedService = {
   listCameras: (branchId?: string) =>
     safe(
       (async () => {
-        const raw = await api.get<unknown>(endpoints.dashboard.cameras, {
+        const raw = await api.get<unknown>(endpoints.cameras.list, {
           query: { branch_id: branchId },
         });
         return unwrapList(raw).map((c, i) => {
@@ -172,7 +172,7 @@ export const detectionFeedService = {
   listServices: () =>
     safe(
       (async () => {
-        const raw = await api.get<unknown>(endpoints.dashboard.aiServices);
+        const raw = await api.get<unknown>(endpoints.services.list);
         return unwrapList(raw).map((s, i) => {
           const x = s as Record<string, unknown>;
           return {

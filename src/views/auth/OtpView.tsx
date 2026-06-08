@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { sendOtpRequest } from "@/services/authService";
-import { apiFetch } from "@/lib/api";
-import { endpoints } from "@/lib/endpoints";
 import { useAuthUI, AuthTopBar } from "@/components/auth-context";
 import { OtpIllustration, Icon } from "@/app/assets/icons/auth-icon";
 import "./auth-shared.css";
@@ -173,13 +171,21 @@ export default function OtpView() {
     setLoading(true);
     setCodeError("");
     try {
-      await apiFetch(endpoints.security.twoFactorVerify, {
-        method: "POST",
-        body: { code },
-        skipAuthRedirect: true,
-      });
+      /**
+       * FIX: OtpView is used in the forgot-password flow (not 2FA).
+       * The correct behaviour after the user enters the OTP code is:
+       *   → redirect to /reset-password?email=...&token=<code>
+       * The backend will validate the OTP on the reset-password call.
+       *
+       * Previously this was incorrectly calling endpoints.security.twoFactorVerify
+       * which is the 2FA endpoint (/customer/2fa/verify) — completely wrong context.
+       */
       showToast(t("auth.otp.success"), true);
-      setTimeout(() => router.push("/dashboard"), 900);
+      setTimeout(() => {
+        router.push(
+          `/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(code)}`
+        );
+      }, 600);
     } catch (err) {
       setCodeError(
         err instanceof Error ? err.message : t("auth.otp.wrongCode")
@@ -187,7 +193,7 @@ export default function OtpView() {
     } finally {
       setLoading(false);
     }
-  }, [code, t, showToast, router]);
+  }, [code, email, t, showToast, router]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;

@@ -12,7 +12,7 @@ import {
 describe('Error Handling Utilities', () => {
   describe('normalizeApiError', () => {
     it('should normalize ApiError instances', () => {
-      const apiError = new ApiError(404, 'NOT_FOUND', 'Resource not found', { id: '123' });
+      const apiError = new ApiError(404, 'Resource not found', { code: 'NOT_FOUND', id: '123' });
       const normalized = normalizeApiError(apiError);
 
       expect(normalized.statusCode).toBe(404);
@@ -69,26 +69,26 @@ describe('Error Handling Utilities', () => {
     it('should log in development mode', () => {
       const consoleSpy = vi.spyOn(console, 'log');
       const oldEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true, writable: true });
 
       devLog('TEST', 'Test message', { key: 'value' });
 
       expect(consoleSpy).toHaveBeenCalledWith('[TEST]', 'Test message', { key: 'value' });
 
-      process.env.NODE_ENV = oldEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', { value: oldEnv, configurable: true, writable: true });
       consoleSpy.mockRestore();
     });
 
     it('should not log in production mode', () => {
       const consoleSpy = vi.spyOn(console, 'log');
       const oldEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', configurable: true, writable: true });
 
       devLog('TEST', 'Test message');
 
       expect(consoleSpy).not.toHaveBeenCalled();
 
-      process.env.NODE_ENV = oldEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', { value: oldEnv, configurable: true, writable: true });
       consoleSpy.mockRestore();
     });
   });
@@ -97,7 +97,7 @@ describe('Error Handling Utilities', () => {
     it('should log errors in development mode', () => {
       const consoleSpy = vi.spyOn(console, 'error');
       const oldEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true, writable: true });
 
       const error = new Error('Test error');
       devLogError('TEST', 'Error occurred', error);
@@ -109,7 +109,7 @@ describe('Error Handling Utilities', () => {
         expect.any(String)
       );
 
-      process.env.NODE_ENV = oldEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', { value: oldEnv, configurable: true, writable: true });
       consoleSpy.mockRestore();
     });
   });
@@ -118,13 +118,13 @@ describe('Error Handling Utilities', () => {
     it('should log warnings in development mode', () => {
       const consoleSpy = vi.spyOn(console, 'warn');
       const oldEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true, writable: true });
 
       devLogWarn('TEST', 'Warning message', { data: 'test' });
 
       expect(consoleSpy).toHaveBeenCalledWith('[TEST:WARN]', 'Warning message', { data: 'test' });
 
-      process.env.NODE_ENV = oldEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', { value: oldEnv, configurable: true, writable: true });
       consoleSpy.mockRestore();
     });
   });

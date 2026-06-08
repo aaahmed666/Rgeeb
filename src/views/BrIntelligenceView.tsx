@@ -1,5 +1,6 @@
 "use client";
 
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -106,14 +107,15 @@ export default function BrIntelligenceView() {
   const [openSection, setOpenSection] = useState<string | null>("efficiency");
 
   // Data fetching via custom hook
-  const filters: BrIntelligenceFilters = {
+  // useMemo prevents new object reference every render → avoids duplicate API calls
+  const filters: BrIntelligenceFilters = React.useMemo(() => ({
     range,
     customFrom,
     customTo,
     branchId,
     activeService,
     rankTop,
-  };
+  }), [range, customFrom, customTo, branchId, activeService, rankTop]);
 
   const {
     efficiency,
@@ -174,28 +176,16 @@ export default function BrIntelligenceView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={branchId}
-              onValueChange={setBranchId}
-            >
-              <SelectTrigger className="h-9 w-44 border-white/20 bg-white/10 text-white backdrop-blur-sm [&>svg]:text-white">
-                <Building2 className="me-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {t("analytics.allBranches", "All Branches")}
-                </SelectItem>
-                {branches.map((b) => (
-                  <SelectItem
-                    key={b.id}
-                    value={b.id}
-                  >
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncPaginatedSelect
+                endpoint="/customer/branches"
+                labelKey="name"
+                valueKey="id"
+                extraParams={{ active: 1 }}
+                value={branchId === "all" ? null : branchId}
+                onChange={(v) => setBranchId(v ?? "all")}
+                placeholder="All Branches"
+                isClearable
+              />
             <div className="flex rounded-lg bg-white/10 p-1 backdrop-blur-sm">
               {(["7", "14", "30"] as RangeKey[]).map((k) => (
                 <button

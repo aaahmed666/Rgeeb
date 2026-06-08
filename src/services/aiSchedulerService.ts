@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 export interface SchedulerTask {
   id: string;
@@ -59,7 +60,7 @@ export async function fetchSchedulerTasks(
   page: number = 1,
   perPage: number = 15
 ): Promise<SchedulerTasksPage> {
-  const res = await apiFetch<Record<string, unknown>>("/customer/tasks", {
+  const res = await apiFetch<Record<string, unknown>>(endpoints.tasks.list, {
     query: { page, per_page: perPage },
   });
   // Support both flat and nested shapes: { data: [...] } or { data: { data: [...] } }
@@ -122,7 +123,7 @@ export async function fetchAutoSchedule(
   taskId: string
 ): Promise<SchedulerRecommendation> {
   const raw = await apiFetch<Record<string, unknown>>(
-    "/customer/smart-scheduler/auto-schedule",
+    endpoints.smartScheduler.autoSchedule,
     { query: { task_id: taskId } }
   );
   const data = (raw?.data as Record<string, unknown>) ?? raw ?? {};
@@ -226,7 +227,7 @@ export async function applyAutoSchedule(
   taskId: string,
   payload: { worker_id: string; scheduled_at: string; due_at: string }
 ): Promise<void> {
-  await apiFetch("/customer/smart-scheduler/apply", {
+  await apiFetch(endpoints.smartScheduler.applySchedule, {
     method: "POST",
     body: {
       task_id: taskId,

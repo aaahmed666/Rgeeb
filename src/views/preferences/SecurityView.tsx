@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck, Shield, Loader2, KeyRound, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ import {
 
 export default function SecurityView() {
   const { t } = useTranslation();
+  const can = usePermission("security");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [setup, setSetup] = useState<TwoFactorSetup | null>(null);
@@ -97,8 +99,8 @@ export default function SecurityView() {
           {status?.enabled ? (
             <Button
               variant="destructive"
-              disabled={disableMut.isPending}
-              onClick={() => setConfirmDisable(true)}
+              disabled={!can.update || disableMut.isPending}
+              onClick={() => can.update && setConfirmDisable(true)}
             >
               {disableMut.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               <Shield className="me-2 h-4 w-4" />
@@ -107,8 +109,8 @@ export default function SecurityView() {
           ) : (
             <Button
               className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95"
-              disabled={setupMut.isPending}
-              onClick={() => setupMut.mutate()}
+              disabled={!can.update || setupMut.isPending}
+              onClick={() => can.update && setupMut.mutate()}
             >
               {setupMut.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               <ShieldCheck className="me-2 h-4 w-4" />
@@ -181,7 +183,7 @@ export default function SecurityView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel", "Cancel")}</Button>
-            <Button disabled={code.length !== 6 || enableMut.isPending} onClick={() => enableMut.mutate()}>
+            <Button disabled={!can.update || code.length !== 6 || enableMut.isPending} onClick={() => can.update && enableMut.mutate()}>
               {enableMut.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {t("security.confirm", "Confirm & Enable")}
             </Button>

@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 export type RulePriority = "low" | "medium" | "high" | "critical";
 export type RuleTaskType = "ai_generated" | "violation_response" | "manual" | string;
@@ -56,7 +57,8 @@ function b(v: unknown) {
 }
 
 export async function fetchAiServices(): Promise<AiService[]> {
-  const res = await apiFetch<unknown>("/customer/ai-services");
+  // /customer/ai-services does not exist in backend — use /customer/services instead
+  const res = await apiFetch<unknown>(endpoints.services.list);
   const arr =
     (res as { data?: unknown[] })?.data ??
     (Array.isArray(res) ? (res as unknown[]) : []);
@@ -85,7 +87,7 @@ function mapRule(raw: Record<string, unknown>): TaskRule {
 }
 
 export async function fetchTaskRules(): Promise<TaskRule[]> {
-  const res = await apiFetch<unknown>("/customer/task-rules");
+  const res = await apiFetch<unknown>(endpoints.taskRules.list);
   const arr =
     (res as { data?: unknown[] })?.data ??
     (Array.isArray(res) ? (res as unknown[]) : []);
@@ -94,17 +96,28 @@ export async function fetchTaskRules(): Promise<TaskRule[]> {
 
 export async function fetchTaskRuleStats(): Promise<TaskRuleStats> {
   try {
-    const res = await apiFetch<Record<string, unknown>>("/customer/task-rules/stats");
+    // /customer/task-rules/stats does not exist — derive stats from the rules list
+    const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.list);
     const data = (res?.data as Record<string, unknown>) ?? res ?? {};
-    const total = n(data.total_processed ?? data.totalProcessed);
-    const dedup = n(data.deduplicated);
+    // If backend returns stats directly, use them; otherwise compute from list
+    if ("total_processed" in data || "totalProcessed" in data) {
+      const total = n(data.total_processed ?? data.totalProcessed);
+      const dedup = n(data.deduplicated);
+      return {
+        totalProcessed: total,
+        tasksCreated: n(data.tasks_created ?? data.tasksCreated),
+        deduplicated: dedup,
+        dedupRate: n(data.dedup_rate ?? data.dedupRate ?? (total > 0 ? (dedup / total) * 100 : 0)),
+      };
+    }
+    // Derive from rules list
+    const arr = Array.isArray(data) ? data : ((data as { data?: unknown[] }).data ?? []);
+    const total = (arr as unknown[]).length;
     return {
       totalProcessed: total,
-      tasksCreated: n(data.tasks_created ?? data.tasksCreated),
-      deduplicated: dedup,
-      dedupRate: n(
-        data.dedup_rate ?? data.dedupRate ?? (total > 0 ? (dedup / total) * 100 : 0),
-      ),
+      tasksCreated: total,
+      deduplicated: 0,
+      dedupRate: 0,
     };
   } catch {
     return { totalProcessed: 0, tasksCreated: 0, deduplicated: 0, dedupRate: 0 };
@@ -112,7 +125,7 @@ export async function fetchTaskRuleStats(): Promise<TaskRuleStats> {
 }
 
 export async function createTaskRule(input: TaskRuleInput): Promise<TaskRule> {
-  const res = await apiFetch<Record<string, unknown>>("/customer/task-rules", {
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.list, {
     method: "POST",
     body: input,
   });
@@ -123,7 +136,7 @@ export async function updateTaskRule(
   id: string,
   input: Partial<TaskRuleInput>,
 ): Promise<TaskRule> {
-  const res = await apiFetch<Record<string, unknown>>(`/customer/task-rules/${id}`, {
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.update(id), {
     method: "PATCH",
     body: input,
   });
@@ -131,5 +144,5 @@ export async function updateTaskRule(
 }
 
 export async function deleteTaskRule(id: string): Promise<void> {
-  await apiFetch(`/customer/task-rules/${id}`, { method: "DELETE" });
+  await apiFetch(endpoints.taskRules.update(id), { method: "DELETE" });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell, Send, Mail, Plus, X, Loader2, CheckCircle2, AlertTriangle, Moon, Clock, Truck, TimerReset, Save,
@@ -26,6 +27,7 @@ import {
 
 export default function NotificationSettingsView() {
   const { t } = useTranslation();
+  const can = usePermission("notification_settings");
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -123,8 +125,8 @@ export default function NotificationSettingsView() {
             </div>
             <Button
               className="w-full bg-sky-600 hover:bg-sky-700"
-              disabled={saveMut.isPending}
-              onClick={() => saveMut.mutate({
+              disabled={!can.update || saveMut.isPending}
+              onClick={() => can.update && saveMut.mutate({
                 telegramEnabled: form.telegramEnabled,
                 telegramBotToken: form.telegramBotToken,
                 telegramChatId: form.telegramChatId,
@@ -195,8 +197,8 @@ export default function NotificationSettingsView() {
             </div>
             <Button
               className="w-full bg-rose-600 hover:bg-rose-700"
-              disabled={saveMut.isPending}
-              onClick={() => saveMut.mutate({
+              disabled={!can.update || saveMut.isPending}
+              onClick={() => can.update && saveMut.mutate({
                 emailEnabled: form.emailEnabled,
                 emailRecipients: form.emailRecipients,
               })}

@@ -48,7 +48,7 @@ export default function ResetPasswordView() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email    = t("auth.resetPassword.errorEmail");
-    if (!token.trim())                               e.token    = t("auth.resetPassword.errorToken");
+    // token comes from OTP page via URL param — no need for user to type it
     if (password.length < 8)                        e.password = t("auth.resetPassword.errorPassword");
     if (password !== confirm)                        e.confirm  = t("auth.resetPassword.errorConfirm");
     setErrors(e);
@@ -188,25 +188,8 @@ export default function ResetPasswordView() {
                     {errors.email && <p className="auth-field-error">{errors.email}</p>}
                   </div>
 
-                  {/* Token */}
-                  <div className="auth-b3">
-                    <label className="rp-label" style={{ color: textLabel }}>{t("auth.resetPassword.tokenLabel")}</label>
-                    <div className="auth-input-icon-wrap">
-                      <span className="auth-input-icon" style={{ left: 16 }}>
-                        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M7 10a3 3 0 106 0 3 3 0 00-6 0zm3-3v-4M10 13v2m-3-2l-1.5 1.5M13 13l1.5 1.5M7 7L5.5 5.5M13 7l1.5-1.5" strokeLinecap="round" />
-                        </svg>
-                      </span>
-                      <input
-                        type="text" value={token}
-                        placeholder={t("auth.resetPassword.tokenPlaceholder")}
-                        className={`auth-input${errors.token ? " auth-input-err" : ""}`}
-                        onChange={(e) => { setToken(e.target.value); setErrors((er) => ({ ...er, token: "" })); }}
-                        style={{ padding: "0 48px", border: `2px solid ${inputBdr("token")}`, background: inputBg, color: textMain }}
-                      />
-                    </div>
-                    {errors.token && <p className="auth-field-error">{errors.token}</p>}
-                  </div>
+                  {/* Token — hidden, pre-filled from OTP page URL param */}
+                  <input type="hidden" value={token} readOnly />
 
                   {/* New password */}
                   <div className="auth-b4">

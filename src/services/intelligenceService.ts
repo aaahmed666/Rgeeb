@@ -747,7 +747,7 @@ export const intelligenceService = {
   availableServices: () =>
     safe(
       apiFetch<string[] | { data: string[] }>(
-        endpoints.intelligence.availableServices
+        endpoints.services.list
       ).then((r) => unwrapArray(r)),
       demoAvailableServices
     ),

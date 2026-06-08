@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { foodicsService, FoodicsStatus } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
+import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 
 const SERVICE_ICONS = [
   {
@@ -43,6 +45,7 @@ const SERVICE_ICONS = [
 
 export default function FoodicsConnectionPage() {
   const { hasPermission } = useAuth();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<FoodicsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
