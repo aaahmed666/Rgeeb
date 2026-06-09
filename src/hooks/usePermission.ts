@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * usePermission — component-level CRUD permission hook.
  *
@@ -10,7 +12,6 @@
  *   {can.delete && <Trash2 onClick={...} />}
  */
 
-"use client";
 
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth";

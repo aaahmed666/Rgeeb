@@ -1,5 +1,6 @@
-import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 "use client";
+
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
