@@ -16,14 +16,15 @@
 
 import type { ListResponse, PaginatedResponse } from "./api-types";
 
-// In the browser we proxy through Next.js rewrites (same-origin → no CORS).
-// On the server (SSR / API routes) we hit the backend directly.
-// Set NEXT_PUBLIC_API_URL to override (e.g. in production).
+// In the browser we ALWAYS proxy through Next.js rewrites (/api → backend).
+// This prevents CORS errors regardless of deployment environment.
+// On the server (SSR) we hit the backend directly using the env var.
 export const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_API_URL as string | undefined) ??
-  (typeof window === "undefined"
-    ? "https://api.dev.rgeeb.com/api" // server-side: direct
-    : "/api"); // client-side: proxied via next.config rewrites
+  typeof window === "undefined"
+    // Server-side (SSR/build): hit backend directly
+    ? (process.env.NEXT_PUBLIC_API_URL ?? "https://api.dev.rgeeb.com/api")
+    // Client-side: ALWAYS use the Next.js proxy — never expose backend URL to browser
+    : "/api";
 
 const TOKEN_KEY = "app.auth.token";
 const USER_KEY = "app.auth.user";
@@ -207,11 +208,18 @@ interface ApiOptions extends Omit<RequestInit, "body"> {
 }
 
 function buildUrl(path: string, query?: ApiOptions["query"]): string {
-  const url = new URL(
-    path.startsWith("http")
-      ? path
-      : `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`
-  );
+  // When API_BASE_URL is a relative path (e.g. "/api" in browser via proxy),
+  // new URL() needs an absolute base — use window.location.origin.
+  const resolved = path.startsWith("http")
+    ? path
+    : `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  const base =
+    typeof window !== "undefined" ? window.location.origin : undefined;
+
+  const url = resolved.startsWith("http")
+    ? new URL(resolved)
+    : new URL(resolved, base);
   if (query) {
     Object.entries(query).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== "")
