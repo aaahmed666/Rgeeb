@@ -87,7 +87,7 @@ export default function FoodicsView() {
             <Plug className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold sm:text-xl">
+            <h1 className="text-base font-bold sm:text-lg">
               Foodics Integration
             </h1>
             <p className="text-xs text-muted-foreground">

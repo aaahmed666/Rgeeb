@@ -60,7 +60,8 @@
     "selectManager": "Select Manager",
     "selectBranch": "Select Branch",
     "saveSuccess": "Saved successfully",
-    "saveFailed": "Failed to save"
+    "saveFailed": "Failed to save",
+    "showingOf": "Showing {{start}}–{{end}} of {{total}}"
   },
   "sidebar": {
     "statistics": "Statistics",
@@ -616,7 +617,21 @@
     "allBranches": "All Branches",
     "loadError": "Failed to load tasks",
     "breakdown": "Task Breakdown",
-    "create": "Create Task"
+    "create": "Create Task",
+    "newTask": "New Task",
+    "editTask": "Edit Task",
+    "createTask": "Create Task",
+    "form": {
+      "name": "Task Name",
+      "namePlaceholder": "Enter task name",
+      "description": "Description",
+      "descPlaceholder": "Task description...",
+      "priority": "Priority",
+      "type": "Type",
+      "status": "Status",
+      "scheduledDate": "Scheduled Date",
+      "branch": "Branch"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -1336,6 +1351,7 @@
     "endDate": "End Date",
     "status": "Status",
     "progress": "Progress",
+    "description": "Description",
     "createProject": "Create Project",
     "editProject": "Edit Project",
     "deleteProject": "Delete Project",
@@ -1466,6 +1482,10 @@
       "alreadyHaveAccount": "Already have an account?",
       "signIn": "Sign in",
       "successCreate": "Account created successfully!",
+      "successSubscribe": "Successfully subscribed to package!",
+      "popupBlocked": "Popup blocked! Please allow popups to complete payment.",
+      "redirectingPayment": "Redirecting to payment page...",
+      "errorSubscribe": "Failed to subscribe to package",
       "errorNameAr": "Arabic name is required",
       "errorNameEn": "English name is required",
       "errorEmail": "Enter a valid email",
@@ -1640,7 +1660,10 @@
     },
     "empty": "No rules yet",
     "howTitle": "How it works",
+    "howDesc": "When an AI worker sends a detection event, the system checks if a rule exists for that service. If enabled, a task is automatically created with the configured priority, SLA deadline, and assignee. Deduplication prevents duplicate tasks within the configured time window.",
     "confirmDeleteTitle": "Delete Rule",
+    "confirmDeleteDesc": "Are you sure you want to delete this rule? This action cannot be undone.",
+    "autoAssignHint": "Assign to the best available worker",
     "updated": "Rule updated",
     "created": "Rule created",
     "editTitle": "Edit Rule",
@@ -1783,6 +1806,7 @@
     "created": "Branch created",
     "edit": "Edit Branch",
     "municipalityPermit": "Municipality Permit",
+    "permitOptional": "Optional permit details and activity type",
     "activityType": "Activity Type",
     "permitEndDate": "Permit End Date",
     "permitImage": "Permit Image",
@@ -2157,7 +2181,8 @@
     "add": "Add Category",
     "noResults": "No categories found",
     "active": "Active",
-    "empty": "No categories found"
+    "empty": "No categories found",
+    "searchPlaceholder": "Search categories..."
   },
   "name_en": "Name En",
   "name_ar": "Name Ar",

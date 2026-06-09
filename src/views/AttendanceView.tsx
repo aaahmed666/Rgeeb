@@ -119,7 +119,7 @@ export default function AttendanceView() {
             <UserCheck className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold sm:text-xl">Attendance</h1>
+            <h1 className="text-base font-bold sm:text-lg">Attendance</h1>
             <p className="text-xs text-muted-foreground">
               Track employee check-ins and check-outs
             </p>

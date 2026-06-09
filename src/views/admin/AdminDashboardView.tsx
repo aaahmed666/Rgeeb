@@ -31,12 +31,12 @@ const STAT_KEYS: Array<{
 ];
 
 const NAV_SECTIONS = [
-  { href: "/dashboard/admin/clients",       icon: Users,     labelKey: "admin.clients"       },
-  { href: "/dashboard/admin/categories",    icon: Tag,       labelKey: "admin.categories"    },
-  { href: "/dashboard/admin/services",      icon: Briefcase, labelKey: "admin.services"      },
-  { href: "/dashboard/admin/packages",      icon: Package,   labelKey: "admin.packages"      },
-  { href: "/dashboard/admin/ai-models",     icon: Bot,       labelKey: "admin.aiModels"      },
-  { href: "/dashboard/admin/subscriptions", icon: CreditCard,labelKey: "admin.subscriptions" },
+  { href: "/dashboard/admin/clients",       icon: Users,     labelKey: "admin.clients.title"       },
+  { href: "/dashboard/admin/categories",    icon: Tag,       labelKey: "admin.categories.title"    },
+  { href: "/dashboard/admin/services",      icon: Briefcase, labelKey: "admin.services.title"      },
+  { href: "/dashboard/admin/packages",      icon: Package,   labelKey: "admin.packages.title"      },
+  { href: "/dashboard/admin/ai-models",     icon: Bot,       labelKey: "admin.aiModels.title"      },
+  { href: "/dashboard/admin/subscriptions", icon: CreditCard,labelKey: "admin.subscriptions.title" },
   { href: "/dashboard/admin/countries",     icon: Globe,     labelKey: "admin.countries"     },
   { href: "/dashboard/admin/cities",        icon: Building2, labelKey: "admin.cities"        },
   { href: "/dashboard/admin/settings",      icon: Settings,  labelKey: "admin.settings"      },
@@ -76,7 +76,7 @@ export default function AdminDashboardView() {
         <div className="rounded-full bg-primary/10 p-3 text-primary">
           <ShieldCheck className="h-6 w-6" />
         </div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t("admin.title")}</h1>
+        <h1 className="text-lg font-bold sm:text-xl">{t("admin.title")}</h1>
         <p className="max-w-xl text-sm text-muted-foreground">{t("admin.description")}</p>
       </header>
 

@@ -125,7 +125,7 @@ export default function NotificationsView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold sm:text-3xl">
+            <h1 className="text-lg font-bold sm:text-xl">
               {t("notifications.title", "Notification Center")}
             </h1>
             {unread > 0 && (

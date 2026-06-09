@@ -101,7 +101,7 @@ export default function FoodicsOrdersPage() {
   if (!hasPermission("foodics.orders.read")) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="text-lg font-semibold text-muted-foreground">Access Denied</p>
+        <p className="text-lg font-semibold text-muted-foreground">{t("foodics.accessDenied")}</p>
         <p className="text-sm text-muted-foreground mt-1">You don&apos;t have permission to view Orders.</p>
       </div>
     );
@@ -111,10 +111,10 @@ export default function FoodicsOrdersPage() {
     <div className="p-6 space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={ClipboardList} label="Total Orders" value={String(stats.total_orders)} color="bg-indigo-500" />
-        <StatCard icon={DollarSign} label="Total Sales" value={`SAR ${stats.total_sales.toFixed(2)}`} color="bg-emerald-500" />
-        <StatCard icon={Tag} label="Total Discounts" value={`SAR ${stats.total_discounts.toFixed(2)}`} color="bg-pink-500" />
-        <StatCard icon={TrendingUp} label="Avg Order Value" value={`SAR ${stats.avg_order_value.toFixed(2)}`} color="bg-sky-500" />
+        <StatCard icon={ClipboardList} label={t("foodics.totalOrders")} value={String(stats.total_orders)} color="bg-indigo-500" />
+        <StatCard icon={DollarSign} label={t("foodics.totalSales")} value={`SAR ${stats.total_sales.toFixed(2)}`} color="bg-emerald-500" />
+        <StatCard icon={Tag} label={t("foodics.totalDiscounts")} value={`SAR ${stats.total_discounts.toFixed(2)}`} color="bg-pink-500" />
+        <StatCard icon={TrendingUp} label={t("foodics.avgOrderValue")} value={`SAR ${stats.avg_order_value.toFixed(2)}`} color="bg-sky-500" />
       </div>
 
       {/* Filters + Sync */}
@@ -124,7 +124,7 @@ export default function FoodicsOrdersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search customer..."
+              placeholder={t("foodics.search")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -135,7 +135,7 @@ export default function FoodicsOrdersPage() {
             onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
             className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
           >
-            <option value="">Branch</option>
+            <option value="">{t("foodics.branch")}</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
@@ -145,11 +145,11 @@ export default function FoodicsOrdersPage() {
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
             className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
           >
-            <option value="">Status</option>
-            <option value="completed">Completed</option>
-            <option value="pending">Pending</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="refunded">Refunded</option>
+            <option value="">{t("foodics.status")}</option>
+            <option value="completed">{t("admin.subscriptions.status")}</option>
+            <option value="pending">{t("admin.subscriptions.pending")}</option>
+            <option value="cancelled">{t("tasks.statusLabel.cancelled")}</option>
+            <option value="refunded">{t("common.status")}</option>
           </select>
           <SharedDateRangePicker
               value={dateRange}
@@ -170,13 +170,13 @@ export default function FoodicsOrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs uppercase">
-                <th className="text-left py-3 px-2">Ref #</th>
-                <th className="text-left py-3 px-2">Date</th>
-                <th className="text-left py-3 px-2">Type</th>
-                <th className="text-left py-3 px-2">Customer</th>
-                <th className="text-right py-3 px-2">Total</th>
-                <th className="text-right py-3 px-2">Discount</th>
-                <th className="text-left py-3 px-2">Status</th>
+                <th className="text-left py-3 px-2">{t("foodics.reference")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.date")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.type")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.customer")}</th>
+                <th className="text-right py-3 px-2">{t("common.total")}</th>
+                <th className="text-right py-3 px-2">{t("foodics.totalDiscounts")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -189,7 +189,7 @@ export default function FoodicsOrdersPage() {
               ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                    No orders found
+                    {t("foodics.noOrders")}
                   </td>
                 </tr>
               ) : (
@@ -221,7 +221,7 @@ export default function FoodicsOrdersPage() {
             {total === 0 ? "0–0 of 0" : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total}`}
           </span>
           <div className="flex items-center gap-2">
-            <span>Rows per page: 25</span>
+            <span>{t("admin.common.rowsPerPage")}: 25</span>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}

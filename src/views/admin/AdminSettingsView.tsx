@@ -42,12 +42,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SaveBar({ onSave, isPending }: { onSave: () => void; isPending: boolean }) {
+function SaveBar({ onSave, isPending, t }: { onSave: () => void; isPending: boolean; t: (k: string) => string }) {
   return (
     <div className="flex justify-end border-t border-border/60 pt-4">
       <Button onClick={onSave} disabled={isPending} className="gap-2">
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        Save Changes
+        {t("common.save")}
       </Button>
     </div>
   );
@@ -88,7 +88,7 @@ export default function AdminSettingsView() {
     mutationFn: (pairs: { key: string; value: string }[]) =>
       upsertManyAdminSettings(pairs),
     onSuccess: () => {
-      toast.success("Settings saved");
+      toast.success(t("validation.saveSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "settings"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -133,32 +133,32 @@ export default function AdminSettingsView() {
             </div>
           ) : q.isError ? (
             <div className="text-sm text-destructive">
-              {q.error instanceof Error ? q.error.message : "Failed to load settings"}
+              {q.error instanceof Error ? q.error.message : t("admin.common.loadingFailed")}
             </div>
           ) : (
             <Tabs defaultValue="general">
               <TabsList>
                 <TabsTrigger value="general">
-                  <SettingsIcon className="mr-2 h-4 w-4" /> General
+                  <SettingsIcon className="me-2 h-4 w-4" /> {t("admin.settings_general")}
                 </TabsTrigger>
                 <TabsTrigger value="legal">
-                  <FileText className="mr-2 h-4 w-4" /> Legal
+                  <FileText className="me-2 h-4 w-4" /> {t("admin.settings_policies")}
                 </TabsTrigger>
                 <TabsTrigger value="notifications">
-                  <Bell className="mr-2 h-4 w-4" /> Notifications
+                  <Bell className="me-2 h-4 w-4" /> {t("admin.settings_notifications")}
                 </TabsTrigger>
               </TabsList>
 
               {/* ── General ──────────────────────────────────────────────── */}
               <TabsContent value="general" className="mt-6 space-y-4">
-                <Field label="Application Name">
+                <Field label={t("admin.settings_appName")}>
                   <Input
                     value={v("app_name")}
                     onChange={set("app_name")}
                     placeholder="My App"
                   />
                 </Field>
-                <Field label="Application Description">
+                <Field label={t("admin.settings_appDesc")}>
                   <Textarea
                     value={v("app_description")}
                     onChange={set("app_description")}
@@ -166,7 +166,7 @@ export default function AdminSettingsView() {
                     placeholder="Short description of the application"
                   />
                 </Field>
-                <Field label="Contact Email">
+                <Field label={t("admin.settings_contactEmail")}>
                   <Input
                     type="email"
                     value={v("contact_email")}
@@ -174,19 +174,19 @@ export default function AdminSettingsView() {
                     placeholder="contact@example.com"
                   />
                 </Field>
-                <Field label="Support Phone">
+                <Field label={t("admin.settings_supportPhone")}>
                   <Input
                     value={v("support_phone")}
                     onChange={set("support_phone")}
                     placeholder="+1 555 000 0000"
                   />
                 </Field>
-                <SaveBar onSave={saveGeneral} isPending={mut.isPending} />
+                <SaveBar onSave={saveGeneral} isPending={mut.isPending} t={t} />
               </TabsContent>
 
               {/* ── Legal ─────────────────────────────────────────────────── */}
               <TabsContent value="legal" className="mt-6 space-y-4">
-                <Field label="Privacy Policy">
+                <Field label={t("admin.settings_privacy")}>
                   <Textarea
                     value={v("privacy_policy")}
                     onChange={set("privacy_policy")}
@@ -194,7 +194,7 @@ export default function AdminSettingsView() {
                     placeholder="Privacy policy content…"
                   />
                 </Field>
-                <Field label="Terms of Service">
+                <Field label={t("admin.settings_terms")}>
                   <Textarea
                     value={v("terms_of_service")}
                     onChange={set("terms_of_service")}
@@ -202,7 +202,7 @@ export default function AdminSettingsView() {
                     placeholder="Terms of service content…"
                   />
                 </Field>
-                <Field label="Cookie Policy">
+                <Field label={t("admin.settings_cookies")}>
                   <Textarea
                     value={v("cookie_policy")}
                     onChange={set("cookie_policy")}
@@ -210,12 +210,12 @@ export default function AdminSettingsView() {
                     placeholder="Cookie policy content…"
                   />
                 </Field>
-                <SaveBar onSave={saveLegal} isPending={mut.isPending} />
+                <SaveBar onSave={saveLegal} isPending={mut.isPending} t={t} />
               </TabsContent>
 
               {/* ── Notifications ─────────────────────────────────────────── */}
               <TabsContent value="notifications" className="mt-6 space-y-4">
-                <Field label="Notification Email">
+                <Field label={t("admin.settings_notifEmail")}>
                   <Input
                     type="email"
                     value={v("notification_email")}
@@ -223,7 +223,7 @@ export default function AdminSettingsView() {
                     placeholder="notifications@example.com"
                   />
                 </Field>
-                <Field label="Email Signature">
+                <Field label={t("admin.settings_emailSig")}>
                   <Textarea
                     value={v("email_signature")}
                     onChange={set("email_signature")}
@@ -231,7 +231,7 @@ export default function AdminSettingsView() {
                     placeholder="Email signature HTML or text…"
                   />
                 </Field>
-                <SaveBar onSave={saveNotifications} isPending={mut.isPending} />
+                <SaveBar onSave={saveNotifications} isPending={mut.isPending} t={t} />
               </TabsContent>
             </Tabs>
           )}

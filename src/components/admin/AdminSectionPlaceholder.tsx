@@ -19,7 +19,7 @@ export function AdminSectionPlaceholder({
         <div className="rounded-full bg-primary/10 p-3 text-primary">
           <Icon className="h-6 w-6" />
         </div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t(titleKey)}</h1>
+        <h1 className="text-lg font-bold sm:text-xl">{t(titleKey)}</h1>
         <p className="max-w-xl text-sm text-muted-foreground">{t("admin.sectionSoon")}</p>
       </header>
 

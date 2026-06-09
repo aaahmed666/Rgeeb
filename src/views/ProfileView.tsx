@@ -254,7 +254,7 @@ export default function ProfileView() {
     <div className="space-y-6 p-4 sm:p-6">
       {/* ── Page header ── */}
       <div>
-        <h1 className="text-2xl font-bold">{t("profile.title")}</h1>
+        <h1 className="text-lg font-bold">{t("profile.title")}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{t("profile.subtitle")}</p>
       </div>
 

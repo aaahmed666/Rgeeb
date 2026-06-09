@@ -484,7 +484,7 @@ export default function TasksView() {
       {/* ── Header ── */}
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">
+          <h1 className="text-lg font-bold sm:text-xl">
             {t("tasks.managementTitle", "Task Management")}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -793,7 +793,7 @@ export default function TasksView() {
               onClick={() => saveMutation.mutate()}
               disabled={!taskForm.name.trim() || saveMutation.isPending}
             >
-              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {saveMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {editingTask ? t("common.save", "Save") : t("tasks.createTask", "Create Task")}
             </Button>
           </DialogFooter>

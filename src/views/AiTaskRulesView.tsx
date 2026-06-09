@@ -147,7 +147,7 @@ export default function AiTaskRulesView() {
           <Bot className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">
+          <h1 className="text-lg font-bold sm:text-xl">
             {t("rules.title", "AI Task Generation Rules")}
           </h1>
           <p className="text-sm text-muted-foreground">

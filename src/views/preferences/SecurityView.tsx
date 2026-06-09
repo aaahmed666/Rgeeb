@@ -64,7 +64,7 @@ export default function SecurityView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
+        <h1 className="flex items-center gap-2 text-lg font-bold sm:text-xl">
           <ShieldCheck className="h-6 w-6" />
           {t("security.title", "Security Settings")}
         </h1>

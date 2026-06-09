@@ -69,7 +69,7 @@ export default function MonitoringView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t("monitoring.title")}</h1>
+        <h1 className="text-lg font-bold sm:text-xl">{t("monitoring.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("monitoring.description")}</p>
       </header>
 

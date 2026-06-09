@@ -130,14 +130,14 @@ export default function AiServicesView({ defaultTab }: { defaultTab?: string } =
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold sm:text-2xl">
+                <h1 className="text-lg font-bold sm:text-xl">
                   {t("aiServices.title", "AI Services Hub")}
                 </h1>
                 <Badge
                   variant="outline"
                   className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs"
                 >
-                  {ALL_SERVICES.length} Active
+                  {ALL_SERVICES.length} {t("aiServices.activeShort")}
                 </Badge>
               </div>
             </div>
@@ -250,7 +250,7 @@ export default function AiServicesView({ defaultTab }: { defaultTab?: string } =
                   {svc.label}
                 </p>
                 <p className="mt-1 text-[10px] text-emerald-600 font-medium">
-                  Active
+                  {t("aiServices.activeStatus")}
                 </p>
                 {displayCount > 0 && (
                   <Badge
@@ -277,12 +277,12 @@ export default function AiServicesView({ defaultTab }: { defaultTab?: string } =
           >
             {showAll ? (
               <>
-                <ChevronUp className="h-4 w-4" /> Show Less
+                <ChevronUp className="h-4 w-4" /> {t("aiServices.showLess")}
               </>
             ) : (
               <>
-                <ChevronDown className="h-4 w-4" /> Show All {filtered.length}{" "}
-                services
+                <ChevronDown className="h-4 w-4" />{" "}
+                {t("aiServices.showAll", { n: filtered.length })}
               </>
             )}
           </Button>

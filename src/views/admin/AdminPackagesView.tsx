@@ -143,7 +143,7 @@ function PackageDialog({
         ? updateAdminPackage(pkg!.id, buildInput())
         : createAdminPackage(buildInput()),
     onSuccess: () => {
-      toast.success(isEdit ? "Package updated" : "Package created");
+      toast.success(isEdit ? t("admin.packages.packageUpdatedSuccess") : t("admin.packages.packageAddedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
       onOpenChange(false);
     },
@@ -159,13 +159,13 @@ function PackageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PackageIcon className="h-5 w-5 text-primary" />
-            {isEdit ? "Edit Package" : "Create Package"}
+            {isEdit ? t("admin.packages.editPackage") : t("admin.packages.addPackage")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Arabic Name *</Label>
+              <Label>{t("admin.packages.arabicName")} *</Label>
               <Input
                 dir="rtl"
                 value={nameAr}
@@ -174,7 +174,7 @@ function PackageDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>English Name *</Label>
+              <Label>{t("admin.packages.englishName")} *</Label>
               <Input
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
@@ -394,7 +394,7 @@ export default function AdminPackagesView() {
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminPackage(id),
     onSuccess: () => {
-      toast.success("Package deleted");
+      toast.success(t("admin.packages.packageDeletedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -432,7 +432,7 @@ export default function AdminPackagesView() {
             className="gap-1.5"
           >
             <Plus className="h-4 w-4" />
-            Add Package
+            {t("admin.packages.addPackage")}
           </Button>
           ) : undefined
         }
@@ -442,20 +442,20 @@ export default function AdminPackagesView() {
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : "Failed to load"}
-        emptyMessage="No packages found"
+        errorMessage={error instanceof Error ? error.message : t("admin.common.loadingFailed")}
+        emptyMessage={t("admin.packages.noPackagesFound")}
         searchValue={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search packages…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "nameAr",
-            header: "Name (AR)",
+            header: t("admin.packages.arabicName"),
             render: (p) => <span dir="rtl">{p.nameAr ?? "—"}</span>,
           },
           {
             key: "nameEn",
-            header: "Name (EN)",
+            header: t("admin.packages.englishName"),
             render: (p) => (
               <span className="font-medium">{p.nameEn ?? "—"}</span>
             ),
@@ -463,31 +463,31 @@ export default function AdminPackagesView() {
           {
             // FIX: was p.category — field is categoryName
             key: "categoryName",
-            header: "Category",
+            header: t("admin.packages.category"),
             render: (p) => <span>{p.categoryName ?? "—"}</span>,
           },
           {
             key: "price",
-            header: "Price",
+            header: t("admin.packages.price"),
             render: (p) => <span>{p.price != null ? `$${p.price}` : "—"}</span>,
           },
           {
             // FIX: was p.duration — field is durationMonths
             key: "durationMonths",
-            header: "Duration",
+            header: t("admin.packages.duration"),
             render: (p) => (
               <span>{p.durationMonths ? `${p.durationMonths} mo` : "—"}</span>
             ),
           },
           {
             key: "maxCameras",
-            header: "Cameras",
+            header: t("admin.packages.maxCameras"),
             render: (p) => <span>{p.maxCameras ?? "—"}</span>,
           },
           {
             // FIX: was p.services — field is serviceNames
             key: "services",
-            header: "Services",
+            header: t("admin.packages.services"),
             render: (p) =>
               p.serviceNames?.length ? (
                 <div className="flex flex-wrap gap-1">
@@ -515,7 +515,7 @@ export default function AdminPackagesView() {
           },
           {
             key: "status",
-            header: "Status",
+            header: t("common.status"),
             // FIX: was p.status — field is active (boolean)
             render: (p) => (
               <StatusPill status={p.active !== false ? "active" : "inactive"} />
@@ -569,10 +569,10 @@ export default function AdminPackagesView() {
       <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete Package"
-        description={`Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("admin.packages.deletePackage")}
+        description={`${t("admin.common.confirmDelete")} "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"?`}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         onConfirm={() => {
           if (deleteTarget) delMut.mutate(deleteTarget.id);
           setDeleteTarget(null);

@@ -43,7 +43,7 @@ export function PageErrorFallback({
         <div className="flex gap-2 justify-center pt-2">
           {reset && (
             <Button onClick={reset} variant="default" size="sm">
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCw className="me-2 h-4 w-4" />
               Try Again
             </Button>
           )}

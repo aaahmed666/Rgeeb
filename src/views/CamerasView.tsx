@@ -59,6 +59,7 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { usePermission } from "@/hooks/usePermission";
+import { useTranslation } from "react-i18next";
 
 const EMPTY: CameraInput = {
   name: "",
@@ -68,9 +69,16 @@ const EMPTY: CameraInput = {
 };
 
 export default function CamerasView() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const can = usePermission("cameras");
-  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange, clearSearch, isSearching } = useDebounceSearch("", 300);
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+    clearSearch,
+    isSearching,
+  } = useDebounceSearch("", 300);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<CameraType | null>(null);
   const [form, setForm] = React.useState<CameraInput>(EMPTY);
@@ -159,7 +167,7 @@ export default function CamerasView() {
             <Camera className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold sm:text-xl">Cameras</h1>
+            <h1 className="text-base font-bold sm:text-lg">Cameras</h1>
             <p className="text-xs text-muted-foreground">
               Manage surveillance cameras across branches
             </p>
@@ -186,12 +194,12 @@ export default function CamerasView() {
             Refresh
           </Button>
           {can.create && (
-          <Button
-            size="sm"
-            onClick={openCreate}
-          >
-            <Plus className="mr-1.5 h-4 w-4" /> Add Camera
-          </Button>
+            <Button
+              size="sm"
+              onClick={openCreate}
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> {t("cameras.addCamera")}
+            </Button>
           )}
         </div>
       </header>
@@ -200,25 +208,25 @@ export default function CamerasView() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           {
-            label: "Total Cameras",
+            label: t("cameras.totalCameras"),
             value: total,
             icon: Camera,
             color: "text-blue-500",
           },
           {
-            label: "Online",
+            label: t("cameras.online"),
             value: online,
             icon: Wifi,
             color: "text-emerald-500",
           },
           {
-            label: "Offline",
+            label: t("cameras.offline"),
             value: total - online,
             icon: WifiOff,
             color: "text-red-500",
           },
           {
-            label: "Active",
+            label: t("common.active"),
             value: cameras.filter((c) => c.active).length,
             icon: Activity,
             color: "text-amber-500",
@@ -245,14 +253,14 @@ export default function CamerasView() {
       <DataTable
         data={filtered}
         isLoading={isLoading}
-        emptyMessage="No cameras found"
+        emptyMessage={t("cameras.noCameras")}
         searchValue={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search cameras…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "name",
-            header: "Name",
+            header: t("cameras.cameraName"),
             render: (cam) => (
               <div className="flex items-center gap-2 font-medium">
                 <Camera className="h-4 w-4 text-muted-foreground" />
@@ -262,12 +270,12 @@ export default function CamerasView() {
           },
           {
             key: "branch",
-            header: "Branch",
+            header: t("cameras.branch"),
             render: (cam) => cam.branchName ?? "—",
           },
           {
             key: "location",
-            header: "Location",
+            header: t("cameras.location"),
             render: (cam) =>
               cam.location ? (
                 <span className="flex items-center gap-1 text-sm">
@@ -280,14 +288,18 @@ export default function CamerasView() {
           },
           {
             key: "ip",
-            header: "IP Address",
+            header: t("cameras.cameraCode"),
             cellClassName: "font-mono text-xs",
             render: (cam) => cam.ipAddress ?? "—",
           },
-          { key: "model", header: "Model", render: (cam) => cam.model ?? "—" },
+          {
+            key: "model",
+            header: t("common.status"),
+            render: (cam) => cam.model ?? "—",
+          },
           {
             key: "online",
-            header: "Status",
+            header: t("cameras.status"),
             render: (cam) =>
               cam.isOnline !== undefined ? (
                 <Badge
@@ -301,12 +313,12 @@ export default function CamerasView() {
                   {cam.isOnline ? (
                     <>
                       <Wifi className="mr-1 h-3 w-3" />
-                      Online
+                      {t("cameras.online")}
                     </>
                   ) : (
                     <>
                       <WifiOff className="mr-1 h-3 w-3" />
-                      Offline
+                      {t("cameras.offline")}
                     </>
                   )}
                 </Badge>
@@ -316,7 +328,7 @@ export default function CamerasView() {
           },
           {
             key: "active",
-            header: "Active",
+            header: t("common.active"),
             render: (cam) => (
               <Badge variant={cam.active ? "default" : "secondary"}>
                 {cam.active ? "Active" : "Inactive"}
@@ -340,19 +352,19 @@ export default function CamerasView() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {can.update && (
-                  <DropdownMenuItem onClick={() => openEdit(cam)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(cam)}>
+                      <Pencil className="me-2 h-4 w-4" />
+                      {t("common.edit")}
+                    </DropdownMenuItem>
                   )}
                   {can.delete && (
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => setDeleteId(cam.id)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => setDeleteId(cam.id)}
+                    >
+                      <Trash2 className="me-2 h-4 w-4" />
+                      {t("common.delete")}
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -368,11 +380,13 @@ export default function CamerasView() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Camera" : "Add Camera"}</DialogTitle>
+            <DialogTitle>
+              {editing ? t("cameras.editCamera") : t("cameras.addCamera")}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
-              <Label>Name *</Label>
+              <Label>{t("cameras.cameraName")} *</Label>
               <Input
                 value={form.name}
                 onChange={(e) =>
@@ -392,7 +406,7 @@ export default function CamerasView() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Location</Label>
+              <Label>{t("cameras.location")}</Label>
               <Input
                 value={form.location ?? ""}
                 onChange={(e) =>
@@ -402,7 +416,7 @@ export default function CamerasView() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>IP Address</Label>
+              <Label>IP</Label>
               <Input
                 value={form.ip_address ?? ""}
                 onChange={(e) =>
@@ -412,7 +426,7 @@ export default function CamerasView() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Model</Label>
+              <Label>{t("common.status")}</Label>
               <Input
                 value={form.model ?? ""}
                 onChange={(e) =>
@@ -426,7 +440,7 @@ export default function CamerasView() {
                 checked={form.active ?? true}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))}
               />
-              <Label>Active</Label>
+              <Label>{t("common.active")}</Label>
             </div>
           </div>
           <DialogFooter>
@@ -440,7 +454,7 @@ export default function CamerasView() {
               onClick={() => saveMut.mutate(form)}
               disabled={saveMut.isPending || !form.name.trim()}
             >
-              {saveMut.isPending ? "Saving…" : "Save"}
+              {saveMut.isPending ? t("validation.saving") : t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -453,13 +467,13 @@ export default function CamerasView() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Camera?</AlertDialogTitle>
+            <AlertDialogTitle>{t("cameras.deleteCamera")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone.
+              {t("validation.deleteConfirm")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => deleteId && deleteMut.mutate(deleteId)}

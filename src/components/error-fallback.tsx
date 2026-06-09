@@ -88,7 +88,7 @@ export function ErrorFallback({
               size="sm"
               className="mt-4"
             >
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCw className="me-2 h-4 w-4" />
               Try Again
             </Button>
           )}

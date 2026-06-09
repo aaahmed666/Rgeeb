@@ -88,7 +88,7 @@ export default function FoodicsRefundVerificationPage() {
   if (!hasPermission("foodics.refund_verifications.read")) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="text-lg font-semibold text-muted-foreground">Access Denied</p>
+        <p className="text-lg font-semibold text-muted-foreground">{t("foodics.accessDenied")}</p>
         <p className="text-sm text-muted-foreground mt-1">You don&apos;t have permission to view Refund Verifications.</p>
       </div>
     );
@@ -98,13 +98,13 @@ export default function FoodicsRefundVerificationPage() {
     <div className="p-6 space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Receipt} label="Total Refunds" value={String(stats.total_refunds)}
+        <StatCard icon={Receipt} label={t("foodics.refund")} value={String(stats.total_refunds)}
           iconColor="text-white" bgColor="bg-indigo-500" />
-        <StatCard icon={AlertTriangle} label="Suspicious" value={String(stats.suspicious)}
+        <StatCard icon={AlertTriangle} label={t("escalationAlerts.severity")} value={String(stats.suspicious)}
           iconColor="text-white" bgColor="bg-amber-500" />
-        <StatCard icon={AlertOctagon} label="Critical" value={String(stats.critical)}
+        <StatCard icon={AlertOctagon} label={t("escalationAlerts.critical")} value={String(stats.critical)}
           iconColor="text-white" bgColor="bg-rose-500" />
-        <StatCard icon={Percent} label="Flagged Rate" value={`${stats.flagged_rate}%`}
+        <StatCard icon={Percent} label={t("intel.compliance")} value={`${stats.flagged_rate}%`}
           iconColor="text-white" bgColor="bg-violet-500" />
       </div>
 
@@ -116,7 +116,7 @@ export default function FoodicsRefundVerificationPage() {
             onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
             className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
           >
-            <option value="">Branch</option>
+            <option value="">{t("foodics.branch")}</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
           <select
@@ -124,10 +124,10 @@ export default function FoodicsRefundVerificationPage() {
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
             className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
           >
-            <option value="">Status</option>
-            <option value="clear">Clear</option>
-            <option value="suspicious">Suspicious</option>
-            <option value="critical">Critical</option>
+            <option value="">{t("foodics.status")}</option>
+            <option value="clear">{t("serviceMonitor.safe")}</option>
+            <option value="suspicious">{t("escalationAlerts.severity")}</option>
+            <option value="critical">{t("escalationAlerts.critical")}</option>
           </select>
           <SharedDateRangePicker
               value={dateRange}
@@ -139,14 +139,14 @@ export default function FoodicsRefundVerificationPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs uppercase">
-                <th className="text-left py-3 px-2">Order Ref</th>
-                <th className="text-right py-3 px-2">Amount</th>
-                <th className="text-left py-3 px-2">Type</th>
-                <th className="text-left py-3 px-2">Refunded At</th>
-                <th className="text-left py-3 px-2">AI Status</th>
-                <th className="text-left py-3 px-2">Person</th>
+                <th className="text-left py-3 px-2">{t("foodics.reference")}</th>
+                <th className="text-right py-3 px-2">{t("admin.subscriptions.amount")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.type")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.date")}</th>
+                <th className="text-left py-3 px-2">{t("foodics.status")}</th>
+                <th className="text-left py-3 px-2">{t("admin.subscriptions.user")}</th>
                 <th className="text-right py-3 px-2">Conf.</th>
-                <th className="text-left py-3 px-2">Verdict</th>
+                <th className="text-left py-3 px-2">{t("common.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -156,7 +156,7 @@ export default function FoodicsRefundVerificationPage() {
                 </td></tr>
               ) : refunds.length === 0 ? (
                 <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
-                  No refund verifications found
+                  {t("foodics.noRefunds")}
                 </td></tr>
               ) : (
                 refunds.map((r, i) => (
@@ -187,7 +187,7 @@ export default function FoodicsRefundVerificationPage() {
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <span>{total === 0 ? "0–0 of 0" : `${(page-1)*25+1}–${Math.min(page*25,total)} of ${total}`}</span>
           <div className="flex items-center gap-2">
-            <span>Rows per page: 25</span>
+            <span>{t("admin.common.rowsPerPage")}: 25</span>
             <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1}
               className="p-1 rounded hover:bg-muted disabled:opacity-40"><ChevronLeft className="w-4 h-4"/></button>
             <button onClick={() => setPage(p => Math.min(lastPage, p+1))} disabled={page>=lastPage}

@@ -51,7 +51,7 @@ export function BrIntelligenceHeader({
             <Brain className="h-6 w-6 text-indigo-300" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">
+            <h1 className="text-lg font-bold sm:text-xl">
               {t("intel.title", "Br Intelligence")}
             </h1>
             <p className="mt-1 text-sm text-white/80">

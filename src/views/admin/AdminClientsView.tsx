@@ -68,17 +68,17 @@ export default function AdminClientsView() {
 
   const createMut = useMutation({
     mutationFn: (v: AdminUserInput) => createAdminUser(v),
-    onSuccess: () => { toast.success("User created"); invalidate(); setOpen(false); },
+    onSuccess: () => { toast.success(t("admin.clients.clientAddedSuccess")); invalidate(); setOpen(false); },
     onError:   (e: Error) => toast.error(e.message),
   });
   const updateMut = useMutation({
     mutationFn: ({ id, v }: { id: string; v: Partial<AdminUserInput> }) => updateAdminUser(id, v),
-    onSuccess: () => { toast.success("User updated"); invalidate(); setOpen(false); },
+    onSuccess: () => { toast.success(t("admin.clients.clientUpdatedSuccess")); invalidate(); setOpen(false); },
     onError:   (e: Error) => toast.error(e.message),
   });
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteAdminUser(id),
-    onSuccess: () => { toast.success("User deleted"); invalidate(); setToDelete(null); },
+    onSuccess: () => { toast.success(t("admin.clients.clientDeletedSuccess")); invalidate(); setToDelete(null); },
     onError:   (e: Error) => toast.error(e.message),
   });
 
@@ -137,7 +137,7 @@ export default function AdminClientsView() {
         isRefreshing={q.isFetching}
         right={
           <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1.5 h-4 w-4" /> Add User
+            <Plus className="mr-1.5 h-4 w-4" /> {t("admin.clients.addClient")}
           </Button>
         }
       />
@@ -146,15 +146,15 @@ export default function AdminClientsView() {
         data={filtered}
         isLoading={q.isLoading}
         isError={q.isError}
-        errorMessage={q.error instanceof Error ? q.error.message : "Failed to load"}
-        emptyMessage="No users found"
+        errorMessage={q.error instanceof Error ? q.error.message : t("admin.common.loadingFailed")}
+        emptyMessage={t("admin.clients.noClientsFound")}
         searchValue={searchValue}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search users…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "user",
-            header: "User",
+            header: t("admin.clients.clientName"),
             render: (u) => (
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
@@ -171,17 +171,17 @@ export default function AdminClientsView() {
           },
           {
             key: "phone",
-            header: "Phone",
+            header: t("admin.clients.phone"),
             render: (u) => <span className="text-sm">{u.phone ?? "—"}</span>,
           },
           {
             key: "country",
-            header: "Country",
+            header: t("admin.clients.country"),
             render: (u) => <span className="text-sm">{u.country ?? "—"}</span>,
           },
           {
             key: "active",
-            header: "Status",
+            header: t("admin.clients.status"),
             render: (u) => (
               <div className="flex gap-1.5">
                 {/* active is boolean on AdminUser */}
@@ -202,10 +202,10 @@ export default function AdminClientsView() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => openEdit(u)}>
-                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                    <Pencil className="me-2 h-4 w-4" /> {t("common.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-destructive" onClick={() => setToDelete(u)}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="me-2 h-4 w-4" /> {t("common.delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -217,40 +217,40 @@ export default function AdminClientsView() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit User" : "Add User"}</DialogTitle>
+            <DialogTitle>{editing ? t("admin.clients.editClient") : t("admin.clients.addClient")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Name (EN) *</Label>
+                <Label>{t("admin.clients.clientName")} (EN) *</Label>
                 <Input value={form.name_en ?? ""} onChange={f("name_en")} placeholder="John Doe" />
               </div>
               <div className="space-y-1.5">
-                <Label>Name (AR)</Label>
+                <Label>{t("admin.clients.clientName")} (AR)</Label>
                 <Input dir="rtl" value={form.name_ar ?? ""} onChange={f("name_ar")} placeholder="الاسم" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Email *</Label>
+              <Label>{t("admin.clients.email")} *</Label>
               <Input type="email" value={form.email ?? ""} onChange={f("email")} placeholder="user@example.com" />
             </div>
             <div className="space-y-1.5">
-              <Label>Phone</Label>
+              <Label>{t("admin.clients.phone")}</Label>
               <Input value={form.phone ?? ""} onChange={f("phone")} placeholder="+971 5xx xxx xxx" />
             </div>
             <div className="space-y-1.5">
-              <Label>{editing ? "New Password (leave blank to keep)" : "Password *"}</Label>
+              <Label>{editing ? t("admin.users.password") + " (" + t("common.cancel").toLowerCase() + ")" : t("admin.users.password") + " *"}</Label>
               <Input type="password" value={form.password ?? ""} onChange={f("password")} placeholder="••••••••" />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
-              <Label>Active</Label>
+              <Label>{t("common.active")}</Label>
               <Switch
                 checked={!!form.active}
                 onCheckedChange={(v) => setForm((p) => ({ ...p, active: v }))}
               />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
-              <Label>Main Admin</Label>
+              <Label>{t("admin.users.mainAdmin")}</Label>
               <Switch
                 checked={!!form.main_admin}
                 onCheckedChange={(v) => setForm((p) => ({ ...p, main_admin: v }))}
@@ -258,10 +258,10 @@ export default function AdminClientsView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button onClick={handleSave} disabled={busy}>
-              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editing ? "Save" : "Create"}
+              {busy && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {editing ? t("common.save") : t("admin.form_add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -270,8 +270,8 @@ export default function AdminClientsView() {
       <ConfirmDeleteDialog
         open={!!toDelete}
         onOpenChange={(o) => !o && setToDelete(null)}
-        title="Delete User"
-        description={`Delete "${toDelete?.name}"? This cannot be undone.`}
+        title={t("admin.clients.deleteClient")}
+        description={`${t("admin.common.confirmDelete")} "${toDelete?.name}"?`}
         onConfirm={() => toDelete && deleteMut.mutate(toDelete.id)}
         isLoading={deleteMut.isPending}
       />

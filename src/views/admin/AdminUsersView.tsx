@@ -269,7 +269,7 @@ export default function AdminUsersView() {
               <Users className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">{t("users.title", "Users")}</h1>
+              <h1 className="text-lg font-bold sm:text-xl">{t("users.title", "Users")}</h1>
               <p className="text-sm text-white/80">
                 {t("users.subtitle", "Manage platform users and their access")}
               </p>

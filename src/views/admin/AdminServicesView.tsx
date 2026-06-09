@@ -104,7 +104,7 @@ function ServiceDialog({
         ? updateAdminService(service!.id, buildInput())
         : createAdminService(buildInput()),
     onSuccess: () => {
-      toast.success(isEdit ? "Service updated" : "Service created");
+      toast.success(isEdit ? t("admin.services.serviceUpdatedSuccess") : t("admin.services.serviceAddedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "services"] });
       onOpenChange(false);
     },
@@ -117,12 +117,12 @@ function ServiceDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
-            {isEdit ? "Edit Service" : "Create Service"}
+            {isEdit ? t("admin.services.editService") : t("admin.services.addService")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Name (EN) *</Label>
+            <Label>{t("admin.services.englishName")} *</Label>
             <Input
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
@@ -130,7 +130,7 @@ function ServiceDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Name (AR)</Label>
+            <Label>{t("admin.services.arabicName")}</Label>
             <Input
               value={nameAr}
               onChange={(e) => setNameAr(e.target.value)}
@@ -139,7 +139,7 @@ function ServiceDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Description</Label>
+            <Label>{t("admin.services.description")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -148,7 +148,7 @@ function ServiceDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Price</Label>
+            <Label>{t("admin.services.price")}</Label>
             <Input
               type="number"
               min={0}
@@ -236,7 +236,7 @@ export default function AdminServicesView() {
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminService(id),
     onSuccess: () => {
-      toast.success("Service deleted");
+      toast.success(t("admin.services.serviceDeletedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "services"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -274,7 +274,7 @@ export default function AdminServicesView() {
             className="gap-1.5"
           >
             <Plus className="h-4 w-4" />
-            Add Service
+            {t("admin.services.addService")}
           </Button>
           ) : undefined
         }
@@ -284,36 +284,36 @@ export default function AdminServicesView() {
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : "Failed to load"}
-        emptyMessage="No services found"
+        errorMessage={error instanceof Error ? error.message : t("admin.common.loadingFailed")}
+        emptyMessage={t("admin.services.noServicesFound")}
         searchValue={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search services…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "nameEn",
-            header: "Name (EN)",
+            header: t("admin.services.englishName"),
             render: (s) => <span className="font-medium">{s.nameEn ?? s.nameAr ?? "—"}</span>,
           },
           {
             key: "nameAr",
-            header: "Name (AR)",
+            header: t("admin.services.arabicName"),
             render: (s) => <span dir="rtl">{s.nameAr ?? "—"}</span>,
           },
           {
             key: "description",
-            header: "Description",
+            header: t("admin.services.description"),
             cellClassName: "max-w-xs truncate text-muted-foreground",
             render: (s) => s.description ?? "—",
           },
           {
             key: "price",
-            header: "Price",
+            header: t("admin.services.price"),
             render: (s) => <span>{s.price != null ? `$${s.price}` : "—"}</span>,
           },
           {
             key: "status",
-            header: "Status",
+            header: t("common.status"),
             render: (s) => <StatusPill status={s.active !== false ? "active" : "inactive"} />,
           },
           {
@@ -360,10 +360,10 @@ export default function AdminServicesView() {
       <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete Service"
-        description={`Are you sure you want to delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("admin.services.deleteService")}
+        description={`${t("admin.common.confirmDelete")} "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"?`}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         onConfirm={() => {
           if (deleteTarget) delMut.mutate(deleteTarget.id);
           setDeleteTarget(null);

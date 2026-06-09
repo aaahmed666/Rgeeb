@@ -195,9 +195,9 @@ function AddServicesModal({
             onClick={() => can.create && addMut.mutate()}
           >
             {addMut.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
             ) : (
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
             )}
             {t("subscription.addSelected", "Add Selected")}{" "}
             {selected.length > 0 && `(${selected.length})`}
@@ -344,9 +344,9 @@ function SubscribeModal({
             onClick={() => subMut.mutate()}
           >
             {subMut.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
             ) : (
-              <Crown className="mr-2 h-4 w-4" />
+              <Crown className="me-2 h-4 w-4" />
             )}
             {t("subscription.activatePlan", "Activate Plan")}
           </Button>
@@ -433,7 +433,7 @@ export default function SubscriptionView() {
               <Crown className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
                 {t("subscription.title", "Subscription")}
               </h1>
               <p className="text-sm text-muted-foreground">

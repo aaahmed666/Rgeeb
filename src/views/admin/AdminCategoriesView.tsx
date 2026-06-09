@@ -124,7 +124,7 @@ function CategoryDialog({
         ? updateAdminCategory(category!.id, buildInput())
         : createAdminCategory(buildInput()),
     onSuccess: () => {
-      toast.success(isEdit ? "Category updated" : "Category created");
+      toast.success(isEdit ? t("admin.categories.categoryUpdatedSuccess") : t("admin.categories.categoryAddedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
       onOpenChange(false);
     },
@@ -286,7 +286,7 @@ export default function AdminCategoriesView() {
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminCategory(id),
     onSuccess: () => {
-      toast.success("Category deleted");
+      toast.success(t("admin.categories.categoryDeletedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -334,7 +334,7 @@ export default function AdminCategoriesView() {
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : "Failed to load"}
+        errorMessage={error instanceof Error ? error.message : t("admin.common.loadingFailed")}
         emptyMessage={t("categories.noResults", "No categories found")}
         searchValue={search}
         onSearchChange={handleSearchChange}
@@ -430,10 +430,10 @@ export default function AdminCategoriesView() {
       <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete Category"
-        description={`Delete "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"? This cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("admin.categories.deleteCategory")}
+        description={`${t("admin.common.confirmDelete")} "${deleteTarget?.nameEn ?? deleteTarget?.nameAr}"?`}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         onConfirm={() => {
           if (deleteTarget) delMut.mutate(deleteTarget.id);
           setDeleteTarget(null);

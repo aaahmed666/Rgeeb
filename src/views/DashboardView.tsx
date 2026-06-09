@@ -297,7 +297,7 @@ export default function DashboardView() {
         <div className="relative grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold sm:text-3xl">
+              <h1 className="text-lg font-bold sm:text-xl">
                 {t("dashboard.welcome", { name: displayName })}
               </h1>
               <Hand className="h-7 w-7 -rotate-12" />

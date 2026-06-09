@@ -84,7 +84,7 @@ export default function FoodicsConnectionPage() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Are you sure you want to disconnect from Foodics?")) return;
+    if (!confirm(t("foodics.disconnect") + "?")) return;
     setDisconnecting(true);
     try {
       await foodicsService.disconnect();
@@ -121,13 +121,11 @@ export default function FoodicsConnectionPage() {
             <Plug className="w-12 h-12 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-card-foreground mb-2">
-              Connect to Foodics
+            <h2 className="text-xl font-bold text-card-foreground mb-2">
+              {t("foodics.connect")}
             </h2>
             <p className="text-muted-foreground max-w-md">
-              Link your Foodics account to unlock AI-powered intelligence: order
-              analytics, refund verification, cash drawer audits, prep time
-              tracking, and more.
+              {t("foodics.connectDesc")}
             </p>
           </div>
           <div className="flex gap-4 flex-wrap justify-center">
@@ -180,8 +178,7 @@ export default function FoodicsConnectionPage() {
           </button>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
-            You will be redirected to Foodics to authorize the connection. Make
-            sure you have your Foodics account credentials ready.
+            {t("foodics.connectDesc")}
           </p>
         </div>
       </div>
@@ -243,7 +240,7 @@ export default function FoodicsConnectionPage() {
             System Health
           </h2>
           <p className="text-sm text-muted-foreground">
-            {operationalCount}/{totalServices} services operational
+            {operationalCount}/{totalServices} {t("foodics.connectionStatus")}
           </p>
         </div>
         <div className="flex gap-2">

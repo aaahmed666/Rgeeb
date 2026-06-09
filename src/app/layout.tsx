@@ -24,7 +24,7 @@ const themeScript = `
       document.documentElement.classList.remove('dark');
       document.documentElement.style.colorScheme = 'light';
     }
-    var lang = localStorage.getItem('app.lang');
+    var lang = localStorage.getItem('app.language');
     if (lang === 'ar') {
       document.documentElement.lang = 'ar';
       document.documentElement.dir = 'rtl';

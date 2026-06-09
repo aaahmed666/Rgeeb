@@ -15,10 +15,22 @@ function DirectionSync({ children }: { children: React.ReactNode }) {
   const lang = i18n.resolvedLanguage ?? i18n.language ?? "en";
 
   React.useEffect(() => {
-    const dir = isRtl(lang) ? "rtl" : "ltr";
-    document.documentElement.lang = lang;
-    document.documentElement.dir = dir;
-  }, [lang]);
+    const apply = (lng: string) => {
+      const dir = isRtl(lng) ? "rtl" : "ltr";
+      document.documentElement.lang = lng;
+      document.documentElement.dir = dir;
+      document.body.dir = dir;
+      // Persist using the same key i18n uses (app.language) so layout.tsx picks it up on reload
+      try { localStorage.setItem("app.language", lng); } catch {}
+    };
+
+    // Apply immediately for current language
+    apply(lang);
+
+    // Also listen for future language changes from i18n.changeLanguage()
+    i18n.on("languageChanged", apply);
+    return () => { i18n.off("languageChanged", apply); };
+  }, [lang, i18n]);
 
   return <>{children}</>;
 }

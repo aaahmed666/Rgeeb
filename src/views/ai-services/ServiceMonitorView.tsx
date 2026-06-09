@@ -223,7 +223,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             ? t("serviceMonitor.visitorsIn", "VISITORS IN")
             : t("serviceMonitor.totalDetections", "TOTAL DETECTIONS"),
       value: totalDet,
-      sub: `Yesterday: ${Math.round(totalDet * 1.2)}`,
+      sub: `${t("serviceMonitor.yesterday")}: ${Math.round(totalDet * 1.2)}`,
       color: "",
       iconBg: "#fde68a",
       iconColor: "#d97706",
@@ -237,7 +237,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             ? "LONG WAIT ALERTS"
             : t("serviceMonitor.ppeViolations", "PPE VIOLATIONS"),
       value: violations,
-      sub: `${warning} warnings`,
+      sub: `${warning} ${t("serviceMonitor.warnings")}`,
       color: "",
       iconBg: "#fee2e2",
       iconColor: "#ef4444",
@@ -277,10 +277,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{service.label} Monitor</h1>
+            <h1 className="text-lg font-bold">{service.label} {t("aiServices.monitoring")}</h1>
             <Badge className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-              LIVE
+              {t("serviceMonitor.live")}
             </Badge>
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">

@@ -52,7 +52,7 @@ export default function LiveFeedsView() {
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">
+          <h1 className="text-lg font-bold sm:text-xl">
             {t("liveFeeds.title", "Live Camera Feeds")}
           </h1>
           <p className="text-sm text-muted-foreground">

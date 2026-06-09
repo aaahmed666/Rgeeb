@@ -110,7 +110,7 @@ export default function BranchesView() {
             <Building2 className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">
+            <h1 className="text-lg font-bold sm:text-xl">
               {t("branches.title", "Branches")}
             </h1>
             <p className="text-sm text-muted-foreground">

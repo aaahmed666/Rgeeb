@@ -85,7 +85,7 @@ export default function AdminCountriesView() {
           }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "countries"] });
-      toast.success(editing ? "Country updated" : "Country created");
+      toast.success(t("validation.saveSuccess"));
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -95,7 +95,7 @@ export default function AdminCountriesView() {
     mutationFn: (id: string) => deleteAdminCountry(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "countries"] });
-      toast.success("Country deleted");
+      toast.success(t("validation.deleteSuccess"));
       setDeleteId(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -140,7 +140,7 @@ export default function AdminCountriesView() {
         right={
           can.create ? (
           <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1.5 h-4 w-4" /> Add Country
+            <Plus className="mr-1.5 h-4 w-4" /> {t("admin.countries_addCountry")}
           </Button>
           ) : undefined
         }
@@ -150,15 +150,15 @@ export default function AdminCountriesView() {
         data={filtered}
         isLoading={q.isLoading}
         isError={q.isError}
-        errorMessage="Failed to load countries"
-        emptyMessage="No countries found"
+        errorMessage={t("admin.common.loadingFailed")}
+        emptyMessage={t("admin.countries_empty")}
         searchValue={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search countries…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "nameEn",
-            header: "Name (EN)",
+            header: t("admin.countries_nameEn"),
             render: (c) => <span className="font-medium">{c.nameEn ?? "—"}</span>,
           },
           {
@@ -168,7 +168,7 @@ export default function AdminCountriesView() {
           },
           {
             key: "code",
-            header: "Code",
+            header: t("admin.countries_code"),
             render: (c) => (
               <span className="font-mono text-xs uppercase">{c.code ?? "—"}</span>
             ),
@@ -187,14 +187,14 @@ export default function AdminCountriesView() {
                 <DropdownMenuContent align="end">
                   {can.update && (
                   <DropdownMenuItem onClick={() => openEdit(c)}>
-                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                    <Pencil className="me-2 h-4 w-4" /> {t("common.edit")}
                   </DropdownMenuItem>
                   )}
                   {can.delete && (<DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => setDeleteId(c.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="me-2 h-4 w-4" /> {t("common.delete")}
                   </DropdownMenuItem>)}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -210,7 +210,7 @@ export default function AdminCountriesView() {
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
-              <Label>Name (EN) *</Label>
+              <Label>{t("admin.countries_nameEn")}</Label>
               <Input
                 value={form.name_en}
                 onChange={set("name_en")}
@@ -218,7 +218,7 @@ export default function AdminCountriesView() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Name (AR)</Label>
+              <Label>{t("admin.countries_nameAr")}</Label>
               <Input
                 dir="rtl"
                 value={form.name_ar}
@@ -227,7 +227,7 @@ export default function AdminCountriesView() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>ISO Code</Label>
+              <Label>{t("admin.countries_code")}</Label>
               <Input
                 value={form.code}
                 onChange={(e) =>
@@ -239,7 +239,7 @@ export default function AdminCountriesView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button
               onClick={() => saveMut.mutate(form)}
               disabled={saveMut.isPending || !form.name_en.trim()}
@@ -253,18 +253,18 @@ export default function AdminCountriesView() {
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Country?</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.countries_deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will also remove all associated cities. This cannot be undone.
+              {t("admin.countries_deleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => deleteId && deleteMut.mutate(deleteId)}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

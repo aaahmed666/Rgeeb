@@ -296,7 +296,7 @@ function ScheduleDialog({
               disabled={isLoading}
               className="bg-violet-600 hover:bg-violet-700"
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               Create Schedule
             </Button>
           </div>
@@ -424,7 +424,7 @@ export default function ReportCenterView() {
               <FileText className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
                 {t("reportCenter.title", "Report Center")}
               </h1>
               <p className="mt-1 text-sm text-white/80 sm:text-base">

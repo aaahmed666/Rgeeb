@@ -84,7 +84,7 @@ export default function NotificationSettingsView() {
         <CardContent className="flex items-center gap-4 p-6">
           <div className="rounded-xl bg-white/15 p-3 backdrop-blur"><Bell className="h-6 w-6" /></div>
           <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">{t("notifSettings.title", "Notification Settings")}</h1>
+            <h1 className="text-lg font-bold sm:text-xl">{t("notifSettings.title", "Notification Settings")}</h1>
             <p className="text-sm text-white/80">{t("notifSettings.subtitle", "Configure alert channels and preferences")}</p>
           </div>
         </CardContent>

@@ -107,7 +107,7 @@ export default function AdminCitiesView() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "cities"] });
-      toast.success(editing ? "City updated" : "City created");
+      toast.success(t("validation.saveSuccess"));
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -117,7 +117,7 @@ export default function AdminCitiesView() {
     mutationFn: (id: string) => deleteAdminCity(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "cities"] });
-      toast.success("City deleted");
+      toast.success(t("validation.deleteSuccess"));
       setDeleteId(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -167,7 +167,7 @@ export default function AdminCitiesView() {
         right={
           can.create ? (
           <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1.5 h-4 w-4" /> Add City
+            <Plus className="mr-1.5 h-4 w-4" /> {t("admin.cities_addCity")}
           </Button>
           ) : undefined
         }
@@ -177,15 +177,15 @@ export default function AdminCitiesView() {
         data={filtered}
         isLoading={citiesQ.isLoading}
         isError={citiesQ.isError}
-        errorMessage="Failed to load cities"
-        emptyMessage="No cities found"
+        errorMessage={t("admin.common.loadingFailed")}
+        emptyMessage={t("admin.cities_empty")}
         searchValue={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search cities…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "nameEn",
-            header: "Name (EN)",
+            header: t("admin.cities_nameEn"),
             render: (c) => <span className="font-medium">{c.nameEn ?? "—"}</span>,
           },
           {
@@ -195,7 +195,7 @@ export default function AdminCitiesView() {
           },
           {
             key: "country",
-            header: "Country",
+            header: t("admin.cities_country"),
             render: (c) => <span>{c.countryName ?? "—"}</span>,
           },
           {
@@ -212,7 +212,7 @@ export default function AdminCitiesView() {
                 <DropdownMenuContent align="end">
                   {can.update && (
                   <DropdownMenuItem onClick={() => openEdit(c)}>
-                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                    <Pencil className="me-2 h-4 w-4" /> {t("common.edit")}
                   </DropdownMenuItem>
                   )}
                   {can.delete && (
@@ -220,7 +220,7 @@ export default function AdminCitiesView() {
                     className="text-destructive focus:text-destructive"
                     onClick={() => setDeleteId(c.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="me-2 h-4 w-4" /> {t("common.delete")}
                   </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -238,15 +238,15 @@ export default function AdminCitiesView() {
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
-              <Label>Name (EN) *</Label>
+              <Label>{t("admin.cities_nameEn")}</Label>
               <Input value={form.name_en} onChange={set("name_en")} placeholder="Dubai" />
             </div>
             <div className="grid gap-1.5">
-              <Label>Name (AR)</Label>
+              <Label>{t("admin.cities_nameAr")}</Label>
               <Input dir="rtl" value={form.name_ar} onChange={set("name_ar")} placeholder="دبي" />
             </div>
             <div className="grid gap-1.5">
-              <Label>Country *</Label>
+              <Label>{t("admin.cities_country")}</Label>
               <AsyncPaginatedSelect
                   endpoint="/admin/countries"
                   labelKey="name_en"
@@ -258,7 +258,7 @@ export default function AdminCitiesView() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label>Latitude</Label>
+                <Label>{t("admin.cities_latitude")}</Label>
                 <Input
                   type="number"
                   step="any"
@@ -268,7 +268,7 @@ export default function AdminCitiesView() {
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label>Longitude</Label>
+                <Label>{t("admin.cities_longitude")}</Label>
                 <Input
                   type="number"
                   step="any"
@@ -280,7 +280,7 @@ export default function AdminCitiesView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button
               onClick={() => saveMut.mutate(form)}
               disabled={saveMut.isPending || !form.name_en.trim() || !form.country_id}
@@ -294,16 +294,16 @@ export default function AdminCitiesView() {
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete City?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t("admin.cities_deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("admin.cities_deleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => deleteId && deleteMut.mutate(deleteId)}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

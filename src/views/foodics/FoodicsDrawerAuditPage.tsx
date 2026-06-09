@@ -95,7 +95,7 @@ export default function FoodicsDrawerAuditPage() {
   if (!hasPermission("foodics.drawer_audits.read")) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="text-lg font-semibold text-muted-foreground">Access Denied</p>
+        <p className="text-lg font-semibold text-muted-foreground">{t("foodics.accessDenied")}</p>
         <p className="text-sm text-muted-foreground mt-1">You don&apos;t have permission to view Drawer Audit.</p>
       </div>
     );
@@ -105,11 +105,11 @@ export default function FoodicsDrawerAuditPage() {
     <div className="p-6 space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard icon={CreditCard} label="Total Opens" value={String(stats.total_opens)} bg="bg-blue-500" />
-        <StatCard icon={Link2Off} label="Unmatched" value={String(stats.unmatched)} bg="bg-sky-500" />
-        <StatCard icon={AlertTriangle} label="Suspicious" value={String(stats.suspicious)} bg="bg-amber-500" />
-        <StatCard icon={AlertOctagon} label="Critical" value={String(stats.critical)} bg="bg-rose-500" />
-        <StatCard icon={Percent} label="Flagged Rate" value={`${stats.flagged_rate}%`} bg="bg-violet-500" />
+        <StatCard icon={CreditCard} label={t("foodics.openingBalance")} value={String(stats.total_opens)} bg="bg-blue-500" />
+        <StatCard icon={Link2Off} label={t("foodics.discrepancy")} value={String(stats.unmatched)} bg="bg-sky-500" />
+        <StatCard icon={AlertTriangle} label={t("escalationAlerts.severity")} value={String(stats.suspicious)} bg="bg-amber-500" />
+        <StatCard icon={AlertOctagon} label={t("escalationAlerts.critical")} value={String(stats.critical)} bg="bg-rose-500" />
+        <StatCard icon={Percent} label={t("intel.compliance")} value={`${stats.flagged_rate}%`} bg="bg-violet-500" />
       </div>
 
       {/* Tabs */}
@@ -123,7 +123,7 @@ export default function FoodicsDrawerAuditPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <CreditCard className="w-4 h-4" /> Audit Table
+            <CreditCard className="w-4 h-4" /> {t("foodics.cashDrawer")}
           </button>
           <button
             onClick={() => setActiveTab("patterns")}
@@ -133,7 +133,7 @@ export default function FoodicsDrawerAuditPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Flag className="w-4 h-4" /> Pattern Flags
+            <Flag className="w-4 h-4" /> {t("intel.anomalyDetection")}
           </button>
         </div>
 
@@ -144,16 +144,16 @@ export default function FoodicsDrawerAuditPage() {
               <div className="flex flex-wrap gap-3 mb-4">
                 <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
                   className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none">
-                  <option value="">Branch</option>
+                  <option value="">{t("foodics.branch")}</option>
                   {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
                 <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}
                   className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none">
-                  <option value="">Status</option>
-                  <option value="matched">Matched</option>
-                  <option value="unmatched">Unmatched</option>
-                  <option value="suspicious">Suspicious</option>
-                  <option value="critical">Critical</option>
+                  <option value="">{t("foodics.status")}</option>
+                  <option value="matched">{t("common.active")}</option>
+                  <option value="unmatched">{t("foodics.discrepancy")}</option>
+                  <option value="suspicious">{t("escalationAlerts.severity")}</option>
+                  <option value="critical">{t("escalationAlerts.critical")}</option>
                 </select>
                 <SharedDateRangePicker
               value={dateRange}
@@ -166,12 +166,12 @@ export default function FoodicsDrawerAuditPage() {
                   <thead>
                     <tr className="border-b border-border text-muted-foreground text-xs uppercase">
                       <th className="text-left py-3 px-2">ID</th>
-                      <th className="text-left py-3 px-2">Status</th>
-                      <th className="text-left py-3 px-2">Person</th>
+                      <th className="text-left py-3 px-2">{t("foodics.status")}</th>
+                      <th className="text-left py-3 px-2">{t("admin.subscriptions.user")}</th>
                       <th className="text-left py-3 px-2">Employee ID</th>
                       <th className="text-left py-3 px-2">Matched Order</th>
                       <th className="text-left py-3 px-2">Patterns</th>
-                      <th className="text-left py-3 px-2">Date</th>
+                      <th className="text-left py-3 px-2">{t("foodics.date")}</th>
                       <th className="text-left py-3 px-2">Verdict</th>
                     </tr>
                   </thead>
@@ -182,7 +182,7 @@ export default function FoodicsDrawerAuditPage() {
                       </td></tr>
                     ) : audits.length === 0 ? (
                       <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
-                        No drawer audits found
+                        {t("foodics.noCashDrawer")}
                       </td></tr>
                     ) : (
                       audits.map((a) => (
@@ -227,7 +227,7 @@ export default function FoodicsDrawerAuditPage() {
             <div className="space-y-3">
               {patterns.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  No pattern flags detected
+                  {t("intel.noAnomalies")}
                 </div>
               ) : (
                 patterns.map((p) => (

@@ -83,7 +83,7 @@ export default function SettingsView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t("settings.title")}</h1>
+        <h1 className="text-lg font-bold sm:text-xl">{t("settings.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("settings.description")}</p>
       </header>
 
@@ -221,7 +221,7 @@ export default function SettingsView() {
           <Card>
             <CardHeader>
               <CardTitle>{t("settings.about")}</CardTitle>
-              <CardDescription>App information and credits</CardDescription>
+              <CardDescription>{t("settings.about")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">

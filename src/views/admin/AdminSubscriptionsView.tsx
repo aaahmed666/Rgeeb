@@ -18,17 +18,17 @@ function formatDate(d?: string) {
   return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString();
 }
 
-const COLUMNS = [
-  { key: "userName",  header: "Client",  render: (s: Record<string, unknown>) => <span className="font-medium">{String(s.userName ?? "—")}</span> },
-  { key: "userEmail", header: "Email",   render: (s: Record<string, unknown>) => <span className="text-sm text-muted-foreground">{String(s.userEmail ?? "—")}</span> },
-  { key: "package",   header: "Package", render: (s: Record<string, unknown>) => <Badge variant="secondary">{String(s.package ?? "—")}</Badge> },
-  { key: "price",     header: "Price",   render: (s: Record<string, unknown>) => <span>{s.price != null ? `$${String(s.price)}` : "—"}</span> },
-  { key: "status",    header: "Status",  render: (s: Record<string, unknown>) => <StatusPill status={s.status as string | undefined} /> },
-  { key: "startDate", header: "Start",   render: (s: Record<string, unknown>) => <span className="text-sm">{formatDate(s.startDate as string | undefined)}</span> },
-  { key: "endDate",   header: "End",     render: (s: Record<string, unknown>) => <span className="text-sm">{formatDate(s.endDate as string | undefined)}</span> },
+const COLUMNS = (t: (k: string) => string) => [
+  { key: "userName",  header: t("admin.subscriptions.client"),  render: (s: Record<string, unknown>) => <span className="font-medium">{String(s.userName ?? "—")}</span> },
+  { key: "userEmail", header: t("admin.subscriptions.user"),    render: (s: Record<string, unknown>) => <span className="text-sm text-muted-foreground">{String(s.userEmail ?? "—")}</span> },
+  { key: "package",   header: t("admin.subscriptions.package"), render: (s: Record<string, unknown>) => <Badge variant="secondary">{String(s.package ?? "—")}</Badge> },
+  { key: "price",     header: t("admin.subscriptions.amount"),  render: (s: Record<string, unknown>) => <span>{s.price != null ? `$${String(s.price)}` : "—"}</span> },
+  { key: "status",    header: t("admin.subscriptions.status"),  render: (s: Record<string, unknown>) => <StatusPill status={s.status as string | undefined} /> },
+  { key: "startDate", header: t("admin.subscriptions.startDate"), render: (s: Record<string, unknown>) => <span className="text-sm">{formatDate(s.startDate as string | undefined)}</span> },
+  { key: "endDate",   header: t("admin.subscriptions.endDate"),   render: (s: Record<string, unknown>) => <span className="text-sm">{formatDate(s.endDate as string | undefined)}</span> },
   {
     key: "daysRemaining",
-    header: "Days Left",
+    header: t("admin.sub_daysLeft"),
     render: (s: Record<string, unknown>) => s.daysRemaining != null
       ? <span className={(s.daysRemaining as number) < 30 ? "text-destructive font-semibold" : ""}>{s.daysRemaining as number}d</span>
       : <span>—</span>,
@@ -64,12 +64,12 @@ export default function AdminSubscriptionsView() {
       <Tabs defaultValue="all">
         <TabsList className="mb-4">
           <TabsTrigger value="all">
-            All Subscriptions
+            {t("admin.sub_allTab")}
             {allQ.data && <Badge variant="secondary" className="ml-2">{allQ.data.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="active">
             <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-green-500" />
-            Active
+            {t("admin.sub_activeTab")}
             {activeQ.data && <Badge variant="secondary" className="ml-2">{activeQ.data.length}</Badge>}
           </TabsTrigger>
         </TabsList>
@@ -79,9 +79,9 @@ export default function AdminSubscriptionsView() {
             data={(allQ.data ?? []) as unknown as (Record<string, unknown> & { id: string | number })[]}
             isLoading={allQ.isLoading}
             isError={allQ.isError}
-            errorMessage={allQ.error instanceof Error ? allQ.error.message : "Failed to load"}
-            emptyMessage={t("admin.subscriptions_empty", "No subscriptions found")}
-            columns={COLUMNS}
+            errorMessage={allQ.error instanceof Error ? allQ.error.message : t("admin.common.loadingFailed")}
+            emptyMessage={t("admin.subscriptions_empty")}
+            columns={COLUMNS(t)}
           />
         </TabsContent>
 
@@ -90,9 +90,9 @@ export default function AdminSubscriptionsView() {
             data={(activeQ.data ?? []) as unknown as (Record<string, unknown> & { id: string | number })[]}
             isLoading={activeQ.isLoading}
             isError={activeQ.isError}
-            errorMessage={activeQ.error instanceof Error ? activeQ.error.message : "Failed to load"}
-            emptyMessage="No active subscriptions"
-            columns={COLUMNS}
+            errorMessage={activeQ.error instanceof Error ? activeQ.error.message : t("admin.common.loadingFailed")}
+            emptyMessage={t("admin.subscriptions.activeSubscriptions")}
+            columns={COLUMNS(t)}
           />
         </TabsContent>
       </Tabs>

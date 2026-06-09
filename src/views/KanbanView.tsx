@@ -121,6 +121,7 @@ function TaskForm({
   onClose,
   isSubmitting,
 }: TaskFormProps) {
+  const { t } = useTranslation();
   const [name, setName] = React.useState(initial?.title ?? "");
   const [description, setDescription] = React.useState(
     initial?.description ?? ""
@@ -193,7 +194,7 @@ function TaskForm({
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-lg font-semibold">
-            {mode === "create" ? "Create Task" : "Edit Task"}
+            {mode === "create" ? t("kanban.newTask") : t("tasks.editTask")}
           </h2>
           <Button
             variant="ghost"
@@ -211,7 +212,8 @@ function TaskForm({
             {/* Name */}
             <div className="space-y-1.5">
               <Label htmlFor="task-name">
-                Task Name <span className="text-destructive">*</span>
+                {t("tasks.form.name")}{" "}
+                <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="task-name"
@@ -224,7 +226,7 @@ function TaskForm({
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="task-desc">Description</Label>
+              <Label htmlFor="task-desc">{t("tasks.form.description")}</Label>
               <textarea
                 id="task-desc"
                 value={description}
@@ -238,7 +240,7 @@ function TaskForm({
             {/* Type + Priority + Status */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Type</Label>
+                <Label>{t("tasks.col.type")}</Label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
@@ -256,7 +258,7 @@ function TaskForm({
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>Priority</Label>
+                <Label>{t("tasks.col.priority")}</Label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
@@ -274,7 +276,7 @@ function TaskForm({
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>Status</Label>
+                <Label>{t("tasks.col.status")}</Label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
@@ -295,13 +297,13 @@ function TaskForm({
             {/* Project + Department */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Project</Label>
+                <Label>{t("projects.projectName")}</Label>
                 <select
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">— None —</option>
+                  <option value="">— {t("common.noData")} —</option>
                   {projects.map((p) => (
                     <option
                       key={p.id}
@@ -313,13 +315,13 @@ function TaskForm({
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>Department</Label>
+                <Label>{t("navigation.departments")}</Label>
                 <select
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">— None —</option>
+                  <option value="">— {t("common.noData")} —</option>
                   {departments.map((d) => (
                     <option
                       key={d.id}
@@ -335,7 +337,7 @@ function TaskForm({
             {/* Scheduled date + time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Scheduled Date</Label>
+                <Label>{t("tasks.form.scheduledDate")}</Label>
                 <Input
                   type="date"
                   value={scheduledDate}
@@ -343,7 +345,7 @@ function TaskForm({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Time</Label>
+                <Label>{t("serviceMonitor.colTime")}</Label>
                 <Input
                   type="time"
                   value={time}
@@ -356,7 +358,7 @@ function TaskForm({
             {type === "recurring" && (
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Start Date</Label>
+                  <Label>{t("projects.startDate")}</Label>
                   <Input
                     type="date"
                     value={startDate}
@@ -364,7 +366,7 @@ function TaskForm({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>End Date</Label>
+                  <Label>{t("projects.endDate")}</Label>
                   <Input
                     type="date"
                     value={endDate}
@@ -387,7 +389,7 @@ function TaskForm({
             {/* Branches (multi-select chips) */}
             {branches.length > 0 && (
               <div className="space-y-1.5">
-                <Label>Branches</Label>
+                <Label>{t("navigation.branches")}</Label>
                 <div className="flex flex-wrap gap-1.5 rounded-md border border-input p-2">
                   {branches.map((b) => (
                     <button
@@ -413,7 +415,7 @@ function TaskForm({
             {/* Employees (multi-select chips) */}
             {employees.length > 0 && (
               <div className="space-y-1.5">
-                <Label>Assign To</Label>
+                <Label>{t("tasks.col.assignedTo")}</Label>
                 <div className="flex flex-wrap gap-1.5 rounded-md border border-input p-2">
                   {employees.map((emp) => (
                     <button
@@ -448,7 +450,7 @@ function TaskForm({
                 onChange={(e) => setIsDraft(e.target.checked)}
                 className="h-4 w-4 rounded border-input accent-primary"
               />
-              Save as draft
+              {t("common.save")} draft
             </label>
           </div>
 
@@ -469,7 +471,7 @@ function TaskForm({
               {isSubmitting && (
                 <Loader2 className="me-2 h-4 w-4 animate-spin" />
               )}
-              {mode === "create" ? "Create Task" : "Save Changes"}
+              {mode === "create" ? t("tasks.createTask") : t("common.save")}
             </Button>
           </div>
         </form>
@@ -832,7 +834,9 @@ function KanbanPageRoute() {
                       task={task}
                       formatDate={formatDate}
                       onEdit={can.update ? () => setEditTask(task) : undefined}
-                      onDelete={can.delete ? () => setDeleteTask(task) : undefined}
+                      onDelete={
+                        can.delete ? () => setDeleteTask(task) : undefined
+                      }
                     />
                   ))
                 )}

@@ -157,31 +157,31 @@ export default function FoodicsPrepTimePage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           icon={ClipboardList}
-          label="Total Orders"
+          label={t("foodics.totalOrders")}
           value={String(stats.total_orders)}
           bg="bg-indigo-500"
         />
         <StatCard
           icon={Link2}
-          label="AI Matched"
+          label={t("foodics.syncing")}
           value={`${stats.ai_matched} (${stats.ai_matched_pct.toFixed(0)}%)`}
           bg="bg-emerald-500"
         />
         <StatCard
           icon={ChefHat}
-          label="Avg Kitchen Prep"
+          label={t("foodics.avgPrepTime")}
           value={formatTime(stats.avg_kitchen_prep)}
           bg="bg-amber-500"
         />
         <StatCard
           icon={Hand}
-          label="Avg Service"
+          label={t("foodics.minPrepTime")}
           value={formatTime(stats.avg_service)}
           bg="bg-sky-500"
         />
         <StatCard
           icon={Clock}
-          label="Avg Total Cycle"
+          label={t("foodics.maxPrepTime")}
           value={formatTime(stats.avg_total_cycle)}
           bg="bg-violet-500"
         />
@@ -198,7 +198,7 @@ export default function FoodicsPrepTimePage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <ClipboardList className="w-4 h-4" /> Records
+            <ClipboardList className="w-4 h-4" /> {t("foodics.orders")}
           </button>
           <button
             onClick={() => setActiveTab("heatmap")}
@@ -208,7 +208,7 @@ export default function FoodicsPrepTimePage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <BarChart3 className="w-4 h-4" /> Heatmap
+            <BarChart3 className="w-4 h-4" /> {t("intel.detectionHeatmap")}
           </button>
         </div>
 
@@ -223,7 +223,7 @@ export default function FoodicsPrepTimePage() {
               }}
               className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
             >
-              <option value="">Branch</option>
+              <option value="">{t("foodics.branch")}</option>
               {branches.map((b) => (
                 <option
                   key={b.id}
@@ -246,12 +246,12 @@ export default function FoodicsPrepTimePage() {
                   <thead>
                     <tr className="border-b border-border text-muted-foreground text-xs uppercase">
                       <th className="text-left py-3 px-2">ID</th>
-                      <th className="text-left py-3 px-2">Date</th>
-                      <th className="text-left py-3 px-2">Order Placed</th>
-                      <th className="text-left py-3 px-2">Food Ready</th>
-                      <th className="text-right py-3 px-2">Kitchen Prep</th>
-                      <th className="text-right py-3 px-2">Service</th>
-                      <th className="text-right py-3 px-2">Total Cycle</th>
+                      <th className="text-left py-3 px-2">{t("foodics.date")}</th>
+                      <th className="text-left py-3 px-2">{t("foodics.orders")}</th>
+                      <th className="text-left py-3 px-2">{t("foodics.prepTime")}</th>
+                      <th className="text-right py-3 px-2">{t("foodics.avgPrepTime")}</th>
+                      <th className="text-right py-3 px-2">{t("foodics.minPrepTime")}</th>
+                      <th className="text-right py-3 px-2">{t("foodics.maxPrepTime")}</th>
                       <th className="text-right py-3 px-2">Hour</th>
                     </tr>
                   </thead>
@@ -271,7 +271,7 @@ export default function FoodicsPrepTimePage() {
                           colSpan={8}
                           className="text-center py-12 text-muted-foreground"
                         >
-                          No prep time records found
+                          {t("foodics.noPrepTime")}
                         </td>
                       </tr>
                     ) : (
@@ -313,7 +313,7 @@ export default function FoodicsPrepTimePage() {
                     : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total}`}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span>Rows per page: 25</span>
+                  <span>{t("admin.common.rowsPerPage")}: 25</span>
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
@@ -338,7 +338,7 @@ export default function FoodicsPrepTimePage() {
               {heatmap.length === 0 ||
               heatmap.every((row) => row.every((v) => v === 0)) ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  No heatmap data available for this period.
+                  {t("foodics.noFootfall")}
                 </div>
               ) : (
                 <div className="space-y-1">

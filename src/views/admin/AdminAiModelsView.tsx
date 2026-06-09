@@ -114,7 +114,7 @@ function AiModelDialog({
         ? updateAdminAiModel(model!.id, buildInput())
         : createAdminAiModel(buildInput()),
     onSuccess: () => {
-      toast.success(isEdit ? "AI model updated" : "AI model created");
+      toast.success(isEdit ? t("admin.aiModels.modelUpdatedSuccess") : t("admin.aiModels.modelAddedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "aiModels"] });
       onOpenChange(false);
     },
@@ -130,20 +130,20 @@ function AiModelDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
-            {isEdit ? "Edit AI Model" : "Create AI Model"}
+            {isEdit ? t("admin.aiModels.editModel") : t("admin.aiModels.addModel")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Name *</Label>
+            <Label>{t("admin.aiModels.modelName")} *</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Model name"
+              placeholder={t("admin.aiModels.modelName")}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Version</Label>
+            <Label>{t("admin.aiModels.version")}</Label>
             <Input
               value={version}
               onChange={(e) => setVersion(e.target.value)}
@@ -151,7 +151,7 @@ function AiModelDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Model Path</Label>
+            <Label>{t("admin.aiModels.modelPath")}</Label>
             <Input
               value={modelPath}
               onChange={(e) => setModelPath(e.target.value)}
@@ -160,11 +160,11 @@ function AiModelDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Services</Label>
+            <Label>{t("admin.aiModels.services")}</Label>
             <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
               {servicesQ.isLoading ? (
                 <div className="p-2 text-sm text-muted-foreground">
-                  Loading services…
+                  {t("common.loadingOptions")}
                 </div>
               ) : (
                 (servicesQ.data ?? []).map((svc) => (
@@ -190,7 +190,7 @@ function AiModelDialog({
               )}
               {!servicesQ.isLoading && !servicesQ.data?.length && (
                 <div className="p-2 text-sm text-muted-foreground">
-                  No services available
+                  {t("common.noOptions")}
                 </div>
               )}
             </div>
@@ -292,7 +292,7 @@ export default function AdminAiModelsView() {
   const delMut = useMutation({
     mutationFn: (id: string) => deleteAdminAiModel(id),
     onSuccess: () => {
-      toast.success("AI model deleted");
+      toast.success(t("admin.aiModels.modelDeletedSuccess"));
       qc.invalidateQueries({ queryKey: ["admin", "aiModels"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -330,7 +330,7 @@ export default function AdminAiModelsView() {
             className="gap-1.5"
           >
             <Plus className="h-4 w-4" />
-            Add AI Model
+            {t("admin.aiModels.addModel")}
           </Button>
           ) : undefined
         }
@@ -340,25 +340,25 @@ export default function AdminAiModelsView() {
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : "Failed to load"}
-        emptyMessage="No AI models found"
+        errorMessage={error instanceof Error ? error.message : t("admin.common.loadingFailed")}
+        emptyMessage={t("admin.aiModels.noModelsFound")}
         searchValue={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search AI models…"
+        searchPlaceholder={t("common.searchPlaceholder")}
         columns={[
           {
             key: "name",
-            header: "Name",
+            header: t("admin.aiModels.modelName"),
             render: (m) => <span className="font-medium">{m.name}</span>,
           },
           {
             key: "version",
-            header: "Version",
+            header: t("admin.aiModels.version"),
             render: (m) => <span>{m.version ?? "—"}</span>,
           },
           {
             key: "modelPath",
-            header: "Model Path",
+            header: t("admin.aiModels.modelPath"),
             render: (m) => (
               <span className="font-mono text-xs text-muted-foreground">
                 {m.modelPath ?? "—"}
@@ -367,7 +367,7 @@ export default function AdminAiModelsView() {
           },
           {
             key: "services",
-            header: "Services",
+            header: t("admin.aiModels.services"),
             render: (m) => (
               <span className="text-sm text-muted-foreground">
                 {m.serviceNames?.join(", ") ?? "—"}
@@ -376,7 +376,7 @@ export default function AdminAiModelsView() {
           },
           {
             key: "status",
-            header: "Status",
+            header: t("common.status"),
             render: (m) => (
               <StatusPill status={m.active !== false ? "active" : "inactive"} />
             ),
@@ -429,10 +429,10 @@ export default function AdminAiModelsView() {
       <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete AI Model"
-        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("admin.aiModels.deleteModel")}
+        description={`${t("admin.common.confirmDelete")} "${deleteTarget?.name}"?`}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         onConfirm={() => {
           if (deleteTarget) delMut.mutate(deleteTarget.id);
           setDeleteTarget(null);

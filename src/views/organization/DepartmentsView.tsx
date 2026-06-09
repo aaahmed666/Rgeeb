@@ -104,7 +104,7 @@ export default function DepartmentsView() {
             <LayoutGrid className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">
+            <h1 className="text-lg font-bold sm:text-xl">
               {t("departments.title", "Departments")}
             </h1>
             <p className="text-sm text-muted-foreground">

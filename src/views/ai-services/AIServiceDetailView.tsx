@@ -150,7 +150,7 @@ function StaticDetailView({ service }: Props) {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold sm:text-3xl">
+              <h1 className="text-lg font-bold sm:text-xl">
                 {service.label}
               </h1>
               <Badge
@@ -175,7 +175,7 @@ function StaticDetailView({ service }: Props) {
             className="gap-2"
           >
             <Settings2 className="h-4 w-4" />
-            Configure
+            {t("aiServices.configure")}
           </Button>
           <Button
             size="sm"
@@ -260,7 +260,7 @@ function StaticDetailView({ service }: Props) {
                 {service.detailedDescription}
               </p>
               <div>
-                <p className="text-sm font-semibold mb-2">Use Cases</p>
+                <p className="text-sm font-semibold mb-2">{t("aiServices.useCases")}</p>
                 <ul className="space-y-1.5">
                   {service.useCases.map((uc) => (
                     <li
@@ -362,7 +362,7 @@ function StaticDetailView({ service }: Props) {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
-                Detection Trend (Last 7 Days)
+                {t("aiServices.detectionTrend")}
               </CardTitle>
             </CardHeader>
             <CardContent>

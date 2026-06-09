@@ -70,8 +70,8 @@ export default function FoodicsInventoryAuditPage() {
   }, [fetchZones, fetchHistory]);
 
   const handleAddZone = async () => {
-    if (!newZoneName.trim()) { setAddError("Zone name is required."); return; }
-    if (!newZoneBranch) { setAddError("Please select a branch."); return; }
+    if (!newZoneName.trim()) { setAddError(t("validation.required")); return; }
+    if (!newZoneBranch) { setAddError(t("validation.required")); return; }
     setAddLoading(true);
     setAddError("");
     try {
@@ -80,7 +80,7 @@ export default function FoodicsInventoryAuditPage() {
       setNewZoneName("");
       await fetchZones();
     } catch {
-      setAddError("Failed to create zone.");
+      setAddError(t("admin.common.addFailed"));
     } finally {
       setAddLoading(false);
     }
@@ -101,7 +101,7 @@ export default function FoodicsInventoryAuditPage() {
   };
 
   const handleDeleteZone = async (id: string) => {
-    if (!confirm("Delete this zone?")) return;
+    if (!confirm(t("validation.deleteConfirm"))) return;
     try {
       await foodicsService.deleteInventoryZone(id);
       await fetchZones();
@@ -119,7 +119,7 @@ export default function FoodicsInventoryAuditPage() {
   if (!hasPermission("foodics.inventory.audits.read")) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="text-lg font-semibold text-muted-foreground">Access Denied</p>
+        <p className="text-lg font-semibold text-muted-foreground">{t("foodics.accessDenied")}</p>
         <p className="text-sm text-muted-foreground mt-1">You don&apos;t have permission to view Inventory Audit.</p>
       </div>
     );
@@ -136,7 +136,7 @@ export default function FoodicsInventoryAuditPage() {
               activeTab === "zones" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Package className="w-4 h-4" /> Zones
+            <Package className="w-4 h-4" /> {t("foodics.zoneName")}
           </button>
           <button
             onClick={() => setActiveTab("history")}
@@ -144,7 +144,7 @@ export default function FoodicsInventoryAuditPage() {
               activeTab === "history" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <History className="w-4 h-4" /> Audit History
+            <History className="w-4 h-4" /> {t("foodics.auditHistory")}
           </button>
         </div>
 
@@ -153,7 +153,7 @@ export default function FoodicsInventoryAuditPage() {
           <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
             <select value={branchId} onChange={(e) => setBranchId(e.target.value)}
               className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none">
-              <option value="">All Branches</option>
+              <option value="">{t("foodics.allBranches")}</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             {activeTab === "zones" && (
@@ -161,7 +161,7 @@ export default function FoodicsInventoryAuditPage() {
                 onClick={() => setShowAdd(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition"
               >
-                <Plus className="w-4 h-4" /> Add Zone
+                <Plus className="w-4 h-4" /> {t("foodics.addZone")}
               </button>
             )}
           </div>
@@ -174,7 +174,7 @@ export default function FoodicsInventoryAuditPage() {
             ) : zones.length === 0 ? (
               <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-sm text-blue-700 dark:text-blue-300">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                No inventory zones configured. Click &quot;Add Zone&quot; to create one.
+                {t("foodics.noInventory")}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -247,18 +247,18 @@ export default function FoodicsInventoryAuditPage() {
                 <thead>
                   <tr className="border-b border-border text-muted-foreground text-xs uppercase">
                     <th className="text-left py-3 px-2">ID</th>
-                    <th className="text-left py-3 px-2">Zone</th>
-                    <th className="text-left py-3 px-2">Date</th>
-                    <th className="text-left py-3 px-2">Status</th>
-                    <th className="text-right py-3 px-2">Items Audited</th>
-                    <th className="text-right py-3 px-2">Discrepancies</th>
-                    <th className="text-left py-3 px-2">Branch</th>
+                    <th className="text-left py-3 px-2">{t("foodics.zoneName")}</th>
+                    <th className="text-left py-3 px-2">{t("foodics.date")}</th>
+                    <th className="text-left py-3 px-2">{t("foodics.status")}</th>
+                    <th className="text-right py-3 px-2">{t("foodics.activeItems")}</th>
+                    <th className="text-right py-3 px-2">{t("foodics.discrepancy")}</th>
+                    <th className="text-left py-3 px-2">{t("foodics.branch")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {auditHistory.length === 0 ? (
                     <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">
-                      No audit history found
+                      {t("foodics.noCashDrawer")}
                     </td></tr>
                   ) : (
                     auditHistory.map((a) => (
@@ -288,10 +288,10 @@ export default function FoodicsInventoryAuditPage() {
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-card-foreground mb-4">Add Inventory Zone</h3>
+            <h3 className="text-lg font-bold text-card-foreground mb-4">{t("foodics.addZone")}</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-muted-foreground">Zone Name</label>
+                <label className="text-sm text-muted-foreground">{t("foodics.zoneName")}</label>
                 <input
                   type="text"
                   value={newZoneName}
@@ -301,13 +301,13 @@ export default function FoodicsInventoryAuditPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Branch</label>
+                <label className="text-sm text-muted-foreground">{t("foodics.branch")}</label>
                 <select
                   value={newZoneBranch}
                   onChange={(e) => setNewZoneBranch(e.target.value)}
                   className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
                 >
-                  <option value="">Select branch...</option>
+                  <option value="">{t("common.select")}</option>
                   {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
@@ -322,13 +322,13 @@ export default function FoodicsInventoryAuditPage() {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition"
               >
                 {addLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Add Zone
+                {t("foodics.addZone")}
               </button>
               <button
                 onClick={() => { setShowAdd(false); setAddError(""); setNewZoneName(""); }}
                 className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted transition"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </div>

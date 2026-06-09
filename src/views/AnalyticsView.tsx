@@ -104,7 +104,7 @@ export default function AnalyticsView() {
               <BarChart3 className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">
+              <h1 className="text-lg font-bold sm:text-xl">
                 {t("analytics.title", "Analytics")}
               </h1>
               <p className="mt-1 text-sm text-white/90">

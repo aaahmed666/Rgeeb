@@ -82,7 +82,7 @@ export default function FoodicsFootfallPage() {
   if (!hasPermission("foodics.branches.customersServed")) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="text-lg font-semibold text-muted-foreground">Access Denied</p>
+        <p className="text-lg font-semibold text-muted-foreground">{t("foodics.accessDenied")}</p>
         <p className="text-sm text-muted-foreground mt-1">You don&apos;t have permission to view Footfall Analytics.</p>
       </div>
     );
@@ -92,12 +92,12 @@ export default function FoodicsFootfallPage() {
     <div className="p-6 space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <StatCard icon={PersonStanding} label="Total Footfall" value={String(stats.total_footfall)} bg="bg-indigo-500" />
-        <StatCard icon={ShoppingCart} label="Total Orders" value={String(stats.total_orders)} bg="bg-emerald-500" />
-        <StatCard icon={ArrowRightLeft} label="Conversion Rate" value={stats.conversion_rate != null ? `${fmt(stats.conversion_rate)}%` : "—"} bg="bg-slate-500" />
-        <StatCard icon={DollarSign} label="Total Revenue" value={`SAR ${fmt(stats.total_revenue)}`} bg="bg-sky-500" />
-        <StatCard icon={TrendingUp} label="Revenue/Visitor" value={stats.revenue_per_visitor != null ? `SAR ${fmt(stats.revenue_per_visitor)}` : "—"} bg="bg-violet-500" />
-        <StatCard icon={Calendar} label="Avg Daily Footfall" value={String(stats.avg_daily_footfall)} bg="bg-amber-500" />
+        <StatCard icon={PersonStanding} label={t("foodics.footfallCount")} value={String(stats.total_footfall)} bg="bg-indigo-500" />
+        <StatCard icon={ShoppingCart} label={t("foodics.totalOrders")} value={String(stats.total_orders)} bg="bg-emerald-500" />
+        <StatCard icon={ArrowRightLeft} label={t("foodics.conversion")} value={stats.conversion_rate != null ? `${fmt(stats.conversion_rate)}%` : "—"} bg="bg-slate-500" />
+        <StatCard icon={DollarSign} label={t("foodics.revenue")} value={`SAR ${fmt(stats.total_revenue)}`} bg="bg-sky-500" />
+        <StatCard icon={TrendingUp} label={t("foodics.footfall")} value={stats.revenue_per_visitor != null ? `SAR ${fmt(stats.revenue_per_visitor)}` : "—"} bg="bg-violet-500" />
+        <StatCard icon={Calendar} label={t("foodics.footfallDesc")} value={String(stats.avg_daily_footfall)} bg="bg-amber-500" />
       </div>
 
       {/* Tabs */}
@@ -109,7 +109,7 @@ export default function FoodicsFootfallPage() {
               activeTab === "daily" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Calendar className="w-4 h-4" /> Daily Summary
+            <Calendar className="w-4 h-4" /> {t("dateRanges.today")}
           </button>
           <button
             onClick={() => setActiveTab("hourly")}
@@ -117,7 +117,7 @@ export default function FoodicsFootfallPage() {
               activeTab === "hourly" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Clock className="w-4 h-4" /> Hourly Breakdown
+            <Clock className="w-4 h-4" /> {t("analytics.detectionsByCamera")}
           </button>
         </div>
 
@@ -126,7 +126,7 @@ export default function FoodicsFootfallPage() {
           <div className="flex flex-wrap gap-3 mb-4">
             <select value={branchId} onChange={(e) => { setBranchId(e.target.value); }}
               className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none">
-              <option value="">Branch</option>
+              <option value="">{t("foodics.branch")}</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             <SharedDateRangePicker
@@ -142,7 +142,7 @@ export default function FoodicsFootfallPage() {
           ) : activeTab === "daily" ? (
             records.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                No conversion data available for this period.
+                {t("foodics.noFootfall")}
               </div>
             ) : (
               <div className="space-y-2">
@@ -154,7 +154,7 @@ export default function FoodicsFootfallPage() {
                     </div>
                     <div className="grid grid-cols-4 gap-4 text-sm">
                       <div>
-                        <p className="text-xs text-muted-foreground">Footfall</p>
+                        <p className="text-xs text-muted-foreground">{t("foodics.footfallCount")}</p>
                         <p className="font-semibold">{r.footfall}</p>
                         <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
@@ -164,15 +164,15 @@ export default function FoodicsFootfallPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Orders</p>
+                        <p className="text-xs text-muted-foreground">{t("foodics.orders")}</p>
                         <p className="font-semibold">{r.orders}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Conversion</p>
+                        <p className="text-xs text-muted-foreground">{t("foodics.conversion")}</p>
                         <p className="font-semibold">{fmt(r.conversion_rate)}%</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Revenue</p>
+                        <p className="text-xs text-muted-foreground">{t("foodics.revenue")}</p>
                         <p className="font-semibold">SAR {fmt(r.revenue)}</p>
                       </div>
                     </div>
@@ -191,9 +191,9 @@ export default function FoodicsFootfallPage() {
                   <thead>
                     <tr className="border-b border-border text-muted-foreground text-xs uppercase">
                       <th className="text-left py-3 px-2">Hour</th>
-                      <th className="text-right py-3 px-2">Avg Footfall</th>
-                      <th className="text-right py-3 px-2">Avg Orders</th>
-                      <th className="text-right py-3 px-2">Avg Conversion</th>
+                      <th className="text-right py-3 px-2">{t("foodics.footfallCount")}</th>
+                      <th className="text-right py-3 px-2">{t("foodics.totalOrders")}</th>
+                      <th className="text-right py-3 px-2">{t("foodics.conversion")}</th>
                     </tr>
                   </thead>
                   <tbody>

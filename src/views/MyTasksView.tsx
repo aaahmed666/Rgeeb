@@ -113,7 +113,7 @@ export default function MyTasksView() {
     <div className="space-y-6 p-4 md:p-6" dir={isRtl ? "rtl" : "ltr"}>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <h1 className="flex items-center gap-2 text-lg font-bold">
             <ClipboardCheck className="h-6 w-6 text-primary" />
             {t("myTasks.title", "My Tasks")}
           </h1>
