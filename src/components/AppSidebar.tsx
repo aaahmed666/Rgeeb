@@ -140,7 +140,9 @@ export function AppSidebar() {
   const pathname = usePathname();
   const isRtl = i18n.dir() === "rtl";
   const [openGroup, setOpenGroup] = React.useState<string | null>(null);
-  const [openSubGroups, setOpenSubGroups] = React.useState<Record<string, string | null>>({});
+  const [openSubGroups, setOpenSubGroups] = React.useState<
+    Record<string, string | null>
+  >({});
 
   const getOpenSubGroup = (parentLabel: string): string | null =>
     openSubGroups[parentLabel] ?? null;
@@ -720,42 +722,42 @@ export function AppSidebar() {
     {
       href: "/dashboard/admin",
       icon: LayoutDashboard,
-      label: t("admin.dashboard"),
+      label: t("admin.dashboard.title", "Dashboard"),
     },
     {
       href: "/dashboard/admin/clients",
       icon: Users,
-      label: t("admin.users", "Users"),
+      label: t("admin.users.title", "Users"),
     },
     {
       href: "/dashboard/admin/categories",
       icon: Tag,
-      label: t("admin.categories"),
+      label: t("admin.categories.title", "Categories"),
     },
     {
       href: "/dashboard/admin/services",
       icon: Briefcase,
-      label: t("admin.services"),
+      label: t("admin.services.title", "Services"),
     },
     {
       href: "/dashboard/admin/packages",
       icon: Package,
-      label: t("admin.packages"),
+      label: t("admin.packages.title", "Packages"),
     },
     {
       href: "/dashboard/admin/ai-models",
       icon: Bot,
-      label: t("admin.aiModels"),
+      label: t("admin.aiModels.title", "AI Models"),
     },
     {
       href: "/dashboard/admin/settings",
       icon: Settings,
-      label: t("admin.settings"),
+      label: t("admin.settings", "Settings"),
     },
     {
       href: "/dashboard/admin/subscriptions",
       icon: CreditCard,
-      label: t("admin.subscriptions"),
+      label: t("admin.subscriptions.title", "Subscriptions"),
     },
     {
       href: "/dashboard/admin/cities",
@@ -838,7 +840,8 @@ export function AppSidebar() {
           onMouseLeave={handleMouseLeave}
         >
           {/* Parent header */}
-          <Link prefetch={true}
+          <Link
+            prefetch={true}
             href={item.href}
             className={cn(
               "flex items-center gap-2.5 px-3 py-2 text-sm font-semibold",
@@ -875,7 +878,8 @@ export function AppSidebar() {
                       </div>
                       {/* Leaf children indented */}
                       {(sg.children ?? []).map((c) => (
-                        <Link prefetch={true}
+                        <Link
+                          prefetch={true}
                           key={c.label}
                           href={c.href}
                           className={cn(
@@ -897,7 +901,8 @@ export function AppSidebar() {
                     </div>
                   ))
                 : (item.children ?? []).map((c) => (
-                    <Link prefetch={true}
+                    <Link
+                      prefetch={true}
                       key={c.label}
                       href={c.href}
                       className={cn(
@@ -968,7 +973,8 @@ export function AppSidebar() {
         isActive={isActive(item.href)}
         tooltip={collapsed ? undefined : item.label}
       >
-        <Link prefetch={true}
+        <Link
+          prefetch={true}
           href={item.href}
           className={cn(
             "flex w-full items-center gap-2",
@@ -1005,7 +1011,9 @@ export function AppSidebar() {
       <Collapsible
         key={subGroup.label}
         open={isOpen}
-        onOpenChange={(o) => setOpenSubGroup(parentLabel, o ? subGroup.label : null)}
+        onOpenChange={(o) =>
+          setOpenSubGroup(parentLabel, o ? subGroup.label : null)
+        }
         className="group/subcollapsible"
       >
         <SidebarMenuSubItem>
@@ -1036,7 +1044,8 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive(c.href)}
                     >
-                      <Link prefetch={true}
+                      <Link
+                        prefetch={true}
                         href={c.href}
                         className={cn(
                           "flex items-center gap-2",
@@ -1132,7 +1141,8 @@ export function AppSidebar() {
                           asChild
                           isActive={isActive(c.href)}
                         >
-                          <Link prefetch={true}
+                          <Link
+                            prefetch={true}
                             href={c.href}
                             className={cn(
                               "flex items-center gap-2",
@@ -1265,14 +1275,23 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border">
         {/* User info row */}
         {!collapsed && (
-          <div className={cn("flex items-center gap-2.5 px-3 py-2.5 border-b border-sidebar-border/50", isRtl && "flex-row-reverse")}>
+          <div
+            className={cn(
+              "flex items-center gap-2.5 px-3 py-2.5 border-b border-sidebar-border/50",
+              isRtl && "flex-row-reverse"
+            )}
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
               {(user?.name ?? "?").charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-sidebar-foreground">{user?.name ?? ""}</p>
+              <p className="truncate text-xs font-semibold text-sidebar-foreground">
+                {user?.name ?? ""}
+              </p>
               <p className="truncate text-[10px] text-sidebar-foreground/50">
-                {isAdmin ? t("common.roleAdmin", "Admin") : t("common.roleUser", "User")}
+                {isAdmin
+                  ? t("common.roleAdmin", "Admin")
+                  : t("common.roleUser", "User")}
               </p>
             </div>
           </div>
@@ -1282,7 +1301,10 @@ export function AppSidebar() {
             <SidebarMenuButton
               onClick={logout}
               tooltip={t("common.logout")}
-              className={cn("text-destructive/80 hover:text-destructive hover:bg-destructive/10", isRtl && "flex-row-reverse")}
+              className={cn(
+                "text-destructive/80 hover:text-destructive hover:bg-destructive/10",
+                isRtl && "flex-row-reverse"
+              )}
             >
               <LogOut className="h-4 w-4" />
               <span>{t("common.logout")}</span>
