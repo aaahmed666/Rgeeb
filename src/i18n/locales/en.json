@@ -61,7 +61,10 @@
     "selectBranch": "Select Branch",
     "saveSuccess": "Saved successfully",
     "saveFailed": "Failed to save",
-    "showingOf": "Showing {{start}}–{{end}} of {{total}}"
+    "showingOf": "Showing {{start}}–{{end}} of {{total}}",
+    "arabicNamePlaceholder": "Arabic name",
+    "arabicDescPlaceholder": "Arabic description",
+    "arabicCountryPlaceholder": "Country in Arabic"
   },
   "sidebar": {
     "statistics": "Statistics",
@@ -345,7 +348,8 @@
     "newSignups": "New Signups",
     "revenue": "Revenue",
     "selectDateRange": "Select Date Range",
-    "dateRange": "Date Range"
+    "dateRange": "Date Range",
+    "noFlowData": "No visitor flow data"
   },
   "statistics": {
     "title": "Statistics",
@@ -386,7 +390,10 @@
     "branchComparison": "Branch Comparison",
     "detectionViolationRates": "Detection & violation rates",
     "detectionsShort": "detections",
-    "noCameraData": "No camera data"
+    "noCameraData": "No camera data",
+    "customRange": "Custom Range",
+    "noData": "No detection data for this period",
+    "noServiceData": "No service data available"
   },
   "reports": {
     "title": "Reports Overview",
@@ -658,7 +665,9 @@
     "shareAnalytics": "Share usage analytics",
     "shareAnalyticsHint": "Help us improve the product",
     "personalisedContent": "Personalised content",
-    "personalisedContentHint": "Use my activity to tailor results"
+    "personalisedContentHint": "Use my activity to tailor results",
+    "notificationsDesc": "For detailed channel settings (Telegram, Email) go to Notification Settings.",
+    "securityDesc": "For 2FA setup go to Preferences → Security."
   },
   "profile": {
     "title": "My Profile",
@@ -1094,7 +1103,8 @@
       "frequency": "Frequency",
       "nextRun": "Next Run"
     },
-    "dateRange": "Date Range"
+    "dateRange": "Date Range",
+    "selectDateRange": "Select Date Range"
   },
   "subscription": {
     "title": "Subscription",
@@ -1139,7 +1149,10 @@
     "getStarted": "Get Started",
     "current": "Current Subscription",
     "expired": "Expired",
-    "subscriptions_empty": "No subscriptions found"
+    "subscriptions_empty": "No subscriptions found",
+    "addServicesDesc": "Select additional services to add to your plan",
+    "choosePlanDesc": "Select a package to activate your subscription",
+    "noAvailableServices": "No additional services available"
   },
   "intents": {
     "visitor_count": "Visitor Count",
@@ -1384,7 +1397,13 @@
     "email": "Email Address",
     "password": "Password",
     "linkAccount": "Link Account",
-    "secureTitle": "Secure Connection"
+    "secureTitle": "Secure Connection",
+    "confirmUnlink": "Are you sure you want to unlink your Fatoorah account?",
+    "connectedDesc": "Your Fatoorah account is linked and active.",
+    "linkFailed": "Failed to link account. Please check your credentials.",
+    "secureDesc": "Your credentials are encrypted and securely stored. We never share your information with third parties.",
+    "flowDiagramTitle": "Registration → Fatoorah flow diagram",
+    "flowDiagramDesc": "Click any step to ask the AI assistant about that part of the code."
   },
   "auth": {
     "brand": {
@@ -1605,7 +1624,8 @@
     "sla": "SLA Report",
     "exportExcel": "Export Excel",
     "noData": "No data available for the selected period",
-    "generate": "Generate Report"
+    "generate": "Generate Report",
+    "selectDateRange": "Select Date Range"
   },
   "templates": {
     "title": "Task Templates",
@@ -1785,7 +1805,15 @@
     "status": "Status",
     "identity": "National ID",
     "total": "Total Employees",
-    "searchPlaceholder": "Search employees…"
+    "searchPlaceholder": "Search employees…",
+    "activeHint": "Employee can log in and use the system",
+    "drawerSubtitle": "Fill in the details to add a new employee",
+    "employeeCodeHint": "Unique employee identifier",
+    "mainAdminHint": "Grant full administrative access",
+    "nationalIdHint": "Saudi ID or residency number",
+    "passwordOptional": "Password (leave blank to keep)",
+    "uploadCertificate": "Upload Certificate Image",
+    "workingHoursSubtitle": "Set schedule for each day of the week"
   },
   "branches": {
     "title": "Branches",
@@ -2052,7 +2080,8 @@
     "tab_notif": "Notifications",
     "tab_rules": "Rules",
     "threshold": "Threshold",
-    "triggerType": "Trigger Type"
+    "triggerType": "Trigger Type",
+    "subtitle": "Configure escalation rules and review the alert log."
   },
   "scheduler": {
     "matchFailed": "Failed to fetch recommendation",
@@ -2090,7 +2119,9 @@
     "suggestWorkers": "Suggest Workers",
     "taskId": "Task ID",
     "warnings": "Warnings",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "selectPlaceholder": "Choose a task",
+    "subtitle": "Automatically assign tasks to the best worker at the optimal time"
   },
   "taskAnalytics": {
     "title": "Task Analytics",

@@ -67,7 +67,6 @@ import {
   fetchBranches,
   fetchDepartments,
 } from "@/services/organizationService";
-import { fetchRoles } from "@/services/rolesService";
 
 const DAYS = [
   "Sunday",
@@ -492,11 +491,6 @@ function EmployeeDrawer({
     queryFn: () => fetchDepartments(),
     enabled: open,
   });
-  const { data: roles = [] } = useQuery({
-    queryKey: ["roles"],
-    queryFn: () => fetchRoles(),
-    enabled: open,
-  });
 
   useEffect(() => {
     if (open) {
@@ -722,24 +716,15 @@ function EmployeeDrawer({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>{t("employees.role", "Role")}</Label>
-                  <Select
-                    value={form.role_id || undefined}
-                    onValueChange={(v) => setForm({ ...form, role_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("common.select", "Select")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem
-                          key={r.id}
-                          value={r.id}
-                        >
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AsyncPaginatedSelect
+                    endpoint="/customer/roles"
+                    labelKey="name"
+                    valueKey="id"
+                    value={form.role_id || null}
+                    onChange={(v) => setForm({ ...form, role_id: v ?? "" })}
+                    placeholder={t("common.select", "Select")}
+                    isClearable
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t("employees.department", "Department")}</Label>

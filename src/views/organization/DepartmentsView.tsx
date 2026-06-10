@@ -49,11 +49,10 @@ import {
   deleteDepartment,
   fetchDepartments,
   updateDepartment,
-  fetchBranches,
-  fetchEmployees,
 } from "@/services/organizationService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { usePermission } from "@/hooks/usePermission";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 export default function DepartmentsView() {
   const { t } = useTranslation();
@@ -276,18 +275,6 @@ function DepartmentDrawer({
     branch_id: "",
   });
 
-  const { data: branches = [] } = useQuery({
-    queryKey: ["org", "branches"],
-    queryFn: () => fetchBranches(),
-    enabled: open,
-  });
-
-  const { data: employees = [] } = useQuery({
-    queryKey: ["org", "employees"],
-    queryFn: () => fetchEmployees(),
-    enabled: open,
-  });
-
   useEffect(() => {
     if (open) {
       setForm({
@@ -375,50 +362,30 @@ function DepartmentDrawer({
 
           <div className="space-y-1.5">
             <Label>{t("departments.manager", "Manager")}</Label>
-            <Select
-              value={form.manager_id || undefined}
-              onValueChange={(v) => setForm({ ...form, manager_id: v })}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={t("common.selectManager", "Select Manager")}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((e) => (
-                  <SelectItem
-                    key={e.id}
-                    value={e.id}
-                  >
-                    {e.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncPaginatedSelect
+              endpoint="/customer/employees"
+              labelKey="name"
+              valueKey="id"
+              extraParams={{ active: 1 }}
+              value={form.manager_id || null}
+              onChange={(v) => setForm({ ...form, manager_id: v ?? "" })}
+              placeholder={t("common.selectManager", "Select Manager")}
+              isClearable
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>{t("departments.branch", "Branch")}</Label>
-            <Select
-              value={form.branch_id || undefined}
-              onValueChange={(v) => setForm({ ...form, branch_id: v })}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={t("common.selectBranch", "Select Branch")}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.map((b) => (
-                  <SelectItem
-                    key={b.id}
-                    value={b.id}
-                  >
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncPaginatedSelect
+              endpoint="/customer/branches"
+              labelKey="name"
+              valueKey="id"
+              extraParams={{ active: 1 }}
+              value={form.branch_id || null}
+              onChange={(v) => setForm({ ...form, branch_id: v ?? "" })}
+              placeholder={t("common.selectBranch", "Select Branch")}
+              isClearable
+            />
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">

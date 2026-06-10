@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 // right= prop (not action=)
 import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader";
@@ -223,11 +223,11 @@ export default function AdminClientsView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("admin.clients.clientName")} (EN) *</Label>
-                <Input value={form.name_en ?? ""} onChange={f("name_en")} placeholder="John Doe" />
+                <Input dir="ltr" value={form.name_en ?? ""} onChange={f("name_en")} placeholder="John Doe" />
               </div>
               <div className="space-y-1.5">
                 <Label>{t("admin.clients.clientName")} (AR)</Label>
-                <Input dir="rtl" value={form.name_ar ?? ""} onChange={f("name_ar")} placeholder="الاسم" />
+                <Input dir="rtl" value={form.name_ar ?? ""} onChange={f("name_ar")} placeholder={t("common.arabicNamePlaceholder", "الاسم")} />
               </div>
             </div>
             <div className="space-y-1.5">

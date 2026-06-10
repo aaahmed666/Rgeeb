@@ -125,7 +125,7 @@ export async function fetchTaskRuleStats(): Promise<TaskRuleStats> {
 }
 
 export async function createTaskRule(input: TaskRuleInput): Promise<TaskRule> {
-  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.list, {
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.save, {
     method: "POST",
     body: input,
   });
@@ -136,13 +136,13 @@ export async function updateTaskRule(
   id: string,
   input: Partial<TaskRuleInput>,
 ): Promise<TaskRule> {
-  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.update(id), {
-    method: "PATCH",
-    body: input,
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.save, {
+    method: "POST",
+    body: { id, ...input },
   });
   return mapRule((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
 export async function deleteTaskRule(id: string): Promise<void> {
-  await apiFetch(endpoints.taskRules.update(id), { method: "DELETE" });
+  await apiFetch(endpoints.taskRules.delete(id), { method: "POST", body: { id } });
 }

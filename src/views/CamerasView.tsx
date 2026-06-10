@@ -60,10 +60,12 @@ import { DataTable } from "@/components/ui/data-table";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { usePermission } from "@/hooks/usePermission";
 import { useTranslation } from "react-i18next";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 const EMPTY: CameraInput = {
   name: "",
   stream_url: "",
+  branch_id: "",
   location: "",
   active: true,
 };
@@ -150,6 +152,7 @@ export default function CamerasView() {
     setForm({
       name: cam.name,
       stream_url: cam.streamUrl ?? "",
+      branch_id: cam.branchId ?? "",
       location: cam.location ?? "",
       ip_address: cam.ipAddress ?? "",
       model: cam.model ?? "",
@@ -393,6 +396,19 @@ export default function CamerasView() {
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
                 placeholder="Camera name"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>{t("cameras.branch", "Branch")} *</Label>
+              <AsyncPaginatedSelect
+                endpoint="/customer/branches"
+                labelKey="name"
+                valueKey="id"
+                extraParams={{ active: 1 }}
+                value={form.branch_id || null}
+                onChange={(v) => setForm((f) => ({ ...f, branch_id: v ?? "" }))}
+                placeholder={t("common.selectBranch", "Select branch")}
+                isClearable
               />
             </div>
             <div className="grid gap-1.5">

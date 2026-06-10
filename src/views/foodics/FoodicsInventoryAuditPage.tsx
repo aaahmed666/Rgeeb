@@ -4,11 +4,9 @@ import { useTranslation } from "react-i18next";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Loader2, Plus, Trash2, Edit2, X, Check, History,
-  Package, AlertCircle,
-} from "lucide-react";
+  Package, AlertCircle } from "lucide-react";
 import { foodicsService, FoodicsInventoryZone, FoodicsInventoryAudit } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
-import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 
 export default function FoodicsInventoryAuditPage() {
   const { hasPermission } = useAuth();

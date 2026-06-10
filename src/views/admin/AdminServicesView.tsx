@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import {
   AdminPageHeader,
   StatusPill,
@@ -124,6 +124,7 @@ function ServiceDialog({
           <div className="space-y-1.5">
             <Label>{t("admin.services.englishName")} *</Label>
             <Input
+              dir="ltr"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
               placeholder="Service name in English"
@@ -134,7 +135,7 @@ function ServiceDialog({
             <Input
               value={nameAr}
               onChange={(e) => setNameAr(e.target.value)}
-              placeholder="اسم الخدمة بالعربية"
+              placeholder={t("common.arabicNamePlaceholder", "اسم الخدمة بالعربية")}
               dir="rtl"
             />
           </div>

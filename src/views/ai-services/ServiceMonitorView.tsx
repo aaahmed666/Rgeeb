@@ -1,27 +1,19 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import {
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
   Camera,
-  Trash2,
-} from "lucide-react";
+  Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DataTable, ExportCSVButton, ExportPDFButton, ExportExcelButton } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 import { cn } from "@/lib/utils";
@@ -294,32 +286,18 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             value={dateRange}
             onChange={setDateRange}
           />
-          {branches.length > 0 && (
-            <Select
-              value={branchId}
-              onValueChange={setBranchId}
-            >
-              <SelectTrigger className="w-36 h-9 text-sm">
-                <SelectValue placeholder={t("serviceMonitor.allBranches", "All Branches")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("serviceMonitor.allBranches", "All Branches")}</SelectItem>
-                {branches.map((b) => (
-                  <SelectItem
-                    key={b.id}
-                    value={String(b.id)}
-                  >
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {branches.length === 0 && (
-            <div className="flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm text-muted-foreground">
-              <Camera className="h-4 w-4" /> {t("serviceMonitor.allBranches", "All Branches")}
-            </div>
-          )}
+          <div className="min-w-[160px]">
+            <AsyncPaginatedSelect
+              endpoint="/customer/branches"
+              labelKey="name"
+              valueKey="id"
+              extraParams={{ active: 1 }}
+              value={branchId === "all" ? null : branchId}
+              onChange={(v) => setBranchId(v ?? "all")}
+              placeholder={t("serviceMonitor.allBranches", "All Branches")}
+              isClearable
+            />
+          </div>
           <Badge
             variant="outline"
             className={cn(

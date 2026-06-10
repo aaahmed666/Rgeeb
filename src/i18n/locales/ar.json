@@ -61,7 +61,10 @@
     "status": "الحالة",
     "selectManager": "اختر المدير",
     "selectBranch": "اختر الفرع",
-    "showingOf": "عرض {{start}}–{{end}} من {{total}}"
+    "showingOf": "عرض {{start}}–{{end}} من {{total}}",
+    "arabicNamePlaceholder": "الاسم بالعربية",
+    "arabicDescPlaceholder": "الوصف بالعربية",
+    "arabicCountryPlaceholder": "الإمارات العربية المتحدة"
   },
   "sidebar": {
     "statistics": "الإحصائيات",
@@ -345,7 +348,8 @@
     "newSignups": "تسجيلات جديدة",
     "revenue": "الإيرادات",
     "dateRange": "نطاق التاريخ",
-    "selectDateRange": "اختر نطاق التاريخ"
+    "selectDateRange": "اختر نطاق التاريخ",
+    "noFlowData": "لا توجد بيانات تدفق الزوار"
   },
   "statistics": {
     "title": "الإحصائيات",
@@ -386,7 +390,10 @@
     "branchComparison": "مقارنة الفروع",
     "detectionViolationRates": "معدلات الكشف والمخالفات",
     "detectionsShort": "عملية كشف",
-    "noCameraData": "لا توجد بيانات للكاميرا"
+    "noCameraData": "لا توجد بيانات للكاميرا",
+    "customRange": "نطاق مخصص",
+    "noData": "لا توجد بيانات كشف لهذه الفترة",
+    "noServiceData": "لا توجد بيانات خدمة متاحة"
   },
   "reports": {
     "title": "نظرة عامة على التقارير",
@@ -658,7 +665,9 @@
     "shareAnalytics": "مشاركة إحصاءات الاستخدام",
     "shareAnalyticsHint": "ساعدنا في تحسين المنتج",
     "personalisedContent": "محتوى مخصص",
-    "personalisedContentHint": "استخدم نشاطي لتخصيص النتائج"
+    "personalisedContentHint": "استخدم نشاطي لتخصيص النتائج",
+    "notificationsDesc": "للإعدادات التفصيلية (تيليغرام، البريد) انتقل إلى إعدادات الإشعارات.",
+    "securityDesc": "لإعداد المصادقة الثنائية انتقل إلى التفضيلات ← الأمان."
   },
   "profile": {
     "title": "ملفي الشخصي",
@@ -740,7 +749,13 @@
     "secureTitle": "اتصال آمن",
     "unlinkAccount": "إلغاء الربط",
     "unlinked": "تم إلغاء ربط حساب Fatoorah",
-    "unlinkFailed": "فشل إلغاء الربط"
+    "unlinkFailed": "فشل إلغاء الربط",
+    "confirmUnlink": "هل أنت متأكد من إلغاء ربط حساب فاتورة؟",
+    "connectedDesc": "حساب فاتورة مرتبط وجاهز.",
+    "linkFailed": "فشل في ربط الحساب. يرجى التحقق من بيانات الاعتماد.",
+    "secureDesc": "بياناتك مشفرة ومحمية. لن نشارك معلوماتك مع أطراف ثالثة.",
+    "flowDiagramTitle": "مخطط تدفق التسجيل والفاتورة",
+    "flowDiagramDesc": "انقر على أي خطوة لسؤال المساعد الذكي عن هذا الجزء من الكود."
   },
   "admin": {
     "dashboard": {
@@ -1122,7 +1137,8 @@
       "frequency": "التكرار",
       "nextRun": "التشغيل القادم"
     },
-    "dateRange": "نطاق التاريخ"
+    "dateRange": "نطاق التاريخ",
+    "selectDateRange": "اختر نطاق التاريخ"
   },
   "subscription": {
     "title": "الاشتراك",
@@ -1167,7 +1183,10 @@
     "renewFailed": "فشل تجديد الاشتراك",
     "subscribe": "اشتراك",
     "renew": "تجديد",
-    "subscriptions_empty": "لا توجد اشتراكات"
+    "subscriptions_empty": "لا توجد اشتراكات",
+    "addServicesDesc": "اختر خدمات إضافية لإضافتها إلى خطتك",
+    "choosePlanDesc": "اختر باقة لتفعيل اشتراكك",
+    "noAvailableServices": "لا توجد خدمات إضافية متاحة"
   },
   "intents": {
     "visitor_count": "عدد الزوار",
@@ -1605,7 +1624,8 @@
     "sla": "تقرير مستوى الخدمة",
     "exportExcel": "تصدير Excel",
     "noData": "لا توجد بيانات للفترة المحددة",
-    "generate": "إنشاء التقرير"
+    "generate": "إنشاء التقرير",
+    "selectDateRange": "اختر نطاق التاريخ"
   },
   "templates": {
     "title": "قوالب المهام",
@@ -1785,7 +1805,15 @@
     "nationalId": "الهوية الوطنية / الإقامة",
     "employeeCode": "رمز الموظف",
     "statusPermissions": "الحالة والصلاحيات",
-    "dayOffLabel": "يوم إجازة"
+    "dayOffLabel": "يوم إجازة",
+    "activeHint": "يمكن للموظف تسجيل الدخول واستخدام النظام",
+    "drawerSubtitle": "أدخل تفاصيل الموظف الجديد",
+    "employeeCodeHint": "معرّف الموظف الفريد",
+    "mainAdminHint": "منح صلاحيات إدارية كاملة",
+    "nationalIdHint": "رقم الهوية الوطنية أو الإقامة",
+    "passwordOptional": "كلمة المرور (اتركها فارغة للاحتفاظ بالحالية)",
+    "uploadCertificate": "رفع صورة الشهادة",
+    "workingHoursSubtitle": "حدد الجدول الزمني لكل يوم من أيام الأسبوع"
   },
   "branches": {
     "title": "الفروع",
@@ -2055,7 +2083,8 @@
     "colTask": "المهمة",
     "colRecipient": "المستلم",
     "colStatus": "الحالة",
-    "colTime": "الوقت"
+    "colTime": "الوقت",
+    "subtitle": "إعداد قواعد التصعيد ومراجعة سجل التنبيهات."
   },
   "kanban": {
     "newTask": "مهمة جديدة",
@@ -2171,7 +2200,9 @@
     "score": "النتيجة",
     "recommendedSchedule": "الجدول المقترح",
     "due": "الموعد",
-    "noFactors": "لا توجد عوامل إضافية."
+    "noFactors": "لا توجد عوامل إضافية.",
+    "selectPlaceholder": "اختر مهمة",
+    "subtitle": "تعيين المهام تلقائياً للموظف الأنسب في الوقت المثالي"
   },
   "security": {
     "confirm": "تأكيد",

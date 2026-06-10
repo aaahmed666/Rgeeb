@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { BarChart3, Trophy, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";

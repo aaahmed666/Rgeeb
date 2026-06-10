@@ -27,8 +27,7 @@ import {
   Trophy,
   Activity,
   Grid3x3,
-  Calendar,
-} from "lucide-react";
+  Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -37,11 +36,8 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { DataTable } from "@/components/ui/data-table";
+  TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { statusTone } from "@/components/br-intelligence/utils";
 import type {
   HourlyPeak,
   EfficiencyRow,
@@ -49,8 +45,7 @@ import type {
   TrendForecast,
   AiInsight,
   BranchHealth,
-  ServiceMatrixCell,
-} from "@/services/intelligenceService";
+  ServiceMatrixCell } from "@/services/intelligenceService";
 import { useTranslation } from "react-i18next";
 
 /* ---------------- helpers ---------------- */

@@ -10,15 +10,15 @@ import {
   CheckCircle2,
   Eye,
   ShieldAlert,
-  Video,
-} from "lucide-react";
+  Video } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
+import type { DateRange } from "rsuite/DateRangePicker";
 import {
   analyticsService,
   type AnalyticsSummary,
@@ -26,10 +26,9 @@ import {
   type BranchRow,
   type CameraRow,
   type ServiceBreakdown,
-  type TrendPoint,
-} from "@/services/analyticsService";
+  type TrendPoint } from "@/services/analyticsService";
 
-type RangeKey = "7" | "14" | "30";
+type RangeKey = "7" | "14" | "30" | "custom";
 
 function rangeFor(key: RangeKey) {
   const to = new Date();
@@ -45,6 +44,7 @@ export default function AnalyticsView() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [range, setRange] = useState<RangeKey>("7");
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [branchId, setBranchId] = useState<string>("all");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
@@ -54,9 +54,18 @@ export default function AnalyticsView() {
   const [byBranch, setByBranch] = useState<BranchRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Compute date strings — stable references when range/branchId don't change
-  const from = useMemo(() => rangeFor(range).from, [range]);
-  const to   = useMemo(() => rangeFor(range).to,   [range]);
+  // Derive from/to: custom picker takes priority over preset buttons
+  const from = useMemo(() => {
+    if (range === "custom" && dateRange?.[0])
+      return dateRange[0].toISOString().slice(0, 10);
+    return rangeFor(range === "custom" ? "7" : range).from;
+  }, [range, dateRange]);
+
+  const to = useMemo(() => {
+    if (range === "custom" && dateRange?.[1])
+      return dateRange[1].toISOString().slice(0, 10);
+    return rangeFor(range === "custom" ? "7" : range).to;
+  }, [range, dateRange]);
 
   // Single combined effect: runs when from/to/branchId change
   useEffect(() => {
@@ -121,7 +130,7 @@ export default function AnalyticsView() {
               {(["7", "14", "30"] as RangeKey[]).map((k) => (
                 <button
                   key={k}
-                  onClick={() => setRange(k)}
+                  onClick={() => { setRange(k); setDateRange(null); }}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-sm font-medium transition",
                     range === k
@@ -132,6 +141,17 @@ export default function AnalyticsView() {
                   {k} {t("analytics.days", "Days")}
                 </button>
               ))}
+            </div>
+            {/* Custom date range picker */}
+            <div className="min-w-[220px]">
+              <SharedDateRangePicker
+                value={dateRange}
+                onChange={(val) => {
+                  setDateRange(val);
+                  if (val) setRange("custom");
+                }}
+                placeholder={t("analytics.customRange", "Custom Range")}
+              />
             </div>
             <AsyncPaginatedSelect
                 endpoint="/customer/branches"

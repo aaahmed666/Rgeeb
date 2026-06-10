@@ -26,7 +26,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/admin/AdminPageHeader";
 // Postman: POST /admin/users/create  fields: name_ar, name_en, email, password, phone, active, main_admin, client_id
 // Postman: POST /admin/users/update  fields: name_ar, name_en, email, password, phone, active, id, main_admin, client_id
@@ -137,6 +137,7 @@ function UserDialog({ open, onOpenChange, user }: {
             <div className="space-y-1.5">
               <Label>Name (EN) *</Label>
               <Input
+                dir="ltr"
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
                 placeholder="John Doe"
@@ -148,7 +149,7 @@ function UserDialog({ open, onOpenChange, user }: {
                 dir="rtl"
                 value={nameAr}
                 onChange={(e) => setNameAr(e.target.value)}
-                placeholder="الاسم"
+                placeholder={t("common.arabicNamePlaceholder", "الاسم")}
               />
             </div>
           </div>

@@ -31,18 +31,15 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  Trophy,
-} from "lucide-react";
+  Trophy } from "lucide-react";
 
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import {
   Table,
@@ -50,21 +47,18 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { getAuthToken } from "@/lib/api";
 import {
   useBrIntelligenceData,
   useBrIntelligenceSummary,
-  type BrIntelligenceFilters,
-} from "@/components/br-intelligence/useBrIntelligence";
+  type BrIntelligenceFilters } from "@/components/br-intelligence/useBrIntelligence";
 import {
   statusTone,
   type RangeKey,
-  rangeFor,
-} from "@/components/br-intelligence/utils";
+  rangeFor } from "@/components/br-intelligence/utils";
 import type {
   HourlyPeak,
   EfficiencyRow,
@@ -72,12 +66,11 @@ import type {
   TrendForecast,
   AiInsight,
   BranchHealth,
-  ServiceMatrixCell,
-} from "@/services/intelligenceService";
+  ServiceMatrixCell } from "@/services/intelligenceService";
 import {
   Section,
-  SummaryCard,
   ScoreRing,
+  SummaryCard,
   Bar,
   RankCard,
   ClassCard,
@@ -90,8 +83,7 @@ import {
   BranchHealthTable,
   Sparkline,
   ServiceBranchMatrix,
-  ForecastSection,
-} from "@/views/BrIntelligenceHelpers";
+  ForecastSection } from "@/views/BrIntelligenceHelpers";
 
 export default function BrIntelligenceView() {
   const { t } = useTranslation();

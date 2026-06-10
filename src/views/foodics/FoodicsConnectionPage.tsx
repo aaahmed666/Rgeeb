@@ -8,11 +8,9 @@ import {
   Plug,
   RefreshCw,
   Unlink,
-  AlertCircle,
-} from "lucide-react";
+  AlertCircle } from "lucide-react";
 import { foodicsService, FoodicsStatus } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
-import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 
 const SERVICE_ICONS = [
   {

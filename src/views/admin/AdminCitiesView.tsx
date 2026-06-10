@@ -20,13 +20,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { useTranslation } from "react-i18next";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { useAuth } from "@/lib/auth";
 import { usePermission } from "@/hooks/usePermission";
-import { ShieldAlert, Download } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 // All mutations go through the service layer — no raw api/endpoints in views
 import {
@@ -239,7 +239,7 @@ export default function AdminCitiesView() {
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>{t("admin.cities_nameEn")}</Label>
-              <Input value={form.name_en} onChange={set("name_en")} placeholder="Dubai" />
+              <Input dir="ltr" value={form.name_en} onChange={set("name_en")} placeholder="Dubai" />
             </div>
             <div className="grid gap-1.5">
               <Label>{t("admin.cities_nameAr")}</Label>

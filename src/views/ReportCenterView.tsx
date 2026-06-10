@@ -21,8 +21,7 @@ import {
   Gauge,
   Trash2,
   RefreshCw,
-  Plus,
-} from "lucide-react";
+  Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -30,27 +29,23 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+  CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
@@ -68,8 +63,7 @@ import {
   scheduleReport,
   toTemplateSlug,
   type ReportFormat,
-  type ScheduleReportPayload,
-} from "@/services/reportCenterService";
+  type ScheduleReportPayload } from "@/services/reportCenterService";
 
 /* ------------------------------------------------------------------ */
 /* Icon registry                                                         */

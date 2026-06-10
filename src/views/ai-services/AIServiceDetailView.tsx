@@ -18,10 +18,8 @@ import {
   Download,
   Eye,
   Zap,
-  ShieldAlert,
-} from "lucide-react";
+  ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";

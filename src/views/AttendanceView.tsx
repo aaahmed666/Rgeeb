@@ -10,10 +10,9 @@ import {
   RefreshCw,
   Search,
   ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+  ChevronRight } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +22,7 @@ import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 import {
   fetchAttendances,
-  fetchAttendanceDashboard,
-} from "@/services/attendanceService";
+  fetchAttendanceDashboard } from "@/services/attendanceService";
 import { useAuth } from "@/lib/auth";
 
 const PER_PAGE = 15;

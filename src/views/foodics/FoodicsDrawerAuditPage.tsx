@@ -4,13 +4,10 @@ import { useTranslation } from "react-i18next";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Loader2, ChevronLeft, ChevronRight, CreditCard,
-  AlertTriangle, AlertOctagon, Percent, Link2Off, Flag,
-} from "lucide-react";
+  AlertTriangle, AlertOctagon, Percent, Link2Off, Flag } from "lucide-react";
 import {
-  foodicsService, FoodicsDrawerAudit, FoodicsDrawerStats, PatternFlag,
-} from "@/services/foodicsService";
+  foodicsService, FoodicsDrawerAudit, FoodicsDrawerStats, PatternFlag } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
-import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
 

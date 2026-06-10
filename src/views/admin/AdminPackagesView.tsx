@@ -43,7 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AdminPageHeader,
@@ -170,12 +170,13 @@ function PackageDialog({
                 dir="rtl"
                 value={nameAr}
                 onChange={(e) => setNameAr(e.target.value)}
-                placeholder="الاسم بالعربية"
+                placeholder={t("common.arabicNamePlaceholder", "الاسم بالعربية")}
               />
             </div>
             <div className="space-y-1.5">
               <Label>{t("admin.packages.englishName")} *</Label>
               <Input
+                dir="ltr"
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
                 placeholder="English name"
@@ -188,7 +189,7 @@ function PackageDialog({
               dir="rtl"
               value={descAr}
               onChange={(e) => setDescAr(e.target.value)}
-              placeholder="الوصف بالعربية"
+              placeholder={t("common.arabicDescPlaceholder", "الوصف بالعربية")}
               rows={2}
             />
           </div>

@@ -4,11 +4,9 @@ import { useTranslation } from "react-i18next";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Loader2, PersonStanding, ShoppingCart, ArrowRightLeft,
-  DollarSign, TrendingUp, Calendar, Clock,
-} from "lucide-react";
+  DollarSign, TrendingUp, Calendar, Clock } from "lucide-react";
 import { foodicsService, FoodicsFootfallRecord, FoodicsFootfallStats, HourlyBreakdown } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
-import { ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
 

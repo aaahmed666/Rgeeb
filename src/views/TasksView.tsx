@@ -30,8 +30,7 @@ import {
   Trash2,
   TrendingUp,
   UserCheck,
-  Zap,
-} from "lucide-react";
+  Zap } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,8 +41,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,15 +50,13 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus } from "lucide-react";
@@ -68,8 +64,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { cn } from "@/lib/utils";
@@ -79,8 +74,7 @@ import { toast } from "sonner";
 import {
   tasksService,
   type TaskItem,
-  type TaskSummary,
-} from "@/services/tasksService";
+  type TaskSummary } from "@/services/tasksService";
 import { TaskBoard } from "@/views/TaskBoard";
 
 const ALL = "__all__";

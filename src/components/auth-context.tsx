@@ -15,7 +15,6 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { isRtl as checkRtl } from "@/lib/i18n";
 import { ShieldIllustration, Icon } from "@/app/assets/icons/auth-icon";
-import { COLORS } from "@/components/auth-styles";
 import { useTheme as useAppTheme } from "@/lib/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

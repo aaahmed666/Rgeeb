@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { usePermission } from "@/hooks/usePermission";
 import { ShieldAlert } from "lucide-react";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,6 +212,7 @@ export default function AdminCountriesView() {
             <div className="grid gap-1.5">
               <Label>{t("admin.countries_nameEn")}</Label>
               <Input
+                dir="ltr"
                 value={form.name_en}
                 onChange={set("name_en")}
                 placeholder="United Arab Emirates"
@@ -223,7 +224,7 @@ export default function AdminCountriesView() {
                 dir="rtl"
                 value={form.name_ar}
                 onChange={set("name_ar")}
-                placeholder="الإمارات العربية المتحدة"
+                placeholder={t("common.arabicCountryPlaceholder", "الإمارات العربية المتحدة")}
               />
             </div>
             <div className="grid gap-1.5">

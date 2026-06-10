@@ -86,18 +86,29 @@ export async function fetchAttendanceDashboard(params?: {
 }
 
 export async function checkIn(data: {
-  employee_id?: string;
+  user_id: string;           // Postman: user_id (not employee_id)
+  photo_file?: File | null;  // Postman: photo_file (FormData file upload)
   branch_id?: string;
-  face_image?: string;
   notes?: string;
 }): Promise<AttendanceRecord> {
-  const raw = await api.post<unknown>(endpoints.attendance.checkIn, data);
+  // Build FormData when photo_file is present (Postman uses multipart)
+  let body: FormData | Record<string, unknown>;
+  if (data.photo_file) {
+    const fd = new FormData();
+    fd.append("user_id", data.user_id);
+    fd.append("photo_file", data.photo_file);
+    if (data.branch_id) fd.append("branch_id", data.branch_id);
+    if (data.notes) fd.append("notes", data.notes);
+    body = fd;
+  } else {
+    body = { user_id: data.user_id, branch_id: data.branch_id, notes: data.notes };
+  }
+  const raw = await api.post<unknown>(endpoints.attendance.checkIn, body);
   return mapAttendance(pickObject(raw));
 }
 
 export async function checkOut(data: {
-  attendance_id: string;
-  face_image?: string;
+  attendance_id: string;  // Postman: attendance_id
   notes?: string;
 }): Promise<AttendanceRecord> {
   const raw = await api.post<unknown>(endpoints.attendance.checkOut, data);

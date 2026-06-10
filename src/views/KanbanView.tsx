@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "sonner";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import {
   tasksService,
   type TaskItem,
@@ -103,8 +104,6 @@ interface TaskFormProps {
   initial?: Partial<TaskItem>;
   branches: LookupOption[];
   employees: LookupOption[];
-  departments: LookupOption[];
-  projects: LookupOption[];
   onSubmit: (payload: TaskPayload) => void;
   onClose: () => void;
   isSubmitting: boolean;
@@ -115,8 +114,6 @@ function TaskForm({
   initial,
   branches,
   employees,
-  departments,
-  projects,
   onSubmit,
   onClose,
   isSubmitting,
@@ -298,39 +295,28 @@ function TaskForm({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("projects.projectName")}</Label>
-                <select
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">— {t("common.noData")} —</option>
-                  {projects.map((p) => (
-                    <option
-                      key={p.id}
-                      value={p.id}
-                    >
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                <AsyncPaginatedSelect
+                  endpoint="/customer/projects"
+                  labelKey="name"
+                  valueKey="id"
+                  value={projectId || null}
+                  onChange={(v) => setProjectId(v ?? "")}
+                  placeholder={`— ${t("common.noData")} —`}
+                  isClearable
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>{t("navigation.departments")}</Label>
-                <select
-                  value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">— {t("common.noData")} —</option>
-                  {departments.map((d) => (
-                    <option
-                      key={d.id}
-                      value={d.id}
-                    >
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                <AsyncPaginatedSelect
+                  endpoint="/customer/departments"
+                  labelKey="name_en"
+                  valueKey="id"
+                  extraParams={{ active: 1 }}
+                  value={departmentId || null}
+                  onChange={(v) => setDepartmentId(v ?? "")}
+                  placeholder={`— ${t("common.noData")} —`}
+                  isClearable
+                />
               </div>
             </div>
 
@@ -570,14 +556,6 @@ function KanbanPageRoute() {
     queryKey: ["lookup", "employees"],
     queryFn: () => tasksService.listEmployees(),
   });
-  const { data: departments = [] } = useQuery({
-    queryKey: ["lookup", "departments"],
-    queryFn: () => tasksService.listDepartments(),
-  });
-  const { data: projects = [] } = useQuery({
-    queryKey: ["lookup", "projects"],
-    queryFn: () => tasksService.listProjects(),
-  });
 
   const pages = q.data?.pages ?? [];
   const items: TaskItem[] = React.useMemo(
@@ -692,8 +670,6 @@ function KanbanPageRoute() {
   const sharedFormProps = {
     branches,
     employees,
-    departments,
-    projects,
   };
 
   return (

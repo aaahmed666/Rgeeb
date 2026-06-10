@@ -27,19 +27,16 @@ import {
   Box,
   Shield,
   LayoutGrid,
-  List,
-} from "lucide-react";
+  List } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { fetchAllPermissions, fetchRoles } from "@/services/rolesService";
 import type { Permission, Role } from "@/services/rolesService";
 import { cn } from "@/lib/utils";
-import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({

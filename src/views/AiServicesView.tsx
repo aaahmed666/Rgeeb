@@ -4,8 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
-import { Search, ChevronDown, ChevronUp, Brain, ShieldAlert,
-} from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Brain } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

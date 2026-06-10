@@ -158,9 +158,9 @@ export const endpoints = {
     create:    "/customer/tasks/create",
     update:    "/customer/tasks/update",
     delete:    "/customer/tasks/delete",
-    status:    "/customer/tasks/update-status",  // POST { id, status }
-    dashboard: "/customer/tasks/dashboard",      // task KPI dashboard
-    branches:  "/customer/branches",             // branch list used by task filters
+    status:    "/customer/tasks/update",    // Postman: POST /update with { id, status } — no separate status endpoint
+    dashboard: "/customer/tasks/dashboard",
+    branches:  "/customer/branches",
   },
 
   // ── My Tasks ─────────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ export const endpoints = {
   // ── Task Rules ───────────────────────────────────────────────────────────────
   taskRules: {
     list:   "/customer/task-rules",
-    save:   "/customer/task-rules/save",
+    save:   "/customer/task-rules/save",    // POST — create & update per Postman
     update: (id: string | number) => `/customer/task-rules/${id}`,
     delete: (id: string | number) => `/customer/task-rules/${id}`,
   },

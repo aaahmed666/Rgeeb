@@ -42,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataTable , ExportCSVButton, ExportPDFButton } from "@/components/ui/data-table";
+import { DataTable  } from "@/components/ui/data-table";
 import {
   AdminPageHeader,
   StatusPill,
@@ -152,12 +152,13 @@ function CategoryDialog({
               dir="rtl"
               value={nameAr}
               onChange={(e) => setNameAr(e.target.value)}
-              placeholder="الاسم بالعربية"
+              placeholder={t("common.arabicNamePlaceholder", "الاسم بالعربية")}
             />
           </div>
           <div className="space-y-1.5">
             <Label>{t("categories.nameEn", "English Name")} *</Label>
             <Input
+              dir="ltr"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
               placeholder="English name"

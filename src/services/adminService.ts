@@ -460,6 +460,22 @@ export interface AdminAiModelInput {
   "service_ids[]"?: (string | number)[];
 }
 
+function buildAiModelFormData(
+  input: Partial<AdminAiModelInput> & { id?: string | number }
+): FormData {
+  const fd = new FormData();
+  if (input.id !== undefined) fd.append("id", String(input.id));
+  if (input.name !== undefined) fd.append("name", input.name);
+  if (input.version !== undefined) fd.append("version", input.version);
+  if (input.model_path !== undefined) fd.append("model_path", input.model_path);
+  if (input.active !== undefined) fd.append("active", input.active ? "1" : "0");
+  // Postman: service_ids[] with indexed keys
+  (input["service_ids[]"] ?? []).forEach((sid, idx) => {
+    fd.append(`service_ids[${idx}]`, String(sid));
+  });
+  return fd;
+}
+
 export async function createAdminAiModel(
   input: AdminAiModelInput
 ): Promise<AdminAiModel> {
@@ -467,7 +483,7 @@ export async function createAdminAiModel(
     unwrap(
       await api.post<unknown>(
         endpoints.admin.aiModelCreate,
-        buildAiModelBody(input)
+        buildAiModelFormData(input)
       )
     )
   );
@@ -479,10 +495,10 @@ export async function updateAdminAiModel(
 ): Promise<AdminAiModel> {
   return mapAiModel(
     unwrap(
-      await api.post<unknown>(endpoints.admin.aiModelUpdate, {
-        id: modelId,
-        ...buildAiModelBody(input),
-      })
+      await api.post<unknown>(
+        endpoints.admin.aiModelUpdate,
+        buildAiModelFormData({ id: modelId, ...input })
+      )
     )
   );
 }
@@ -491,20 +507,6 @@ export async function deleteAdminAiModel(
   modelId: string | number
 ): Promise<void> {
   await api.post<unknown>(endpoints.admin.aiModelDelete, { id: modelId });
-}
-
-function buildAiModelBody(
-  input: Partial<AdminAiModelInput>
-): Record<string, unknown> {
-  const body: Record<string, unknown> = {};
-  if (input.name !== undefined) body.name = input.name;
-  if (input.version !== undefined) body.version = input.version;
-  if (input.model_path !== undefined) body.model_path = input.model_path;
-  if (input.active !== undefined) body.active = input.active;
-  (input["service_ids[]"] ?? []).forEach((sid, idx) => {
-    body[`service_ids[${idx}]`] = sid;
-  });
-  return body;
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
