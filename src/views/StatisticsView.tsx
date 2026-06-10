@@ -37,20 +37,25 @@ function toISO(d: Date) {
 
 function rangeFor(preset: Preset): [Date, Date] {
   const now = new Date();
+  // Ensure end date is never in the future
+  const today = new Date(now);
+  today.setHours(23, 59, 59, 999);
+  const cap = (d: Date): Date => (d > today ? today : d);
+
   if (preset === "7d") {
     const d = new Date(now);
     d.setDate(d.getDate() - 6);
-    return [d, now];
+    return [d, cap(now)];
   }
   if (preset === "30d") {
     const d = new Date(now);
     d.setDate(d.getDate() - 29);
-    return [d, now];
+    return [d, cap(now)];
   }
   if (preset === "month") {
-    return [new Date(now.getFullYear(), now.getMonth(), 1), now];
+    return [new Date(now.getFullYear(), now.getMonth(), 1), cap(now)];
   }
-  return [new Date(now.getFullYear(), 0, 1), now];
+  return [new Date(now.getFullYear(), 0, 1), cap(now)];
 }
 
 const TABS: {
@@ -99,14 +104,18 @@ export default function StatisticsView() {
     [canFetch, from, to]
   );
 
+  // Auto-load when date range or tab changes
   useEffect(() => {
-    void load(tab);
+    if (canFetch) {
+      void load(tab);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, from, to]);
 
   const applyPreset = (p: Preset) => {
     setActivePreset(p);
     setDateRange(rangeFor(p));
+    // Note: the useEffect above will fire automatically when from/to change
   };
 
   // Read guard handled via auth aliases — isAdmin bypasses all

@@ -510,7 +510,7 @@ export const dashboardService = {
       "aiServices",
       "services"
     );
-    if (!arr.length) return DEMO_AI_SERVICES;
+    if (!arr.length) return [];
     return arr.map((s, i) => {
       const o = (s ?? {}) as Record<string, unknown>;
       const rawName = String(
@@ -562,7 +562,7 @@ export const dashboardService = {
   ): Promise<VisitorFlowPoint[]> => {
     const d = await fetchDashboard(f);
     const arr = pickArr(d ?? undefined, "visitor_flow", "visitorFlow", "flow");
-    if (!arr.length) return DEMO_VISITOR_FLOW;
+    if (!arr.length) return [];
     return arr.map((p) => {
       const o = (p ?? {}) as Record<string, unknown>;
       return {
@@ -586,7 +586,7 @@ export const dashboardService = {
       "recent_detections",
       "recentDetections"
     );
-    if (!arr.length) return DEMO_LIVE_ACTIVITY;
+    if (!arr.length) return [];
     return arr.map((a, i) => {
       const o = (a ?? {}) as Record<string, unknown>;
       const type = String(o.type ?? "event");
@@ -611,10 +611,10 @@ export const dashboardService = {
     });
   },
 
-  getAttendance: async (f: DashboardFilters = {}): Promise<AttendanceData> => {
+  getAttendance: async (f: DashboardFilters = {}): Promise<AttendanceData | null> => {
     const d = await fetchDashboard(f);
     const a = (d?.attendance as Record<string, unknown>) ?? null;
-    if (!a) return DEMO_ATTENDANCE;
+    if (!a) return null;
     return {
       total: pickNum(a, "total", "total_employees"),
       checkedIn: pickNum(a, "checked_in", "checkedIn"),
@@ -624,10 +624,10 @@ export const dashboardService = {
     };
   },
 
-  getCompliance: async (f: DashboardFilters = {}): Promise<ComplianceData> => {
+  getCompliance: async (f: DashboardFilters = {}): Promise<ComplianceData | null> => {
     const d = await fetchDashboard(f);
     const c = (d?.compliance as Record<string, unknown>) ?? null;
-    if (!c) return DEMO_COMPLIANCE;
+    if (!c) return null;
     return {
       score: pickNum(c, "score"),
       totalDetections: pickNum(c, "total_detections", "totalDetections"),
@@ -646,7 +646,7 @@ export const dashboardService = {
       "detectionsBreakdown",
       "breakdown"
     );
-    if (!arr.length) return DEMO_BREAKDOWN;
+    if (!arr.length) return [];
     return arr.map((b) => {
       const o = (b ?? {}) as Record<string, unknown>;
       return {
@@ -667,7 +667,7 @@ export const dashboardService = {
       "branchesSummary",
       "branches"
     );
-    if (!arr.length) return DEMO_BRANCHES;
+    if (!arr.length) return [];
     return arr.map((b, i) => {
       const o = (b ?? {}) as Record<string, unknown>;
       const camCount = (o.cameras_count as number) ?? 0;

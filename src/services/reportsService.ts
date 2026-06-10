@@ -141,8 +141,7 @@ const demo: Record<ReportTab, ReportPayload> = {
 export async function fetchReport(
   tab: ReportTab,
   filters: ReportFilters,
-): Promise<ReportPayload> {
-  // Try the real statistics endpoint first; fall back to demo data
+): Promise<ReportPayload | null> {
   try {
     const data = await apiFetch<Partial<ReportPayload>>(
       endpoints.reports.statistics,
@@ -150,14 +149,13 @@ export async function fetchReport(
     );
     if (data && (data.metrics || data.rows)) {
       return {
-        metrics: data.metrics ?? demo[tab].metrics,
-        columns: data.columns ?? demo[tab].columns,
-        rows:    data.rows    ?? demo[tab].rows,
+        metrics: data.metrics ?? [],
+        columns: data.columns ?? [],
+        rows:    data.rows    ?? [],
       };
     }
-    return demo[tab];
+    return null;
   } catch {
-    // Endpoint not available yet — use demo data silently
-    return demo[tab];
+    return null;
   }
 }

@@ -96,10 +96,7 @@ export function Section({
           />
         </span>
       </div>
-      {/* Always render children in print mode; otherwise only when open */}
-      <div className={cn("border-t px-5 py-4", !open && "hidden print:block")}>
-        {children}
-      </div>
+      {open && <div className="border-t px-5 py-4">{children}</div>}
     </Card>
   );
 }
@@ -507,13 +504,9 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
 
   if (rows.length === 0) return <Skeleton className="h-40 w-full" />;
 
-  // Resolve the actual branch objects; fall back to positional defaults only
-  // when no explicit selection has been made yet (empty string).
-  const resolvedA = selectedA || rows[0]?.branch || "";
-  const resolvedB = selectedB || rows[1]?.branch || rows[0]?.branch || "";
-
-  const branchA = rows.find((r) => r.branch === resolvedA) ?? rows[0];
-  const branchB = rows.find((r) => r.branch === resolvedB) ?? rows[1] ?? rows[0];
+  const branchA = rows.find((r) => r.branch === selectedA) ?? rows[0];
+  const branchB =
+    rows.find((r) => r.branch === selectedB) ?? rows[1] ?? rows[0];
 
   const metrics: {
     key: "score" | "compliance" | "violation_rate" | "task_rate";
@@ -540,7 +533,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-indigo-500" />
           <select
-            value={resolvedA}
+            value={branchA.branch}
             onChange={(e) => setSelectedA(e.target.value)}
             className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
           >
@@ -558,7 +551,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-teal-500" />
           <select
-            value={resolvedB}
+            value={branchB.branch}
             onChange={(e) => setSelectedB(e.target.value)}
             className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
           >

@@ -633,7 +633,7 @@ export const intelligenceService = {
       >(endpoints.intelligence.efficiencyIndex, { query: q(f) }).then((r) =>
         normalizeEfficiency(unwrapArray(r))
       ),
-      demoEfficiency
+      [] as EfficiencyRow[]
     ),
 
   rankings: (f: IntelFilters, top = 3) =>
@@ -646,7 +646,7 @@ export const intelligenceService = {
           (r as { data: RawRankings }).data ?? (r as RawRankings)
         )
       ),
-      demoRankings
+      null as Rankings | null
     ),
 
   heatmap: (f: IntelFilters, service?: string) =>
@@ -657,7 +657,7 @@ export const intelligenceService = {
       ).then((r) =>
         normalizeHeatmap((r as { data: RawHeatmap }).data ?? (r as RawHeatmap))
       ),
-      demoHeatmap
+      null as HeatmapPayload | null
     ),
 
   branchHealth: (f: IntelFilters) =>
@@ -666,7 +666,7 @@ export const intelligenceService = {
         endpoints.intelligence.branchHealth,
         { query: q(f) }
       ).then((r) => normalizeBranchHealth(unwrapArray(r))),
-      demoBranchHealth
+      [] as BranchHealth[]
     ),
 
   serviceMatrix: (f: IntelFilters) =>
@@ -679,7 +679,7 @@ export const intelligenceService = {
           (r as { data: RawServiceMatrix }).data ?? (r as RawServiceMatrix)
         )
       ),
-      demoMatrix
+      [] as ServiceMatrixCell[]
     ),
 
   aiInsights: (f: IntelFilters) =>
@@ -688,7 +688,7 @@ export const intelligenceService = {
         endpoints.intelligence.aiInsights,
         { query: q(f) }
       ).then((r) => normalizeInsights(unwrapArray(r))),
-      demoInsights
+      [] as AiInsight[]
     ),
 
   anomalies: (f: IntelFilters) =>
@@ -701,7 +701,7 @@ export const intelligenceService = {
           (r as { anomalies: RawAnomaly[] });
         return normalizeAnomalies(inner.anomalies ?? []);
       }),
-      demoAnomalies
+      [] as Anomaly[]
     ),
 
   forecast: (f: IntelFilters) =>
@@ -714,7 +714,7 @@ export const intelligenceService = {
           (r as { data: RawForecast }).data ?? (r as RawForecast)
         )
       ),
-      demoForecast
+      null as TrendForecast | null
     ),
 
   hourly: (f: IntelFilters) =>
@@ -727,7 +727,7 @@ export const intelligenceService = {
           (r as { hourly: RawHourlyItem[] });
         return normalizeHourly(inner.hourly ?? []);
       }),
-      demoHourly
+      [] as HourlyPeak[]
     ),
 
   comparison: (f: IntelFilters) =>
@@ -741,7 +741,7 @@ export const intelligenceService = {
             (r as RawPeriodComparison)
         )
       ),
-      demoComparison
+      [] as PeriodComparison[]
     ),
 
   availableServices: () =>

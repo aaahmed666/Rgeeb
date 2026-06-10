@@ -9,8 +9,13 @@ export function rangeFor(
   customFrom?: string,
   customTo?: string
 ): { from: string; to: string } {
+  const today = new Date().toISOString().slice(0, 10);
   if (k === "custom" && customFrom && customTo) {
-    return { from: customFrom, to: customTo };
+    // Cap the end date to today to prevent fetching future data
+    const cappedTo = customTo > today ? today : customTo;
+    // Ensure from <= to
+    const cappedFrom = customFrom > cappedTo ? cappedTo : customFrom;
+    return { from: cappedFrom, to: cappedTo };
   }
   const to = new Date();
   const from = new Date();

@@ -298,9 +298,9 @@ export default function DashboardView() {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold sm:text-xl">
-                {t("dashboard.welcome", { name: displayName })}
+                {t("dashboard.welcome", { name: displayName })}{" "}
+                <Hand className="inline-block h-6 w-6 -rotate-12 align-middle" />
               </h1>
-              <Hand className="h-7 w-7 -rotate-12" />
             </div>
             <p className="text-sm opacity-90">
               {t("dashboard.realtimeOverview")}
@@ -402,10 +402,16 @@ export default function DashboardView() {
 
           <div className="flex flex-wrap gap-1 border-b">
             {AI_CATEGORIES.map((c) => {
+              // Count against search-filtered list so badges stay accurate
+              const searchFiltered = serviceQuery.trim()
+                ? services.filter((s) =>
+                    s.name.toLowerCase().includes(serviceQuery.toLowerCase())
+                  )
+                : services;
               const count =
                 c.key === "all"
-                  ? services.length
-                  : services.filter((s) => s.category === c.key).length;
+                  ? searchFiltered.length
+                  : searchFiltered.filter((s) => s.category === c.key).length;
               const active = category === c.key;
               return (
                 <button
@@ -502,16 +508,21 @@ export default function DashboardView() {
               <Button
                 size="sm"
                 className="gap-1.5"
+                asChild
               >
-                <Plus className="h-4 w-4" /> {t("dashboard.createTask")}
+                <Link href="/dashboard/tasks?action=create">
+                  <Plus className="h-4 w-4" /> {t("dashboard.createTask")}
+                </Link>
               </Button>
               <Button
                 size="sm"
-                variant={assignedToMe ? "default" : "outline"}
-                onClick={() => setAssignedToMe((v) => !v)}
+                variant="outline"
                 className="gap-1.5"
+                asChild
               >
-                <UserCheck className="h-4 w-4" /> {t("dashboard.myTasks")}
+                <Link href="/dashboard/my-tasks">
+                  <UserCheck className="h-4 w-4" /> {t("dashboard.myTasks")}
+                </Link>
               </Button>
             </div>
           </div>
@@ -565,28 +576,45 @@ export default function DashboardView() {
                 </span>
               </div>
             </div>
-            <div className="flex h-64 items-end gap-1.5">
-              {flow.map((p) => {
-                const h = (p.in / maxFlow) * 100;
-                return (
-                  <div
-                    key={p.hour}
-                    className="group relative flex flex-1 flex-col items-center"
-                  >
-                    <span className="absolute -top-5 text-[10px] font-semibold text-muted-foreground">
-                      {p.in}
-                    </span>
+            <div className="relative flex h-48 items-end gap-1.5">
+              {flow.length === 0 ? (
+                <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                  {t("dashboard.noFlowData", "No visitor flow data")}
+                </div>
+              ) : (
+                flow.map((p) => {
+                  const heightPct = maxFlow > 0 ? (p.in / maxFlow) * 100 : 0;
+                  return (
                     <div
-                      className="w-full rounded-t bg-gradient-to-t from-indigo-500 to-purple-500 transition-all hover:opacity-80"
-                      style={{ height: `${h}%` }}
-                      title={`${p.hour}:00 — ${p.in} in / ${p.out} out`}
-                    />
-                    <span className="mt-1 text-[9px] text-muted-foreground">
-                      {p.hour}
-                    </span>
-                  </div>
-                );
-              })}
+                      key={p.hour}
+                      className="group relative flex flex-1 flex-col items-center"
+                      style={{ height: "100%" }}
+                    >
+                      {/* bar anchored to bottom */}
+                      <div
+                        className="absolute bottom-5 w-full rounded-t bg-gradient-to-t from-indigo-500 to-purple-500 transition-all hover:opacity-80"
+                        style={{ height: `calc(${heightPct}% - 20px)` }}
+                        title={`${p.hour}:00 — ${p.in} in / ${p.out} out`}
+                      />
+                      {/* value label above bar */}
+                      {p.in > 0 && (
+                        <span
+                          className="absolute text-[9px] font-semibold text-muted-foreground"
+                          style={{
+                            bottom: `calc(${heightPct}% - 20px + 4px)`,
+                          }}
+                        >
+                          {p.in}
+                        </span>
+                      )}
+                      {/* hour label at bottom */}
+                      <span className="absolute bottom-0 text-[9px] text-muted-foreground">
+                        {p.hour}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>

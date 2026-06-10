@@ -222,7 +222,14 @@ export default function AnalyticsView() {
                       className="h-full flex-1"
                     />
                   ))
-                : trends.map((p, i) => (
+                : trends.length === 0
+                  ? (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <BarChart3 className="h-10 w-10 opacity-20" />
+                      <p className="text-sm">{t("analytics.noData", "No detection data for this period")}</p>
+                    </div>
+                  )
+                  : trends.map((p, i) => (
                     <div
                       key={p.date ?? i}
                       className="flex flex-1 flex-col items-center gap-1"
@@ -266,7 +273,13 @@ export default function AnalyticsView() {
                       className="h-10"
                     />
                   ))
-                : byService.map((s, i) => (
+                : byService.length === 0
+                  ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      {t("analytics.noServiceData", "No service data available")}
+                    </p>
+                  )
+                  : byService.map((s, i) => (
                     <div
                       key={s.name ?? i}
                       className="space-y-1.5"

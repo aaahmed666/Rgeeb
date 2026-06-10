@@ -706,3 +706,37 @@ button,
   }
   [dir="rtl"] .table-responsive-wrapper tbody td { flex-direction: row-reverse; }
 }
+
+/* ── Print styles for Br Intelligence ───────────────────────────────────── */
+@media print {
+  /* Hide navigation, sidebar, header, FAB, and non-essential elements */
+  aside,
+  nav,
+  header,
+  [data-tour],
+  button[aria-label="close"],
+  .fixed {
+    display: none !important;
+  }
+
+  /* Expand all collapsed sections */
+  [data-section-content] {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure cards don't break awkwardly across pages */
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  /* Avoid page breaks inside cards */
+  [class*="rounded"] {
+    break-inside: avoid;
+  }
+
+  body {
+    font-size: 11px;
+  }
+}

@@ -13,7 +13,10 @@ type RangePreset = {
 const d = (offset = 0): Date => {
   const dt = new Date();
   if (offset) dt.setDate(dt.getDate() + offset);
-  return dt;
+  // Never return a future date
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  return dt > today ? today : dt;
 };
 
 /**
@@ -110,6 +113,7 @@ const SharedDateRangePicker = ({
         value={resolvedValue}
         onChange={handleChange}
         ranges={ranges}
+        shouldDisableDate={(date) => date > new Date()}
         showHeader
         block
         preventOverflow

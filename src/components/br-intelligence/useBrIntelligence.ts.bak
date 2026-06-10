@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   analyticsService,
   type Branch,
@@ -74,8 +74,6 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
   const branchIdFilter = filters.branchId === "all" ? undefined : filters.branchId;
   const { rankTop, activeService } = filters;
 
-  // Main load — does NOT depend on activeService or rankTop so those filters
-  // don't trigger a full re-fetch of every endpoint.
   const load = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true }));
     const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
@@ -111,31 +109,7 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       loading: false,
       updatedAt: new Date(),
     }));
-  }, [dateFrom, dateTo, branchIdFilter]); // ← does NOT include rankTop or activeService
-
-  // Isolated re-fetch for heatmap when service filter changes
-  const loadHeatmap = useCallback(async () => {
-    const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
-    const hm = await intelligenceService.heatmap(
-      computedFilters,
-      activeService === "All" ? undefined : activeService
-    );
-    setState((prev) => ({
-      ...prev,
-      heatmap: hm && typeof hm === "object" && !Array.isArray(hm) ? hm : null,
-    }));
-  }, [dateFrom, dateTo, branchIdFilter, activeService]);
-
-  // Isolated re-fetch for rankings when top-N filter changes
-  const loadRankings = useCallback(async () => {
-    const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
-    const rnk = await intelligenceService.rankings(computedFilters, rankTop);
-    setState((prev) => ({
-      ...prev,
-      rankings:
-        rnk && typeof rnk === "object" && !Array.isArray(rnk) ? rnk : null,
-    }));
-  }, [dateFrom, dateTo, branchIdFilter, rankTop]);
+  }, [dateFrom, dateTo, branchIdFilter, rankTop, activeService]); // ← primitives only
 
   useEffect(() => {
     void analyticsService.getBranches().then((branches) => {
@@ -152,30 +126,9 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     });
   }, []);
 
-  // Full reload when date range or branch changes
   useEffect(() => {
     void load();
   }, [load]);
-
-  // Partial reload: only heatmap when service filter changes (after initial load)
-  const isFirstHeatmapRender = React.useRef(true);
-  useEffect(() => {
-    if (isFirstHeatmapRender.current) {
-      isFirstHeatmapRender.current = false;
-      return;
-    }
-    void loadHeatmap();
-  }, [loadHeatmap]);
-
-  // Partial reload: only rankings when top-N changes (after initial load)
-  const isFirstRankingsRender = React.useRef(true);
-  useEffect(() => {
-    if (isFirstRankingsRender.current) {
-      isFirstRankingsRender.current = false;
-      return;
-    }
-    void loadRankings();
-  }, [loadRankings]);
 
   return state;
 }
