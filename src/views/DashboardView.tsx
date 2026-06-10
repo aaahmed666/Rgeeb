@@ -290,6 +290,23 @@ export default function DashboardView() {
     load();
   }, [load]);
 
+  // Auto-refresh: when viewing today's data (live mode), reload every 30s
+  // to keep detections, attendance, and live activity up to date.
+  // This mirrors the old project's 60s main poll + 15s pulse poll.
+  React.useEffect(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const isLive = from === todayStr && to === todayStr;
+    if (!isLive) return; // only poll in live mode
+
+    const interval = setInterval(() => {
+      // Invalidate cache so next load() fetches fresh data
+      invalidateDashboardCache({ from, to, branchId: branchId === "all" ? undefined : branchId });
+      load();
+    }, 30_000); // 30s — compromise between old 15s pulse and 60s main poll
+
+    return () => clearInterval(interval);
+  }, [from, to, branchId, load]);
+
   // Poll unread-count every 60s (initial fetch on mount, then every minute)
   React.useEffect(() => {
     // Fetch immediately on mount

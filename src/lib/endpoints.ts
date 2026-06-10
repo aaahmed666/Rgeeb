@@ -436,19 +436,23 @@ export const endpoints = {
     subscriptionSingle:  "/admin/subscriptions/single",
     subscriptionsActive: "/admin/subscriptions/active",
 
-    // Cities  (POST/PUT/DELETE use /api/admin/ prefix per Postman)
+    // Cities
+    // NOTE: Postman collection shows /api/admin/cities for POST/PUT/DELETE but
+    // that "/api/" prefix is the backend's own router prefix — NOT the Next.js
+    // proxy prefix.  apiFetch prepends API_BASE_URL ("/api") automatically, so
+    // endpoints here must be relative to the backend root (no leading /api/).
     cities:       "/admin/cities",
-    cityCreate:   "/api/admin/cities",
+    cityCreate:   "/admin/cities",
     citySingle:   (id: string | number) => `/admin/cities/${id}`,
-    cityUpdate:   (id: string | number) => `/api/admin/cities/${id}`,
-    cityDelete:   (id: string | number) => `/api/admin/cities/${id}`,
+    cityUpdate:   (id: string | number) => `/admin/cities/${id}`,
+    cityDelete:   (id: string | number) => `/admin/cities/${id}`,
 
     // Countries
     countries:      "/admin/countries",
-    countryCreate:  "/api/admin/countries",
+    countryCreate:  "/admin/countries",
     countrySingle:  (id: string | number) => `/admin/countries/${id}`,
     countryUpdate:  (id: string | number) => `/admin/countries/${id}`,
-    countryDelete:  (id: string | number) => `/api/admin/countries/${id}`,
+    countryDelete:  (id: string | number) => `/admin/countries/${id}`,
   }
 
 } as const;

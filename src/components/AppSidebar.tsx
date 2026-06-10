@@ -258,7 +258,7 @@ export function AppSidebar() {
       permission: "detection-feed",
     },
     {
-      href: "/dashboard/monitoring",
+      href: "/dashboard/event-timeline",
       icon: CalendarClock,
       label: t("navigation.eventTimeline"),
       permission: "event-timeline",

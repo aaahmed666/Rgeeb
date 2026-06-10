@@ -52,7 +52,27 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 // Permissions that must be active when certain "parent" permissions are selected.
-const REQUIRED_DEPS: Record<string, string[]> = {};
+// Ported from old project's permissionConfig.ts PERMISSION_DEPENDENCIES array.
+// Format: { "child.action": ["required.parent1", "required.parent2"] }
+const REQUIRED_DEPS: Record<string, string[]> = {
+  // task_management sub-permissions require update permission
+  "task_management.assign":        ["task_management.update"],
+  "task_management.updatestatus":  ["task_management.update"],
+  "task_management.addcomment":    ["task_management.update"],
+  "task_management.addattachment": ["task_management.update"],
+  // my_tasks sub-permissions require update permission
+  "my_tasks.assign":               ["my_tasks.update"],
+  "my_tasks.updatestatus":         ["my_tasks.update"],
+  "my_tasks.addcomment":           ["my_tasks.update"],
+  "my_tasks.addattachment":        ["my_tasks.update"],
+};
+
+// Resources that require other resources to be enabled first
+// e.g. task_management.update requires branches.read and employees.read
+const CROSS_RESOURCE_DEPS: Record<string, string[]> = {
+  "task_management.update": ["branches.read", "employees.read"],
+  "my_tasks.update":        ["branches.read", "employees.read"],
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface GroupedPermission {
@@ -606,9 +626,17 @@ function RoleDialog({
   // Toggle single permission
   const togglePerm = (p: Permission, g: GroupedPermission, value: boolean) => {
     const next = new Set(selected);
+    const permKey = p.name.toLowerCase();
     if (value) {
       next.add(p.id);
-      // If this is a parent, also enable children? No — children need separate toggle. Just enable parent.
+      // Auto-enable required parent/dependency permissions (cross-resource deps)
+      const deps = CROSS_RESOURCE_DEPS[permKey];
+      if (deps) {
+        deps.forEach((depName) => {
+          const depPerm = allPerms.find((ap) => ap.name.toLowerCase() === depName);
+          if (depPerm) next.add(depPerm.id);
+        });
+      }
     } else {
       next.delete(p.id);
       // If this is a parent, disable its children too
@@ -617,6 +645,14 @@ function RoleDialog({
           if (parentId === p.id) next.delete(childId);
         });
       }
+      // Also disable any permissions that required this one
+      allPerms.forEach((ap) => {
+        const key = ap.name.toLowerCase();
+        const required = REQUIRED_DEPS[key];
+        if (required?.some((r) => r.toLowerCase() === permKey)) {
+          next.delete(ap.id);
+        }
+      });
     }
     setSelected(next);
   };

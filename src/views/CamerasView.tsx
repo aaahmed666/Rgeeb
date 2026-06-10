@@ -64,10 +64,17 @@ import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 const EMPTY: CameraInput = {
   name: "",
+  code: "",
+  source: "",
   stream_url: "",
   branch_id: "",
   location: "",
+  ip_address: "",
+  model: "",
   active: true,
+  enable_counter: false,
+  min_conf: 80,
+  direction_in: "in",
 };
 
 export default function CamerasView() {
@@ -151,12 +158,17 @@ export default function CamerasView() {
     setEditing(cam);
     setForm({
       name: cam.name,
-      stream_url: cam.streamUrl ?? "",
+      code: cam.code ?? "",
+      source: cam.source ?? cam.streamUrl ?? "",
+      stream_url: cam.streamUrl ?? cam.source ?? "",
       branch_id: cam.branchId ?? "",
       location: cam.location ?? "",
       ip_address: cam.ipAddress ?? "",
       model: cam.model ?? "",
       active: cam.active,
+      enable_counter: cam.enableCounter ?? false,
+      min_conf: cam.minConf ?? 80,
+      direction_in: cam.directionIn ?? "in",
     });
     setOpen(true);
   }
@@ -387,19 +399,30 @@ export default function CamerasView() {
               {editing ? t("cameras.editCamera") : t("cameras.addCamera")}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>{t("cameras.cameraName")} *</Label>
-              <Input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
-                placeholder="Camera name"
-              />
+          <div className="grid gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
+            {/* Row 1: Name + Code */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>{t("cameras.cameraName", "Camera Name")} <span className="text-destructive">*</span></Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Main Entrance Cam"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{t("cameras.code", "Code")} <span className="text-destructive">*</span></Label>
+                <Input
+                  value={form.code ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                  placeholder="CAM-001"
+                />
+              </div>
             </div>
+
+            {/* Branch */}
             <div className="grid gap-1.5">
-              <Label>{t("cameras.branch", "Branch")} *</Label>
+              <Label>{t("cameras.branch", "Branch")} <span className="text-destructive">*</span></Label>
               <AsyncPaginatedSelect
                 endpoint="/customer/branches"
                 labelKey="name"
@@ -411,52 +434,89 @@ export default function CamerasView() {
                 isClearable
               />
             </div>
+
+            {/* Source / Stream URL */}
             <div className="grid gap-1.5">
-              <Label>Stream URL</Label>
+              <Label>{t("cameras.source", "Stream Source (RTSP URL)")}</Label>
               <Input
-                value={form.stream_url ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, stream_url: e.target.value }))
-                }
-                placeholder="rtsp://..."
+                value={form.source ?? form.stream_url ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, source: e.target.value, stream_url: e.target.value }))}
+                placeholder="rtsp://192.168.1.100:554/stream"
               />
             </div>
-            <div className="grid gap-1.5">
-              <Label>{t("cameras.location")}</Label>
-              <Input
-                value={form.location ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, location: e.target.value }))
-                }
-                placeholder="Entrance, Lobby..."
-              />
+
+            {/* Row: Location + Model */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>{t("cameras.location", "Location")}</Label>
+                <Input
+                  value={form.location ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  placeholder="Entrance, Lobby..."
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{t("cameras.model", "Model")}</Label>
+                <Input
+                  value={form.model ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+                  placeholder="Hikvision DS-2CD2143"
+                />
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label>IP</Label>
-              <Input
-                value={form.ip_address ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, ip_address: e.target.value }))
-                }
-                placeholder="192.168.1.100"
-              />
+
+            {/* Row: IP + Min Confidence */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>{t("cameras.ipAddress", "IP Address")}</Label>
+                <Input
+                  value={form.ip_address ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, ip_address: e.target.value }))}
+                  placeholder="192.168.1.100"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{t("cameras.minConf", "Min Confidence")} (%)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={form.min_conf ?? 80}
+                  onChange={(e) => setForm((f) => ({ ...f, min_conf: Number(e.target.value) }))}
+                  placeholder="80"
+                />
+              </div>
             </div>
+
+            {/* Direction In */}
             <div className="grid gap-1.5">
-              <Label>{t("common.status")}</Label>
-              <Input
-                value={form.model ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, model: e.target.value }))
-                }
-                placeholder="Camera model"
-              />
+              <Label>{t("cameras.directionIn", "Direction (People Counting)")}</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={form.direction_in ?? "in"}
+                onChange={(e) => setForm((f) => ({ ...f, direction_in: e.target.value }))}
+              >
+                <option value="in">{t("cameras.directionInOption", "In → Out")}</option>
+                <option value="out">{t("cameras.directionOutOption", "Out → In")}</option>
+              </select>
             </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={form.active ?? true}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))}
-              />
-              <Label>{t("common.active")}</Label>
+
+            {/* Toggle row */}
+            <div className="flex flex-wrap gap-6">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.active ?? true}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))}
+                />
+                <Label>{t("common.active", "Active")}</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.enable_counter ?? false}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, enable_counter: v }))}
+                />
+                <Label>{t("cameras.enableCounter", "Enable People Counter")}</Label>
+              </div>
             </div>
           </div>
           <DialogFooter>

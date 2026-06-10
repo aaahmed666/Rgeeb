@@ -82,10 +82,14 @@ const PER_PAGE = 15;
 const MAX_PAGE_BUTTONS = 7; // odd number — keeps current centred
 
 const STATUSES = [
+  "new",
   "pending",
   "assigned",
   "in_progress",
+  "pending_verification",
   "completed",
+  "closed",
+  "on_hold",
   "cancelled",
 ] as const;
 const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
@@ -235,19 +239,64 @@ export default function TasksView() {
   const [view, setView] = React.useState<"table" | "board">("table");
   const [taskOpen, setTaskOpen] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<TaskItem | null>(null);
-  const EMPTY_TASK = { name: "", description: "", priority: "medium", type: "manual", status: "pending", scheduled_date: "", branch_id: "", department_id: "" };
+  const EMPTY_TASK = {
+    name: "", description: "", priority: "medium", type: "manual", status: "pending",
+    scheduled_date: "", branch_id: "", department_id: "",
+    time: "",
+    recurring_every_days: "",
+    start_date: "", end_date: "",
+    assigned_user_ids: [] as string[],
+    is_draft: false,
+  };
   const [taskForm, setTaskForm] = React.useState<typeof EMPTY_TASK>(EMPTY_TASK);
 
   function openCreateTask() { setEditingTask(null); setTaskForm(EMPTY_TASK); setTaskOpen(true); }
   function openEditTask(t: TaskItem) {
     setEditingTask(t);
-    setTaskForm({ name: t.title, description: t.description ?? "", priority: t.priority, type: t.type, status: t.status, scheduled_date: t.scheduledDate ?? t.dueDate ?? "", branch_id: t.branchIds?.[0] ?? "", department_id: t.departmentId ?? "" });
+    setTaskForm({
+      name: t.title,
+      description: t.description ?? "",
+      priority: t.priority,
+      type: t.type,
+      status: t.status,
+      scheduled_date: t.scheduledDate ?? t.dueDate ?? "",
+      branch_id: t.branchIds?.[0] ?? "",
+      department_id: t.departmentId ?? "",
+      time: t.time ?? "",
+      recurring_every_days: t.recurringEveryDays ? String(t.recurringEveryDays) : "",
+      start_date: t.startDate ?? "",
+      end_date: t.endDate ?? "",
+      assigned_user_ids: t.assignedUserIds ?? (t.assignedTo?.id ? [t.assignedTo.id] : []),
+      is_draft: t.isDraft ?? false,
+    });
     setTaskOpen(true);
   }
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const payload = { name: taskForm.name, description: taskForm.description || undefined, priority: taskForm.priority, type: taskForm.type, status: taskForm.status, scheduled_date: taskForm.scheduled_date || undefined, branch_ids: taskForm.branch_id ? [taskForm.branch_id] : undefined, department_id: taskForm.department_id || undefined };
+      const payload: Parameters<typeof tasksService.create>[0] = {
+        name: taskForm.name,
+        description: taskForm.description || undefined,
+        priority: taskForm.priority,
+        type: taskForm.type,
+        status: taskForm.status,
+        scheduled_date: taskForm.scheduled_date || undefined,
+        branch_ids: taskForm.branch_id ? [taskForm.branch_id] : undefined,
+        department_id: taskForm.department_id || undefined,
+        time: taskForm.time || undefined,
+        // Recurring fields — only send when type is "recurring"
+        ...(taskForm.type === "recurring" && taskForm.recurring_every_days
+          ? { recurring_every_days: Number(taskForm.recurring_every_days) }
+          : {}),
+        ...(taskForm.type === "recurring" && taskForm.start_date
+          ? { start_date: taskForm.start_date }
+          : {}),
+        ...(taskForm.type === "recurring" && taskForm.end_date
+          ? { end_date: taskForm.end_date }
+          : {}),
+        assigned_user_ids: taskForm.assigned_user_ids.length ? taskForm.assigned_user_ids : undefined,
+        is_draft: taskForm.is_draft ? 1 : 0,
+      };
       return editingTask
         ? tasksService.update({ ...payload, id: editingTask.id })
         : tasksService.create(payload);
@@ -712,7 +761,8 @@ export default function TasksView() {
           <DialogHeader>
             <DialogTitle>{editingTask ? t("tasks.editTask", "Edit Task") : t("tasks.newTask", "New Task")}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="max-h-[65vh] space-y-4 overflow-y-auto py-2 pr-1">
+            {/* Name */}
             <div className="space-y-1.5">
               <Label>{t("tasks.form.name", "Task Name")} <span className="text-destructive">*</span></Label>
               <Input
@@ -721,15 +771,19 @@ export default function TasksView() {
                 placeholder={t("tasks.form.namePlaceholder", "Enter task name")}
               />
             </div>
+
+            {/* Description */}
             <div className="space-y-1.5">
               <Label>{t("tasks.form.description", "Description")}</Label>
               <Textarea
                 value={taskForm.description}
                 onChange={(e) => setTaskForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder={t("tasks.form.descPlaceholder", "Task description...")}
-                rows={3}
+                rows={2}
               />
             </div>
+
+            {/* Priority + Type */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.priority", "Priority")}</Label>
@@ -750,6 +804,8 @@ export default function TasksView() {
                 </Select>
               </div>
             </div>
+
+            {/* Status + Scheduled Date */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.status", "Status")}</Label>
@@ -765,6 +821,35 @@ export default function TasksView() {
                 <Input type="date" value={taskForm.scheduled_date} onChange={(e) => setTaskForm((f) => ({ ...f, scheduled_date: e.target.value }))} />
               </div>
             </div>
+
+            {/* Time */}
+            <div className="space-y-1.5">
+              <Label>{t("tasks.form.time", "Time")}</Label>
+              <Input type="time" value={taskForm.time} onChange={(e) => setTaskForm((f) => ({ ...f, time: e.target.value }))} />
+            </div>
+
+            {/* Recurring fields — only shown when type is "recurring" */}
+            {taskForm.type === "recurring" && (
+              <div className="rounded-lg border border-dashed border-amber-400/60 bg-amber-500/5 p-3 space-y-3">
+                <p className="text-xs font-semibold text-amber-600">{t("tasks.form.recurringSettings", "Recurring Settings")}</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t("tasks.form.everyDays", "Every (days)")}</Label>
+                    <Input type="number" min={1} value={taskForm.recurring_every_days} onChange={(e) => setTaskForm((f) => ({ ...f, recurring_every_days: e.target.value }))} placeholder="7" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t("tasks.form.startDate", "Start Date")}</Label>
+                    <Input type="date" value={taskForm.start_date} onChange={(e) => setTaskForm((f) => ({ ...f, start_date: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t("tasks.form.endDate", "End Date")}</Label>
+                    <Input type="date" value={taskForm.end_date} onChange={(e) => setTaskForm((f) => ({ ...f, end_date: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Branch */}
             <div className="space-y-1.5">
               <Label>{t("tasks.form.branch", "Branch")}</Label>
               <AsyncPaginatedSelect
@@ -777,6 +862,35 @@ export default function TasksView() {
                 placeholder={t("common.selectBranch", "Select branch")}
                 isClearable
               />
+            </div>
+
+            {/* Assign To (multi-employee) */}
+            <div className="space-y-1.5">
+              <Label>{t("tasks.form.assignTo", "Assign To")}</Label>
+              <AsyncPaginatedSelect
+                endpoint="/customer/employees"
+                labelKey="name_en"
+                valueKey="id"
+                value={taskForm.assigned_user_ids[0] ?? null}
+                onChange={(v) => setTaskForm((f) => ({ ...f, assigned_user_ids: v ? [v] : [] }))}
+                placeholder={t("tasks.form.selectEmployee", "Select employee")}
+                isClearable
+              />
+              <p className="text-[10px] text-muted-foreground">{t("tasks.form.assignNote", "For multi-assign, use the full task editor")}</p>
+            </div>
+
+            {/* Save as draft toggle */}
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+              <input
+                id="is_draft"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={taskForm.is_draft}
+                onChange={(e) => setTaskForm((f) => ({ ...f, is_draft: e.target.checked }))}
+              />
+              <label htmlFor="is_draft" className="text-sm font-medium cursor-pointer select-none">
+                {t("tasks.form.saveAsDraft", "Save as draft")}
+              </label>
             </div>
           </div>
           <DialogFooter>

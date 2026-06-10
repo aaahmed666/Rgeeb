@@ -529,6 +529,16 @@ function EmployeeDrawer({
       if (form.branch_id) payload.branch_id = form.branch_id;
       if (form.department_id) payload.department_id = form.department_id;
       if (form.role_id) payload.role_id = form.role_id;
+      // identity = national ID / iqama (Postman: identity field)
+      if (form.national_id) payload.identity = form.national_id;
+      // employee code (Postman: code field)
+      if (form.employee_code) payload.code = form.employee_code;
+      // main_admin flag
+      if (form.is_main_admin !== undefined) payload.main_admin = form.is_main_admin;
+      // photo avatar
+      if (form.photo) payload.avatar_file = form.photo;
+      // working hours
+      if (form.working_hours) payload.working_hours = form.working_hours as any;
       return employee
         ? updateEmployee(employee.id, payload)
         : createEmployee(payload as EmployeeInput);

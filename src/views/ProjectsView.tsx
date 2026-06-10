@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ import {
 } from "@/services/projectsService";
 import { useTranslation } from "react-i18next";
 
-const EMPTY: ProjectInput = { name: "", description: "", status: "pending" };
+const EMPTY: ProjectInput = { name: "", description: "", status: "pending", start_date: "", end_date: "", manager_id: "", branch_ids: [] };
 const STATUSES = ["pending", "active", "completed", "cancelled"] as const;
 
 function statusBadge(status: string) {
@@ -476,6 +477,34 @@ export default function ProjectsView() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            {/* Manager */}
+            <div className="grid gap-1.5">
+              <Label>{t("projects.manager", "Project Manager")} <span className="text-destructive">*</span></Label>
+              <AsyncPaginatedSelect
+                endpoint="/customer/employees"
+                labelKey="name_en"
+                valueKey="id"
+                value={form.manager_id ?? null}
+                onChange={(v) => setForm((f) => ({ ...f, manager_id: v ?? "" }))}
+                placeholder={t("projects.selectManager", "Select manager")}
+                isClearable
+              />
+            </div>
+            {/* Branches */}
+            <div className="grid gap-1.5">
+              <Label>{t("projects.branches", "Branches")}</Label>
+              <AsyncPaginatedSelect
+                endpoint="/customer/branches"
+                labelKey="name"
+                valueKey="id"
+                extraParams={{ active: 1 }}
+                value={(form.branch_ids ?? [])[0] ?? null}
+                onChange={(v) => setForm((f) => ({ ...f, branch_ids: v ? [v] : [] }))}
+                placeholder={t("common.selectBranch", "Select branch")}
+                isClearable
+              />
+              <p className="text-[10px] text-muted-foreground">{t("projects.branchNote", "Select a branch (multi-branch support via API)")}</p>
             </div>
           </div>
           <DialogFooter>
