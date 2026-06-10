@@ -1,7 +1,8 @@
 "use client";
 
-import {  } from "react";
+
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { ShieldAlert } from "lucide-react";
@@ -11,6 +12,7 @@ import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { fetchAdminSubscriptions, fetchAdminActiveSubscriptions } from "@/services/adminService";
+import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 
 function formatDate(d?: string) {
   if (!d) return "—";
@@ -52,6 +54,24 @@ export default function AdminSubscriptionsView() {
     );
   }
 
+  // ISSUE-M08: search/filter state
+  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } =
+    useDebounceSearch("", 300);
+
+  const filteredAll = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return (allQ.data ?? []).filter((s) =>
+      !q || [s.userName, s.userEmail, s.package].filter(Boolean).join(" ").toLowerCase().includes(q)
+    );
+  }, [allQ.data, debouncedSearch]);
+
+  const filteredActive = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return (activeQ.data ?? []).filter((s) =>
+      !q || [s.userName, s.userEmail, s.package].filter(Boolean).join(" ").toLowerCase().includes(q)
+    );
+  }, [activeQ.data, debouncedSearch]);
+
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <AdminPageHeader
@@ -76,7 +96,10 @@ export default function AdminSubscriptionsView() {
 
         <TabsContent value="all">
           <DataTable
-            data={(allQ.data ?? []) as unknown as (Record<string, unknown> & { id: string | number })[]}
+            data={filteredAll as unknown as (Record<string, unknown> & { id: string | number })[]}
+            searchValue={search}
+            onSearchChange={handleSearchChange}
+            searchPlaceholder={t("admin.subscriptions.searchPlaceholder", "Search subscriptions…")}
             isLoading={allQ.isLoading}
             isError={allQ.isError}
             errorMessage={allQ.error instanceof Error ? allQ.error.message : t("admin.common.loadingFailed")}
@@ -87,7 +110,7 @@ export default function AdminSubscriptionsView() {
 
         <TabsContent value="active">
           <DataTable
-            data={(activeQ.data ?? []) as unknown as (Record<string, unknown> & { id: string | number })[]}
+            data={filteredActive as unknown as (Record<string, unknown> & { id: string | number })[]}
             isLoading={activeQ.isLoading}
             isError={activeQ.isError}
             errorMessage={activeQ.error instanceof Error ? activeQ.error.message : t("admin.common.loadingFailed")}

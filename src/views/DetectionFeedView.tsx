@@ -97,7 +97,7 @@ export default function DetectionFeedView() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["detection-feed", "list"] });
       setDeleteId(null);
-      toast.success("Detection deleted successfully");
+      toast.success(t("detectionFeed.detectionDeleted", "Detection deleted successfully"));
     },
     onError: (e: Error) => toast.error(e.message),
   });

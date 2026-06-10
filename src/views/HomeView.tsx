@@ -5,14 +5,18 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
 export default function HomeView() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading) {
-      router.replace(isAuthenticated ? "/dashboard" : "/login");
+      if (isAuthenticated) {
+        router.replace(isAdmin ? "/dashboard/admin" : "/dashboard");
+      } else {
+        router.replace("/login");
+      }
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, isAdmin, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

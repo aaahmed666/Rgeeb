@@ -66,7 +66,7 @@ export default function EscalationAlertsView() {
       escalationService.toggleRule(id, active),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["escalation", "rules"] });
-      toast.success("Rule updated");
+      toast.success(t("escalation.ruleUpdated", "Rule updated"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -75,7 +75,7 @@ export default function EscalationAlertsView() {
     mutationFn: (id: string) => escalationService.deleteRule(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["escalation", "rules"] });
-      toast.success("Rule deleted");
+      toast.success(t("escalation.ruleDeleted", "Rule deleted"));
     },
     onError: (e: Error) => toast.error(e.message),
   });

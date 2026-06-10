@@ -85,6 +85,7 @@ export default function StatisticsView() {
   const [tab, setTab] = useState<ReportTab>("customers");
   const [data, setData] = useState<ReportPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const from = dateRange ? toISO(dateRange[0]) : "";
   const to = dateRange ? toISO(dateRange[1]) : "";
@@ -94,14 +95,18 @@ export default function StatisticsView() {
     async (which: ReportTab) => {
       if (!canFetch) return;
       setLoading(true);
+      setLoadError(null);
       try {
         const r = await fetchReport(which, { dateFrom: from, dateTo: to });
         setData(r);
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
+        setData(null);
       } finally {
         setLoading(false);
       }
     },
-    [canFetch, from, to]
+    [canFetch, from, to, t]
   );
 
   // Auto-load when date range or tab changes
@@ -139,6 +144,16 @@ export default function StatisticsView() {
           </p>
         </div>
       </header>
+
+      {/* Error banner */}
+      {loadError && !loading && (
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <span>{loadError}</span>
+          <button onClick={() => void load(tab)} className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30">
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
 
       {/* Filter card */}
       <Card className="overflow-hidden border-border shadow-sm">

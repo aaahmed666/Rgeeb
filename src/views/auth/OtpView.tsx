@@ -120,6 +120,13 @@ export default function OtpView() {
   const { isDark, isRtl } = useAuthUI();
   const { t } = useTranslation();
 
+  // Guard: redirect back to forgot-password if no email in URL
+  useEffect(() => {
+    if (!email) {
+      router.replace("/forgot-password");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
   const [loading, setLoading] = useState(false);

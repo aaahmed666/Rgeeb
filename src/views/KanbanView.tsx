@@ -597,7 +597,7 @@ function KanbanPageRoute() {
     onSuccess: () => {
       invalidate();
       setCreateOpen(false);
-      toast.success("Task created");
+      toast.success(t("tasks.createSuccess", "Task created"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -608,7 +608,7 @@ function KanbanPageRoute() {
     onSuccess: () => {
       invalidate();
       setEditTask(null);
-      toast.success("Task updated");
+      toast.success(t("tasks.updateSuccess", "Task updated"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -625,7 +625,7 @@ function KanbanPageRoute() {
     onSuccess: () => {
       invalidate();
       setDeleteTask(null);
-      toast.success("Task deleted");
+      toast.success(t("tasks.deleteSuccess", "Task deleted"));
     },
     onError: (e: Error) => toast.error(e.message),
   });

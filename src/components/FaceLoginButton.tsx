@@ -3,6 +3,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Camera, ScanFace, X } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,21 +15,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { setAuthToken } from "@/lib/api";
+import { setAuthToken, setAuthRole, setStoredUser } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { faceLoginRequest } from "@/services/authService";
 
 /**
  * Face login flow:
  *  1. Opens webcam, captures a JPEG frame
- *  2. Sends base64 data URL → POST /customer/face-login { image: <dataUrl> }
- *  3. On success, stores token (Bearer flow) and routes to the correct dashboard.
- *
- * FIX: removed duplicated component definition.
- * FIX: uses refreshProfile + isAdmin from useAuth so role-aware redirect works.
+ *  2. Sends image → POST /customer/face-login (FormData — fixed BUG-001)
+ *  3. On success, stores token, applies user directly from response (fixed BUG-003)
+ *  4. Redirects based on role determined from response (not from stale closure)
  */
 export function FaceLoginButton() {
   const [open, setOpen] = React.useState(false);
+  const { t } = useTranslation();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -38,7 +38,7 @@ export function FaceLoginButton() {
           className="h-10 w-full rounded-xl border-border/50 text-base font-semibold transition-all hover:-translate-y-0.5 hover:bg-secondary/50 dark:border-slate-700 dark:hover:bg-slate-800"
         >
           <ScanFace className="me-2 h-5 w-5" />
-          Sign in with Face ID
+          {t("auth.login.faceId", "Sign in with Face ID")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -55,8 +55,9 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const router = useRouter();
-  // FIX: use refreshProfile + isAdmin for role-aware redirect
-  const { refreshProfile, isAdmin } = useAuth();
+  const { t } = useTranslation();
+  // refreshProfile used only for regular users after face login
+  const { refreshProfile } = useAuth();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -77,7 +78,7 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
           setReady(true);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not access the camera");
+        setError(e instanceof Error ? e.message : t("auth.faceLogin.cameraError", "Could not access the camera"));
       }
     })();
     return () => {
@@ -85,7 +86,7 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [t]);
 
   const capture = async () => {
     const video = videoRef.current;
@@ -104,17 +105,43 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
 
     setSubmitting(true);
     try {
-      const { token } = await faceLoginRequest(dataUrl);
-      // Store token when backend returns one (Bearer flow)
+      const { token, user: rawUser } = await faceLoginRequest(dataUrl);
+
+      // Store token immediately so subsequent API calls are authenticated
       if (token) setAuthToken(token);
-      // Refresh auth context so isAdmin is up-to-date
-      await refreshProfile();
-      toast.success("Welcome back");
+
+      // Determine admin status directly from response — avoids stale closure bug.
+      // Do NOT rely on isAdmin from useAuth() which reflects pre-login state.
+      const rawType = String((rawUser as { type?: string })?.type ?? "").toLowerCase();
+      const rawRoleName = String((rawUser as { role?: string })?.role ?? "").toLowerCase();
+      const resolvedAdmin =
+        rawType === "admin" ||
+        rawRoleName === "rgeeb admin" ||
+        rawRoleName === "admin";
+
+      if (resolvedAdmin) {
+        // Admin: persist role and minimal user directly from face login response
+        setAuthRole("admin");
+        if (rawUser) {
+          setStoredUser({
+            id: String(rawUser.id ?? rawUser.uuid ?? ""),
+            name: rawUser.name_en ?? rawUser.name ?? rawUser.email ?? "Admin",
+            email: rawUser.email ?? "",
+            role: "admin",
+            permissions: [],
+          });
+        }
+      } else {
+        // Regular user: fetch full profile to get roles and permissions
+        await refreshProfile();
+      }
+
+      toast.success(t("auth.faceLogin.success", "Welcome back"));
       onClose();
-      // FIX: role-aware redirect (was always pushing /dashboard)
-      router.push(isAdmin ? "/dashboard/admin" : "/dashboard");
+      // Role determined from response — not from stale context closure
+      router.push(resolvedAdmin ? "/dashboard/admin" : "/dashboard");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Face login failed");
+      toast.error(e instanceof Error ? e.message : t("auth.faceLogin.failed", "Face login failed"));
     } finally {
       setSubmitting(false);
     }
@@ -123,9 +150,9 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Sign in with your face</DialogTitle>
+        <DialogTitle>{t("auth.faceLogin.dialogTitle", "Sign in with your face")}</DialogTitle>
         <DialogDescription>
-          Center your face in the frame, then capture to sign in.
+          {t("auth.faceLoginDesc", "Center your face in the camera frame to sign in instantly.")}
         </DialogDescription>
       </DialogHeader>
 
@@ -158,11 +185,13 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
 
       <DialogFooter>
         <Button variant="ghost" onClick={onClose} disabled={submitting}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button onClick={capture} disabled={!ready || submitting || !!error}>
           <Camera className="me-2 h-4 w-4" />
-          {submitting ? "Verifying…" : "Capture & sign in"}
+          {submitting
+            ? t("auth.faceLogin.verifying", "Verifying…")
+            : t("auth.faceLogin.capture", "Capture & sign in")}
         </Button>
       </DialogFooter>
     </>

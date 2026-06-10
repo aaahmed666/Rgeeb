@@ -64,7 +64,12 @@
     "showingOf": "Showing {{start}}–{{end}} of {{total}}",
     "arabicNamePlaceholder": "Arabic name",
     "arabicDescPlaceholder": "Arabic description",
-    "arabicCountryPlaceholder": "Country in Arabic"
+    "arabicCountryPlaceholder": "Country in Arabic",
+    "branch": "Branch",
+    "dateRange": "Date Range",
+    "type": "Type",
+    "prev": "Previous",
+    "page": "Page"
   },
   "sidebar": {
     "statistics": "Statistics",
@@ -247,7 +252,12 @@
     "status": "Status",
     "noAttendance": "No attendance records in this period",
     "selectDateRange": "Select date range",
-    "noLeaderboard": "No leaderboard data"
+    "noLeaderboard": "No leaderboard data",
+    "unassigned": "Unassigned",
+    "status_present": "Present",
+    "status_late": "Late",
+    "status_absent": "Absent",
+    "status_leave": "On Leave"
   },
   "intel": {
     "title": "Br Intelligence",
@@ -328,7 +338,14 @@
     "status_Needs Attention": "Needs Attention",
     "status_Critical": "Critical",
     "noBranchHealth": "No branch health data",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "historical": "Historical",
+    "forecast": "Forecast",
+    "confidence95": "95% Confidence Interval",
+    "errorTitle": "Branch Intelligence Failed to Load",
+    "errorDesc": "An error occurred while loading branch intelligence analytics. Please try again.",
+    "printDate": "Report Date",
+    "noForecastData": "Insufficient data for trend forecast — more historical data required"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -521,7 +538,8 @@
     "vehicleTracking": "Vehicle Tracking",
     "activeStatus": "Active",
     "inactiveStatus": "Inactive",
-    "serviceNotFound": "Service not found"
+    "serviceNotFound": "Service not found",
+    "noLiveEvents": "No live event data — assign a camera to this service to see real-time detections."
   },
   "monitoring": {
     "title": "Monitoring",
@@ -558,7 +576,8 @@
     "deleteTitle": "Delete detection?",
     "deleteDesc": "This action cannot be undone.",
     "dateRange": "Date Range",
-    "selectDateRange": "From – To"
+    "selectDateRange": "From – To",
+    "detectionDeleted": "Detection deleted successfully"
   },
   "liveFeeds": {
     "title": "Live Camera Feeds",
@@ -671,8 +690,21 @@
       "type": "Type",
       "status": "Status",
       "scheduledDate": "Scheduled Date",
-      "branch": "Branch"
-    }
+      "branch": "Branch",
+      "assignTo": "Assign To",
+      "assignNote": "Leave empty to assign later",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "time": "Time",
+      "recurringSettings": "Recurring Settings",
+      "everyDays": "Every (days)",
+      "saveAsDraft": "Save as Draft",
+      "selectEmployee": "Select Employee"
+    },
+    "deleteSuccess": "Task deleted",
+    "statusUpdated": "Status updated",
+    "createSuccess": "Task created",
+    "updateSuccess": "Task updated"
   },
   "settings": {
     "title": "Settings",
@@ -755,7 +787,8 @@
     "companyNameAr": "Company Name (AR)",
     "companyEmail": "Company Email",
     "companyPhone": "Company Phone",
-    "companyAddress": "Address"
+    "companyAddress": "Address",
+    "fileTooLarge": "File too large. Max 800 KB."
   },
   "admin": {
     "title": "Admin Panel",
@@ -800,7 +833,10 @@
       "noClientsFound": "No clients found",
       "clientAddedSuccess": "Client added successfully",
       "clientDeletedSuccess": "Client deleted successfully",
-      "clientUpdatedSuccess": "Client updated successfully"
+      "clientUpdatedSuccess": "Client updated successfully",
+      "nameRequired": "Name is required",
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required"
     },
     "categories": {
       "title": "Categories",
@@ -862,7 +898,9 @@
       "packageDeletedSuccess": "Package deleted successfully",
       "packageUpdatedSuccess": "Package updated successfully",
       "selectServices": "Select Services",
-      "includedServices": "Included Services"
+      "includedServices": "Included Services",
+      "descAr": "Description (AR)",
+      "descEn": "Description (EN)"
     },
     "aiModels": {
       "title": "AI Models",
@@ -882,7 +920,16 @@
       "modelUpdatedSuccess": "Model updated successfully",
       "totalModels": "Total Models"
     },
-    "settings": "Settings",
+    "settings": {
+      "appNameRequired": "App name is required",
+      "invalidEmail": "Invalid email format",
+      "placeholder_appName": "My App",
+      "placeholder_appDesc": "Short description of the application",
+      "placeholder_privacy": "Privacy policy content…",
+      "placeholder_terms": "Terms of service content…",
+      "placeholder_cookies": "Cookie policy content…",
+      "placeholder_emailSig": "Email signature HTML or text…"
+    },
     "subscriptions": {
       "title": "Subscriptions",
       "subtitle": "Manage client subscriptions",
@@ -938,7 +985,10 @@
       "userDeletedSuccess": "User deleted successfully",
       "userUpdatedSuccess": "User updated successfully",
       "totalUsers": "Total Users",
-      "totalAdmins": "Total Admins"
+      "totalAdmins": "Total Admins",
+      "nameEn": "Name (EN)",
+      "nameAr": "Name (AR)",
+      "newPassword": "New Password (leave blank to keep)"
     },
     "roles": "Roles & Permissions",
     "audit": "Audit Log",
@@ -1036,7 +1086,8 @@
       "submit": "Submit",
       "cancel": "Cancel",
       "close": "Close",
-      "back": "Back"
+      "back": "Back",
+      "confirmDeleteDesc": "Are you sure you want to delete \"{{name}}\"? This cannot be undone."
     }
   },
   "assistant": {
@@ -1109,7 +1160,10 @@
     "somethingWentWrong": "Something went wrong. Please try again.",
     "unauthorized": "You are not authorized to perform this action",
     "notFound": "The requested resource was not found",
-    "noPermission": "You don't have permission to view this page."
+    "noPermission": "You don't have permission to view this page.",
+    "loadFailed": "Failed to load",
+    "pageLoadFailed": "Failed to load page",
+    "tryAgain": "There was an error loading this page. Please try again."
   },
   "reportCenter": {
     "title": "Report Center",
@@ -1138,7 +1192,16 @@
       "nextRun": "Next Run"
     },
     "dateRange": "Date Range",
-    "selectDateRange": "Select Date Range"
+    "selectDateRange": "Select Date Range",
+    "selectTemplate": "Please select a report template",
+    "enterRecipient": "Please enter at least one recipient email",
+    "downloadFailed": "Download failed",
+    "reportDeleted": "Report deleted",
+    "reportScheduled": "Report scheduled successfully",
+    "scheduleRemoved": "Schedule removed",
+    "deleteFailed": "Failed to delete report",
+    "scheduleFailed": "Failed to schedule report",
+    "selectTemplatePlaceholder": "Select report template"
   },
   "subscription": {
     "title": "Subscription",
@@ -1282,7 +1345,20 @@
     "editCamera": "Edit Camera",
     "deleteCamera": "Delete Camera",
     "noCameras": "No cameras available",
-    "configureCamera": "Configure"
+    "configureCamera": "Configure",
+    "code": "Camera Code",
+    "source": "Stream Source (RTSP URL)",
+    "model": "Model",
+    "ipAddress": "IP Address",
+    "minConf": "Min Confidence",
+    "directionIn": "Direction (People Counting)",
+    "directionInOption": "In → Out",
+    "directionOutOption": "Out → In",
+    "enableCounter": "Enable People Counter",
+    "deleteSuccess": "Camera deleted",
+    "onlineRefreshed": "Online status refreshed",
+    "onlineCheckFailed": "Failed to check online status",
+    "deleteFailed": "Delete failed"
   },
   "escalationAlerts": {
     "title": "Escalation & Alerts",
@@ -1358,7 +1434,9 @@
     "tab_done": "Done",
     "tab_review": "Review",
     "videoEvidence": "Video Evidence",
-    "done": "Done"
+    "done": "Done",
+    "taskStarted": "Task started",
+    "taskCompleted": "Task completed"
   },
   "notifications": {
     "title": "Notifications",
@@ -1382,7 +1460,8 @@
     "tasks": "Tasks",
     "empty": "No notifications",
     "pageInfo": "Page {{page}} of {{lastPage}}",
-    "warning": "Warning"
+    "warning": "Warning",
+    "allRead": "All notifications marked as read"
   },
   "projects": {
     "title": "Projects",
@@ -1403,7 +1482,16 @@
     "editProject": "Edit Project",
     "deleteProject": "Delete Project",
     "noProjects": "No projects",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "branches": "Branches",
+    "selectManager": "Select Manager",
+    "branchNote": "Tasks in this project are linked to the selected branch",
+    "cancelSuccess": "Project cancelled",
+    "deleteSuccess": "Project deleted",
+    "deleteFailed": "Delete failed",
+    "createSuccess": "Project created",
+    "updateSuccess": "Project updated",
+    "saveFailed": "Save failed"
   },
   "fatoorah": {
     "title": "Fatoorah",
@@ -1554,7 +1642,8 @@
       "strengthWeak": "Weak",
       "strengthFair": "Fair",
       "strengthGood": "Good",
-      "strengthStrong": "Strong"
+      "strengthStrong": "Strong",
+      "stepLabel": "Step"
     },
     "forgotPassword": {
       "title": "Forgot Password?",
@@ -1630,7 +1719,15 @@
       "langAr": "AR",
       "securityPlatform": "Security Platform"
     },
-    "faceLoginDesc": "Center your face in the camera frame to sign in instantly."
+    "faceLoginDesc": "Center your face in the camera frame to sign in instantly.",
+    "faceLogin": {
+      "dialogTitle": "Sign in with your face",
+      "cameraError": "Could not access the camera",
+      "success": "Welcome back",
+      "failed": "Face login failed",
+      "capture": "Capture & sign in",
+      "verifying": "Verifying…"
+    }
   },
   "dateRanges": {
     "today": "Today",
@@ -1765,7 +1862,8 @@
     "missingDepsHint": "Please enable the above permissions to proceed.",
     "gotIt": "Got It",
     "confirmDeleteTitle": "Delete Role",
-    "confirmDeleteDesc": "Are you sure you want to delete this role? This action cannot be undone."
+    "confirmDeleteDesc": "Are you sure you want to delete this role? This action cannot be undone.",
+    "nameRequired": "Please enter a role name"
   },
   "departments": {
     "title": "Departments",
@@ -1847,7 +1945,10 @@
     "nationalIdHint": "Saudi ID or residency number",
     "passwordOptional": "Password (leave blank to keep)",
     "uploadCertificate": "Upload Certificate Image",
-    "workingHoursSubtitle": "Set schedule for each day of the week"
+    "workingHoursSubtitle": "Set schedule for each day of the week",
+    "placeholder_nameEn": "Enter name in English",
+    "placeholder_phone": "05XXXXXXXX",
+    "placeholder_email": "employee@example.com"
   },
   "branches": {
     "title": "Branches",
@@ -1882,7 +1983,12 @@
     "lng": "Longitude",
     "manager": "Manager",
     "noManager": "No Manager",
-    "total": "Total Branches"
+    "total": "Total Branches",
+    "placeholder_name": "Enter branch name",
+    "placeholder_phone": "Enter phone number",
+    "placeholder_address": "Enter branch address",
+    "placeholder_permit": "Enter municipality permit number",
+    "placeholder_activity": "Enter type of activity"
   },
   "permissions": {
     "title": "Permissions",
@@ -2051,7 +2157,11 @@
     "accessDenied": "Access Denied",
     "noPermission": "You don't have permission to view this page.",
     "exportCsv": "Export CSV",
-    "exportPdf": "Print / PDF"
+    "exportPdf": "Print / PDF",
+    "drawerSynced": "Drawer operations synced",
+    "syncFailed": "Sync failed",
+    "branchesImported": "Branches imported successfully",
+    "importFailed": "Import failed"
   },
   "paginatedSelect": {
     "loading": "Loading options…",
@@ -2115,7 +2225,9 @@
     "tab_rules": "Rules",
     "threshold": "Threshold",
     "triggerType": "Trigger Type",
-    "subtitle": "Configure escalation rules and review the alert log."
+    "subtitle": "Configure escalation rules and review the alert log.",
+    "ruleUpdated": "Rule updated",
+    "ruleDeleted": "Rule deleted"
   },
   "scheduler": {
     "matchFailed": "Failed to fetch recommendation",
@@ -2420,5 +2532,27 @@
     "customer_traffic": "Customer Traffic",
     "gate_crossing": "Gate Crossing",
     "license_plate_detected": "License Plate Detected"
+  },
+  "eventTimeline": {
+    "title": "Event Timeline",
+    "subtitle": "View and filter all system events across branches and cameras",
+    "alerts": "Alerts",
+    "found": "{{n}} events found",
+    "noEvents": "No events found"
+  },
+  "visitorRecords": {
+    "title": "Visitor Records",
+    "subtitle": "Track visitor entry and exit activity",
+    "total": "Total Visitors",
+    "entered": "Entered",
+    "exited": "Exited",
+    "noRecords": "No visitor records found"
+  },
+  "visitors": {
+    "enter": "Entry",
+    "exit": "Exit"
+  },
+  "clients": {
+    "placeholder_name": "John Doe"
   }
 }

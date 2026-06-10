@@ -324,16 +324,22 @@ export async function apiFetch<T = unknown>(
     const authHeaders: Record<string, string> = {};
     if (token) authHeaders.Authorization = `Bearer ${token}`;
 
+    // FormData must NOT be JSON-stringified and must NOT have Content-Type set
+    // (browser sets multipart/form-data with boundary automatically for FormData).
+    const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
     const res = await fetch(buildUrl(path, query), {
       ...rest,
       signal: controller.signal,
       headers: {
         Accept: "application/json",
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        // Only set Content-Type for plain JSON bodies — never for FormData
+        ...(body !== undefined && !isFormData ? { "Content-Type": "application/json" } : {}),
         ...authHeaders,
         ...headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      // Pass FormData directly; JSON.stringify everything else
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
     });
 
     const text = await res.text();

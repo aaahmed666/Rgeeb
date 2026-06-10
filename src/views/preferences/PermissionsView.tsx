@@ -35,6 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { fetchAllPermissions, fetchRoles } from "@/services/rolesService";
+import { usePermission } from "@/hooks/usePermission";
+import { ShieldAlert } from "lucide-react";
 import type { Permission, Role } from "@/services/rolesService";
 import { cn } from "@/lib/utils";
 
@@ -434,6 +436,21 @@ function RolePermissionMatrix({
 // ─── Main view ────────────────────────────────────────────────────────────────
 export default function PermissionsView() {
   const { t } = useTranslation();
+  const can = usePermission("roles");
+
+  // ISSUE-S05: Add access guard — previously any authenticated user could view full permission registry
+  if (!can.read) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.noAccess")}</p>
+        </div>
+      </div>
+    );
+  }
+
   const [search, setSearch] = useState("");
   const [flatSearch, setFlatSearch] = useState("");
 

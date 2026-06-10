@@ -122,9 +122,9 @@ export default function CamerasView() {
     mutationFn: checkCamerasOnline,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cameras"] });
-      toast.success("Online status refreshed");
+      toast.success(t("cameras.onlineRefreshed", "Online status refreshed"));
     },
-    onError: () => toast.error("Failed to check online status"),
+    onError: () => toast.error(t("cameras.onlineCheckFailed", "Failed to check online status")),
   });
 
   const saveMut = useMutation({
@@ -133,20 +133,20 @@ export default function CamerasView() {
       : (input: CameraInput) => createCamera(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cameras"] });
-      toast.success(editing ? "Camera updated" : "Camera added");
+      toast.success(editing ? t("cameras.editCamera") : t("cameras.addCamera"));
       setOpen(false);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("common.saveFailed", "Save failed")),
   });
 
   const deleteMut = useMutation({
     mutationFn: deleteCamera,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cameras"] });
-      toast.success("Camera deleted");
+      toast.success(t("cameras.deleteSuccess", "Camera deleted"));
       setDeleteId(null);
     },
-    onError: () => toast.error("Delete failed"),
+    onError: () => toast.error(t("cameras.deleteFailed", "Delete failed")),
   });
 
   function openCreate() {

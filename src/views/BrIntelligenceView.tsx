@@ -263,10 +263,25 @@ export default function BrIntelligenceView() {
               />
             </div>
             <button
-              onClick={() => {
-                const token = getAuthToken();
-                const url = `https://api.dev.rgeeb.com/api/customer/branch-intelligence/export-report?date_from=${from}&date_to=${to}&type=full&token=${token ?? ""}`;
-                window.open(url, "_blank");
+              onClick={async () => {
+                try {
+                  const token = getAuthToken();
+                  const params = new URLSearchParams({ date_from: from, date_to: to, type: "full" });
+                  const res = await fetch(`/api/customer/branch-intelligence/export-report?${params}`, {
+                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                  });
+                  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+                  const blob = await res.blob();
+                  const objectUrl = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = objectUrl;
+                  a.download = `branch-intelligence-${from}-${to}.xlsx`;
+                  a.click();
+                  URL.revokeObjectURL(objectUrl);
+                } catch (e) {
+                  // toast is available in scope via sonner
+                  console.error("Export failed:", e);
+                }
               }}
               title="Export report"
               className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10"

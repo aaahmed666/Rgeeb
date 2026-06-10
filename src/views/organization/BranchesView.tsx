@@ -137,7 +137,7 @@ export default function BranchesView() {
         data={filtered as (Branch & { id: string | number })[]}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : "Failed to load"}
+        errorMessage={error instanceof Error ? error.message : t("errors.loadFailed", "Failed to load")}
         emptyMessage={t("branches.empty", "No branches yet")}
         searchValue={search}
         onSearchChange={handleSearchChange}
@@ -406,7 +406,7 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.name", "Branch Name")}</Label>
               <Input
-                placeholder="Enter branch name"
+                placeholder={t("branches.placeholder_name", "Enter branch name")}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
@@ -414,7 +414,7 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.phone", "Phone")}</Label>
               <Input
-                placeholder="Enter phone number"
+                placeholder={t("branches.placeholder_phone", "Enter phone number")}
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
@@ -423,7 +423,7 @@ function BranchDrawer({
               <Label>{t("branches.address", "Address")}</Label>
               <textarea
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px] resize-none"
-                placeholder="Enter branch address"
+                placeholder={t("branches.placeholder_address", "Enter branch address")}
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
               />
@@ -465,7 +465,7 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.permitNumber", "Permit Number")}</Label>
               <Input
-                placeholder="Enter municipality permit number"
+                placeholder={t("branches.placeholder_permit", "Enter municipality permit number")}
                 value={form.permit_number}
                 onChange={(e) =>
                   setForm({ ...form, permit_number: e.target.value })
@@ -475,7 +475,7 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.activityType", "Activity Type")}</Label>
               <Input
-                placeholder="Enter type of activity"
+                placeholder={t("branches.placeholder_activity", "Enter type of activity")}
                 value={form.permit_activity_type}
                 onChange={(e) =>
                   setForm({ ...form, permit_activity_type: e.target.value })

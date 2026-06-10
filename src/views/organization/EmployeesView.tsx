@@ -234,7 +234,7 @@ export default function EmployeesView() {
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : "Failed to load"}
+        errorMessage={error instanceof Error ? error.message : t("errors.loadFailed", "Failed to load")}
         emptyMessage={t("employees.empty", "No employees found")}
         searchValue={search}
         onSearchChange={handleSearchChange}
@@ -671,7 +671,7 @@ function EmployeeDrawer({
                 <div className="space-y-1.5">
                   <Label>{t("employees.nameEn", "English Name")}</Label>
                   <Input
-                    placeholder="Enter name in English"
+                    placeholder={t("employees.placeholder_nameEn", "Enter name in English")}
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -680,7 +680,7 @@ function EmployeeDrawer({
               <div className="space-y-1.5">
                 <Label>{t("employees.phone", "Phone Number")}</Label>
                 <Input
-                  placeholder="05XXXXXXXX"
+                  placeholder={t("employees.placeholder_phone", "05XXXXXXXX")}
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
@@ -689,7 +689,7 @@ function EmployeeDrawer({
                 <Label>{t("employees.email", "Email")}</Label>
                 <Input
                   type="email"
-                  placeholder="employee@example.com"
+                  placeholder={t("employees.placeholder_email", "employee@example.com")}
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />

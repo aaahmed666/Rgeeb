@@ -248,6 +248,7 @@ export default function DashboardView() {
   const [unread, setUnread] = React.useState(0);
   const [assignedToMe, setAssignedToMe] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   const [category, setCategory] = React.useState<
     "all" | AIServiceItem["category"]
@@ -257,33 +258,39 @@ export default function DashboardView() {
 
   const load = React.useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     const filters = {
       from,
       to,
       branchId: branchId === "all" ? undefined : branchId,
     };
-    // getUnreadNotifications is handled by the polling interval below — skip here
-    const [s, ai, tk, vf, la, at, co, bd, br] = await Promise.all([
-      dashboardService.getSummary(filters),
-      dashboardService.listAIServices(filters),
-      dashboardService.getTaskSummary({ ...filters, assignedToMe }),
-      dashboardService.getVisitorFlow(filters),
-      dashboardService.getLiveActivity(filters),
-      dashboardService.getAttendance(filters),
-      dashboardService.getCompliance(filters),
-      dashboardService.getDetectionBreakdown(filters),
-      dashboardService.getBranches(filters),
-    ]);
-    setSummary(s);
-    setServices(ai);
-    setTasks(tk);
-    setFlow(vf);
-    setActivity(la);
-    setAttendance(at);
-    setCompliance(co);
-    setBreakdown(bd);
-    setBranches(br);
-    setLoading(false);
+    try {
+      // getUnreadNotifications is handled by the polling interval below — skip here
+      const [s, ai, tk, vf, la, at, co, bd, br] = await Promise.all([
+        dashboardService.getSummary(filters),
+        dashboardService.listAIServices(filters),
+        dashboardService.getTaskSummary({ ...filters, assignedToMe }),
+        dashboardService.getVisitorFlow(filters),
+        dashboardService.getLiveActivity(filters),
+        dashboardService.getAttendance(filters),
+        dashboardService.getCompliance(filters),
+        dashboardService.getDetectionBreakdown(filters),
+        dashboardService.getBranches(filters),
+      ]);
+      setSummary(s);
+      setServices(ai);
+      setTasks(tk);
+      setFlow(vf);
+      setActivity(la);
+      setAttendance(at);
+      setCompliance(co);
+      setBreakdown(bd);
+      setBranches(br);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
   }, [from, to, branchId, assignedToMe]);
 
   React.useEffect(() => {
@@ -344,6 +351,18 @@ export default function DashboardView() {
       className="space-y-6 p-4 sm:p-6 lg:p-8"
       data-tour="dashboard-content"
     >
+      {/* Error banner */}
+      {loadError && !loading && (
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <span>{loadError}</span>
+          <button
+            onClick={() => load()}
+            className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30"
+          >
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
       {/* Welcome banner */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#a855f7] p-6 text-white shadow-xl">
         <div className="absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />

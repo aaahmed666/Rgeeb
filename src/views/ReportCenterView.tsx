@@ -21,7 +21,8 @@ import {
   Gauge,
   Trash2,
   RefreshCw,
-  Plus } from "lucide-react";
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -29,23 +30,27 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription } from "@/components/ui/card";
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { DataTable } from "@/components/ui/data-table";
+import { endpoints } from "@/lib/endpoints";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from "@/components/ui/select";
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle } from "@/components/ui/dialog";
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
@@ -63,7 +68,8 @@ import {
   scheduleReport,
   toTemplateSlug,
   type ReportFormat,
-  type ScheduleReportPayload } from "@/services/reportCenterService";
+  type ScheduleReportPayload,
+} from "@/services/reportCenterService";
 
 /* ------------------------------------------------------------------ */
 /* Icon registry                                                         */
@@ -171,6 +177,7 @@ function ScheduleDialog({
   onSubmit,
   isLoading,
 }: ScheduleDialogProps) {
+  const { t, i18n } = useTranslation();
   const [template, setTemplate] = useState("");
   const [format, setFormat] = useState<ReportFormat>("pdf");
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">(
@@ -180,7 +187,9 @@ function ScheduleDialog({
 
   function handleSubmit() {
     if (!template) {
-      toast.error("Please select a report template");
+      toast.error(
+        t("reportCenter.selectTemplate", "Please select a report template")
+      );
       return;
     }
     const emails = recipients
@@ -188,7 +197,12 @@ function ScheduleDialog({
       .map((e) => e.trim())
       .filter(Boolean);
     if (!emails.length) {
-      toast.error("Please enter at least one recipient email");
+      toast.error(
+        t(
+          "reportCenter.enterRecipient",
+          "Please enter at least one recipient email"
+        )
+      );
       return;
     }
     onSubmit({
@@ -212,24 +226,19 @@ function ScheduleDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
-          <Select
-            value={template}
-            onValueChange={setTemplate}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Report Template" />
-            </SelectTrigger>
-            <SelectContent>
-              {templates.map((t) => (
-                <SelectItem
-                  key={t.id}
-                  value={t.id}
-                >
-                  {t.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Template — AsyncPaginatedSelect for searchable, paginated API list */}
+          <AsyncPaginatedSelect
+            endpoint={endpoints.reportCenter.templates}
+            labelKey="title"
+            valueKey="id"
+            value={template || null}
+            onChange={(v) => setTemplate(v ?? "")}
+            placeholder={t(
+              "reportCenter.selectTemplatePlaceholder",
+              "Select report template"
+            )}
+            isDark={false}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -307,7 +316,11 @@ export default function ReportCenterView() {
   const { t } = useTranslation();
   const can = usePermission("report_center");
   const qc = useQueryClient();
-  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
 
   const [dateRange, setDateRange] = useState<DateRange | null>([
     weekAgo,
@@ -370,35 +383,42 @@ export default function ReportCenterView() {
   /* ── Download ────────────────────────────────────────────────────── */
   const downloadMut = useMutation({
     mutationFn: (id: string | number) => downloadReport(id),
-    onError: () => toast.error("Download failed"),
+    onError: () =>
+      toast.error(t("reportCenter.downloadFailed", "Download failed")),
   });
 
   /* ── Delete generated ────────────────────────────────────────────── */
   const deleteGenMut = useMutation({
     mutationFn: deleteGeneratedReport,
     onSuccess: () => {
-      toast.success("Report deleted");
+      toast.success(t("reportCenter.reportDeleted", "Report deleted"));
       qc.invalidateQueries({ queryKey: ["report-generated"] });
     },
-    onError: () => toast.error("Failed to delete report"),
+    onError: () =>
+      toast.error(t("reportCenter.deleteFailed", "Failed to delete report")),
   });
 
   /* ── Schedule ────────────────────────────────────────────────────── */
   const scheduleMut = useMutation({
     mutationFn: scheduleReport,
     onSuccess: () => {
-      toast.success("Report scheduled successfully");
+      toast.success(
+        t("reportCenter.reportScheduled", "Report scheduled successfully")
+      );
       qc.invalidateQueries({ queryKey: ["report-scheduled"] });
       setScheduleOpen(false);
     },
-    onError: () => toast.error("Failed to schedule report"),
+    onError: () =>
+      toast.error(
+        t("reportCenter.scheduleFailed", "Failed to schedule report")
+      ),
   });
 
   /* ── Delete scheduled ────────────────────────────────────────────── */
   const deleteSchedMut = useMutation({
     mutationFn: deleteScheduledReport,
     onSuccess: () => {
-      toast.success("Schedule removed");
+      toast.success(t("reportCenter.scheduleRemoved", "Schedule removed"));
       qc.invalidateQueries({ queryKey: ["report-scheduled"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -503,15 +523,15 @@ export default function ReportCenterView() {
                   {t("reportCenter.branch", "Branch")}
                 </label>
                 <AsyncPaginatedSelect
-                    endpoint="/customer/branches"
-                    labelKey="name"
-                    valueKey="id"
-                    extraParams={{ active: 1 }}
-                    value={branch || null}
-                    onChange={(v) => setBranch(v ?? "")}
-                    placeholder="All Branches"
-                    isClearable
-                  />
+                  endpoint="/customer/branches"
+                  labelKey="name"
+                  valueKey="id"
+                  extraParams={{ active: 1 }}
+                  value={branch || null}
+                  onChange={(v) => setBranch(v ?? "")}
+                  placeholder="All Branches"
+                  isClearable
+                />
               </div>
 
               <div>
@@ -666,24 +686,87 @@ export default function ReportCenterView() {
             </CardHeader>
             <CardContent className="p-0">
               <DataTable
-                data={(generated.data ?? []).map((h) => ({ ...h, id: h.id ?? String(Math.random()) }))}
+                data={(generated.data ?? []).map((h) => ({
+                  ...h,
+                  id: h.id ?? String(Math.random()),
+                }))}
                 isLoading={generated.isLoading}
-                emptyMessage={t("reportCenter.emptyHistory", "No generated reports yet")}
+                emptyMessage={t(
+                  "reportCenter.emptyHistory",
+                  "No generated reports yet"
+                )}
                 columns={[
-                  { key: "title", header: "Title", render: (h) => <span className="font-medium">{h.title}</span> },
-                  { key: "template", header: "Template", render: (h) => <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">{h.template}</span> },
-                  { key: "format", header: "Format", render: (h) => <FormatChip format={h.format} /> },
-                  { key: "status", header: "Status", render: (h) => <StatusChip status={h.status} /> },
-                  { key: "generated_at", header: "Generated At", render: (h) => { const ts = h.generated_at ?? h.created_at; return <span className="text-sm text-muted-foreground">{ts ? new Date(ts).toLocaleString() : "—"}</span>; } },
                   {
-                    key: "actions", header: "Actions", headClassName: "text-end", cellClassName: "text-end",
+                    key: "title",
+                    header: "Title",
+                    render: (h) => (
+                      <span className="font-medium">{h.title}</span>
+                    ),
+                  },
+                  {
+                    key: "template",
+                    header: "Template",
+                    render: (h) => (
+                      <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                        {h.template}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "format",
+                    header: "Format",
+                    render: (h) => <FormatChip format={h.format} />,
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    render: (h) => <StatusChip status={h.status} />,
+                  },
+                  {
+                    key: "generated_at",
+                    header: "Generated At",
+                    render: (h) => {
+                      const ts = h.generated_at ?? h.created_at;
+                      return (
+                        <span className="text-sm text-muted-foreground">
+                          {ts ? new Date(ts).toLocaleString() : "—"}
+                        </span>
+                      );
+                    },
+                  },
+                  {
+                    key: "actions",
+                    header: "Actions",
+                    headClassName: "text-end",
+                    cellClassName: "text-end",
                     render: (h) => (
                       <div className="flex items-center justify-end gap-1">
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Download"
-                          onClick={() => { const url = h.download_url ?? h.file_url; if (url) { triggerDownload(url, `${h.template}-report.${h.format === "excel" ? "xlsx" : h.format}`); } else { downloadMut.mutate(h.id); } }}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          title="Download"
+                          onClick={() => {
+                            const url = h.download_url ?? h.file_url;
+                            if (url) {
+                              triggerDownload(
+                                url,
+                                `${h.template}-report.${h.format === "excel" ? "xlsx" : h.format}`
+                              );
+                            } else {
+                              downloadMut.mutate(h.id);
+                            }
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600" title="Delete" onClick={() => deleteGenMut.mutate(h.id)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                          title="Delete"
+                          onClick={() => deleteGenMut.mutate(h.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -707,7 +790,7 @@ export default function ReportCenterView() {
               </div>
               <Button
                 onClick={() => can.create && setScheduleOpen(true)}
-            disabled={!can.create}
+                disabled={!can.create}
                 className="gap-2 bg-slate-800 text-white hover:bg-slate-700"
                 size="sm"
               >
@@ -717,17 +800,71 @@ export default function ReportCenterView() {
             </CardHeader>
             <CardContent className="p-0">
               <DataTable
-                data={(scheduled.data ?? [])}
+                data={scheduled.data ?? []}
                 isLoading={scheduled.isLoading}
-                emptyMessage={t("reportCenter.emptyScheduled", "No scheduled reports")}
+                emptyMessage={t(
+                  "reportCenter.emptyScheduled",
+                  "No scheduled reports"
+                )}
                 columns={[
-                  { key: "template", header: "Template", render: (s) => <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">{s.template}</span> },
-                  { key: "format", header: "Format", render: (s) => <FormatChip format={s.format} /> },
-                  { key: "frequency", header: "Frequency", render: (s) => <FrequencyChip frequency={s.frequency} /> },
-                  { key: "recipients", header: "Recipients", render: (s) => <span className="max-w-[200px] truncate text-sm text-muted-foreground">{Array.isArray(s.recipients) ? s.recipients.join(", ") : String(s.recipients ?? "—")}</span> },
-                  { key: "next_run", header: "Next Send", render: (s) => { const d = s.next_run ?? s.next_send; return <span className="text-sm text-muted-foreground">{d ? new Date(d).toLocaleString() : "—"}</span>; } },
-                  { key: "actions", header: "Actions", headClassName: "text-end", cellClassName: "text-end",
-                    render: (s) => <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteSchedMut.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button> },
+                  {
+                    key: "template",
+                    header: "Template",
+                    render: (s) => (
+                      <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                        {s.template}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "format",
+                    header: "Format",
+                    render: (s) => <FormatChip format={s.format} />,
+                  },
+                  {
+                    key: "frequency",
+                    header: "Frequency",
+                    render: (s) => <FrequencyChip frequency={s.frequency} />,
+                  },
+                  {
+                    key: "recipients",
+                    header: "Recipients",
+                    render: (s) => (
+                      <span className="max-w-[200px] truncate text-sm text-muted-foreground">
+                        {Array.isArray(s.recipients)
+                          ? s.recipients.join(", ")
+                          : String(s.recipients ?? "—")}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "next_run",
+                    header: "Next Send",
+                    render: (s) => {
+                      const d = s.next_run ?? s.next_send;
+                      return (
+                        <span className="text-sm text-muted-foreground">
+                          {d ? new Date(d).toLocaleString() : "—"}
+                        </span>
+                      );
+                    },
+                  },
+                  {
+                    key: "actions",
+                    header: "Actions",
+                    headClassName: "text-end",
+                    cellClassName: "text-end",
+                    render: (s) => (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                        onClick={() => deleteSchedMut.mutate(s.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ),
+                  },
                 ]}
               />
             </CardContent>

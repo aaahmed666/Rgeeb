@@ -184,7 +184,7 @@ function PackageDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Description (AR)</Label>
+            <Label>{t("admin.packages.descAr", "Description (AR)")}</Label>
             <Textarea
               dir="rtl"
               value={descAr}
@@ -194,7 +194,7 @@ function PackageDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Description (EN)</Label>
+            <Label>{t("admin.packages.descEn", "Description (EN)")}</Label>
             <Textarea
               value={descEn}
               onChange={(e) => setDescEn(e.target.value)}

@@ -146,16 +146,16 @@ export default function ProjectsView() {
       : createProject,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success(editing ? "Project updated" : "Project created");
+      toast.success(editing ? t("projects.updateSuccess", "Project updated") : t("projects.createSuccess", "Project created"));
       setOpen(false);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("projects.saveFailed", "Save failed")),
   });
   const cancelMut = useMutation({
     mutationFn: cancelProject,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Project cancelled");
+      toast.success(t("projects.cancelSuccess", "Project cancelled"));
       setCancelId(null);
     },
     onError: () => toast.error(t("validation.saveFailed")),
@@ -164,10 +164,10 @@ export default function ProjectsView() {
     mutationFn: deleteProject,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Project deleted");
+      toast.success(t("projects.deleteSuccess", "Project deleted"));
       setDeleteId(null);
     },
-    onError: () => toast.error("Delete failed"),
+    onError: () => toast.error(t("projects.deleteFailed", "Delete failed")),
   });
 
   function openCreate() {

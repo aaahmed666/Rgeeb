@@ -35,6 +35,13 @@ export default function ResetPasswordView() {
   const [done, setDone]         = React.useState(false);
   const [errors, setErrors]     = React.useState<Record<string, string>>({});
 
+  // Guard: redirect back to forgot-password if no email or token in URL
+  React.useEffect(() => {
+    if (!email || !token) {
+      router.replace("/forgot-password");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const strength = getPasswordStrength(password);
   const strengthColors = ["", "#EF4444", "#F59E0B", "#22C55E", "#22C55E"];
   const strengthLabels = [

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getAuthToken } from "@/lib/api";
 import {
   BarChart3,
   Building2,
@@ -50,6 +51,7 @@ export default function ProductivityView() {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Derive primitive date strings directly — no useMemo object
   const dateFrom = dateRange?.[0]
@@ -62,6 +64,7 @@ export default function ProductivityView() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
     const filters = { dateFrom, dateTo };
     void Promise.all([
       productivityService.summary(filters),
@@ -73,7 +76,10 @@ export default function ProductivityView() {
       setLeaderboard(l);
       setDepartments(d);
       if (l.length && !selectedEmployee) setSelectedEmployee(l[0].id);
-      setLoading(false);
+    }).catch((err) => {
+      if (!cancelled) setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;
@@ -120,6 +126,29 @@ export default function ProductivityView() {
 
   return (
     <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+      {/* Error banner */}
+      {loadError && !loading && (
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <span>{loadError}</span>
+          <button
+            onClick={() => {
+              let cancelled = false;
+              setLoading(true); setLoadError(null);
+              void Promise.all([
+                productivityService.summary({ dateFrom, dateTo }),
+                productivityService.leaderboard({ dateFrom, dateTo }),
+                productivityService.departments({ dateFrom, dateTo }),
+              ]).then(([s,l,d]) => { if(!cancelled){setSummary(s);setLeaderboard(l);setDepartments(d);} })
+              .catch(e => { if(!cancelled) setLoadError(e instanceof Error ? e.message : "Error"); })
+              .finally(() => { if(!cancelled) setLoading(false); });
+              return () => { cancelled = true; };
+            }}
+            className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30"
+          >
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -154,11 +183,22 @@ export default function ProductivityView() {
           </button>
           <button
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={() => {
-              const link = document.createElement("a");
-              link.href = `/api/customer/productivity/export-excel${dateFrom ? `?date_from=${dateFrom}&date_to=${dateTo ?? ""}` : ""}`;
-              link.download = "productivity.xlsx";
-              link.click();
+            onClick={async () => {
+              try {
+                const token = getAuthToken();
+                const params = dateFrom ? `?date_from=${dateFrom}&date_to=${dateTo ?? ""}` : "";
+                const res = await fetch(`/api/customer/productivity/export-excel${params}`, {
+                  headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                });
+                if (!res.ok) throw new Error(`Export failed (${res.status})`);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = "productivity.xlsx"; a.click();
+                URL.revokeObjectURL(url);
+              } catch (e) {
+                console.error("Export failed:", e);
+              }
             }}
             title={t("productivity.excel", "Excel")}
           >

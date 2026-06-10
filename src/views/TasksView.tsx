@@ -304,7 +304,7 @@ export default function TasksView() {
     onSuccess: () => {
       invalidate();
       setTaskOpen(false);
-      toast.success(editingTask ? "Task updated" : "Task created");
+      toast.success(editingTask ? t("tasks.updateSuccess", "Task updated") : t("tasks.createSuccess", "Task created"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -347,7 +347,7 @@ export default function TasksView() {
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
-      toast.success("Task deleted");
+      toast.success(t("tasks.deleteSuccess", "Task deleted"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -357,7 +357,7 @@ export default function TasksView() {
       tasksService.updateStatus(p.id, p.status),
     onSuccess: () => {
       invalidate();
-      toast.success("Status updated");
+      toast.success(t("tasks.statusUpdated", "Status updated"));
     },
     onError: (e: Error) => toast.error(e.message),
   });

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   Plug,
   RefreshCw,
@@ -29,6 +30,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { foodicsService } from "@/services/foodicsService";
 
 export default function FoodicsView() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const can = usePermission("foodics");
   const { hasPermission } = useAuth();
@@ -46,20 +48,20 @@ export default function FoodicsView() {
   const syncMut = useMutation({
     mutationFn: () => foodicsService.syncDrawerOperations(),
     onSuccess: () => {
-      toast.success("Drawer operations synced");
+      toast.success(t("foodics.drawerSynced", "Drawer operations synced"));
       qc.invalidateQueries({ queryKey: ["foodics"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Sync failed"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("foodics.syncFailed", "Sync failed")),
   });
 
   const importMut = useMutation({
     mutationFn: () => foodicsService.importBranches(),
     onSuccess: () => {
-      toast.success("Branches imported successfully");
+      toast.success(t("foodics.branchesImported", "Branches imported successfully"));
       qc.invalidateQueries({ queryKey: ["foodics"] });
     },
     onError: (e) =>
-      toast.error(e instanceof Error ? e.message : "Import failed"),
+      toast.error(e instanceof Error ? e.message : t("foodics.importFailed", "Import failed")),
   });
 
   const status = statusQ.data;

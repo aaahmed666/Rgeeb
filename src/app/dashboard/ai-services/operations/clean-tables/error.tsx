@@ -1,20 +1,5 @@
 "use client";
-
-import { PageErrorFallback } from "@/components/dashboard/error-fallback";
-
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  return (
-    <PageErrorFallback
-      error={error}
-      reset={reset}
-      title="Failed to load Clean Tables"
-      description="There was an error loading this page. Please try again."
-    />
-  );
+import TranslatedErrorFallback from "@/components/dashboard/TranslatedErrorFallback";
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <TranslatedErrorFallback error={error} reset={reset} />;
 }

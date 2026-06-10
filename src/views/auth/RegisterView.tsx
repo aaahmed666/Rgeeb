@@ -538,7 +538,7 @@ export default function RegisterView() {
                 className="register-progress-step-text"
                 style={{ color: textFaint }}
               >
-                Step {step + 1} {t("auth.register.stepOf")} {STEPS.length}
+                {t("auth.register.stepLabel", "Step")} {step + 1} {t("auth.register.stepOf")} {STEPS.length}
               </span>
               <span className="register-progress-pct">
                 {Math.round(((step + 1) / STEPS.length) * 100)}%

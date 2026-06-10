@@ -259,7 +259,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register: AuthState["register"] = async (payload) => {
-    const { user: rawUser } = await registerRequest(payload);
+    const { token, user: rawUser } = await registerRequest(payload);
+    // Store token before fetching profile — same pattern as login().
+    // Without this, fetchProfileRequest() sends no Authorization header → 401.
+    if (token) setAuthToken(token);
     const resolved = rawUser ?? (await fetchProfileRequest());
     const finalUser = toAuthUser(resolved, payload.email);
     setAuthRole(finalUser.role); // always "user" for new registrations

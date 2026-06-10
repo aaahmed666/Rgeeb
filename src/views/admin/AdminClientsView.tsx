@@ -34,6 +34,7 @@ import {
 } from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
 import { ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -45,6 +46,7 @@ const EMPTY: Partial<AdminUserInput> = {
 export default function AdminClientsView() {
   const { t } = useTranslation();
   const { isAdmin } = useAuth();
+  const can = usePermission("clients");
   const qc = useQueryClient();
   const { searchValue, debouncedValue, handleSearchChange } = useDebounceSearch("", 300);
 
@@ -98,14 +100,14 @@ export default function AdminClientsView() {
   };
 
   const handleSave = () => {
-    if (!form.name_en && !form.name_ar) { toast.error("Name is required"); return; }
-    if (!form.email) { toast.error("Email is required"); return; }
+    if (!form.name_en && !form.name_ar) { toast.error(t("admin.clients.nameRequired", "Name is required")); return; }
+    if (!form.email) { toast.error(t("admin.clients.emailRequired", "Email is required")); return; }
     if (editing) {
       const payload = { ...form };
       if (!payload.password) delete payload.password; // don't send blank password
       updateMut.mutate({ id: editing.id, v: payload });
     } else {
-      if (!form.password) { toast.error("Password is required"); return; }
+      if (!form.password) { toast.error(t("admin.clients.passwordRequired", "Password is required")); return; }
       createMut.mutate(form as AdminUserInput);
     }
   };
@@ -223,7 +225,7 @@ export default function AdminClientsView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("admin.clients.clientName")} (EN) *</Label>
-                <Input dir="ltr" value={form.name_en ?? ""} onChange={f("name_en")} placeholder="John Doe" />
+                <Input dir="ltr" value={form.name_en ?? ""} onChange={f("name_en")} placeholder={t("clients.placeholder_name", "John Doe")} />
               </div>
               <div className="space-y-1.5">
                 <Label>{t("admin.clients.clientName")} (AR)</Label>

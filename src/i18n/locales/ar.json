@@ -64,7 +64,12 @@
     "showingOf": "عرض {{start}}–{{end}} من {{total}}",
     "arabicNamePlaceholder": "الاسم بالعربية",
     "arabicDescPlaceholder": "الوصف بالعربية",
-    "arabicCountryPlaceholder": "الإمارات العربية المتحدة"
+    "arabicCountryPlaceholder": "الإمارات العربية المتحدة",
+    "branch": "الفرع",
+    "dateRange": "نطاق التاريخ",
+    "type": "النوع",
+    "prev": "السابق",
+    "page": "الصفحة"
   },
   "sidebar": {
     "statistics": "الإحصائيات",
@@ -533,7 +538,8 @@
     "vehicleTracking": "تتبع المركبات",
     "activeStatus": "نشط",
     "inactiveStatus": "غير نشط",
-    "serviceNotFound": "الخدمة غير موجودة"
+    "serviceNotFound": "الخدمة غير موجودة",
+    "noLiveEvents": "لا توجد بيانات أحداث حية — قم بتعيين كاميرا لهذه الخدمة لرؤية الاكتشافات في الوقت الفعلي."
   },
   "monitoring": {
     "title": "المراقبة",
@@ -570,7 +576,8 @@
     "deleteTitle": "حذف الاكتشاف؟",
     "deleteDesc": "لا يمكن التراجع عن هذا الإجراء.",
     "dateRange": "نطاق التاريخ",
-    "selectDateRange": "اختر نطاق التاريخ"
+    "selectDateRange": "اختر نطاق التاريخ",
+    "detectionDeleted": "تم حذف الكشف بنجاح"
   },
   "liveFeeds": {
     "title": "البث المباشر للكاميرات",
@@ -683,8 +690,21 @@
       "type": "النوع",
       "status": "الحالة",
       "scheduledDate": "التاريخ المجدول",
-      "branch": "الفرع"
-    }
+      "branch": "الفرع",
+      "assignTo": "تعيين إلى",
+      "assignNote": "اتركه فارغاً للتعيين لاحقاً",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "time": "الوقت",
+      "recurringSettings": "إعدادات التكرار",
+      "everyDays": "كل (أيام)",
+      "saveAsDraft": "حفظ كمسودة",
+      "selectEmployee": "اختر موظفاً"
+    },
+    "deleteSuccess": "تم حذف المهمة",
+    "statusUpdated": "تم تحديث الحالة",
+    "createSuccess": "تم إنشاء المهمة",
+    "updateSuccess": "تم تحديث المهمة"
   },
   "settings": {
     "title": "الإعدادات",
@@ -767,7 +787,8 @@
     "companyNameAr": "اسم الشركة (عربي)",
     "companyEmail": "البريد الإلكتروني للشركة",
     "companyPhone": "هاتف الشركة",
-    "companyAddress": "العنوان"
+    "companyAddress": "العنوان",
+    "fileTooLarge": "حجم الملف كبير جداً. الحد الأقصى 800 كيلوبايت."
   },
   "fatoorah": {
     "title": "فاتورة",
@@ -883,7 +904,9 @@
       "packageDeletedSuccess": "تم حذف الباقة بنجاح",
       "packageUpdatedSuccess": "تم تحديث الباقة بنجاح",
       "selectServices": "اختر الخدمات",
-      "includedServices": "الخدمات المضمنة"
+      "includedServices": "الخدمات المضمنة",
+      "descAr": "الوصف بالعربية",
+      "descEn": "الوصف بالإنجليزية"
     },
     "aiModels": {
       "title": "نماذج الذكاء الاصطناعي",
@@ -927,7 +950,10 @@
       "userDeletedSuccess": "تم حذف المستخدم بنجاح",
       "userUpdatedSuccess": "تم تحديث المستخدم بنجاح",
       "totalUsers": "إجمالي المستخدمين",
-      "totalAdmins": "إجمالي المسؤولين"
+      "totalAdmins": "إجمالي المسؤولين",
+      "nameEn": "الاسم بالإنجليزية",
+      "nameAr": "الاسم بالعربية",
+      "newPassword": "كلمة مرور جديدة (اتركها فارغة)"
     },
     "clients": {
       "title": "العملاء",
@@ -950,7 +976,10 @@
       "noClientsFound": "لم يتم العثور على عملاء",
       "clientAddedSuccess": "تمت إضافة العميل بنجاح",
       "clientDeletedSuccess": "تم حذف العميل بنجاح",
-      "clientUpdatedSuccess": "تم تحديث العميل بنجاح"
+      "clientUpdatedSuccess": "تم تحديث العميل بنجاح",
+      "nameRequired": "الاسم مطلوب",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "passwordRequired": "كلمة المرور مطلوبة"
     },
     "subscriptions": {
       "title": "الاشتراكات",
@@ -1015,11 +1044,21 @@
       "submit": "إرسال",
       "cancel": "إلغاء",
       "close": "إغلاق",
-      "back": "رجوع"
+      "back": "رجوع",
+      "confirmDeleteDesc": "هل أنت متأكد من حذف \"{{name}}\"؟ لا يمكن التراجع."
     },
     "title": "لوحة الإدارة",
     "description": "عمليات حساسة مقيدة للمديرين فقط",
-    "settings": "الإعدادات",
+    "settings": {
+      "appNameRequired": "اسم التطبيق مطلوب",
+      "invalidEmail": "صيغة البريد غير صحيحة",
+      "placeholder_appName": "تطبيقي",
+      "placeholder_appDesc": "وصف مختصر للتطبيق",
+      "placeholder_privacy": "محتوى سياسة الخصوصية…",
+      "placeholder_terms": "محتوى شروط الخدمة…",
+      "placeholder_cookies": "محتوى سياسة ملفات تعريف الارتباط…",
+      "placeholder_emailSig": "توقيع البريد الإلكتروني…"
+    },
     "roles": "الأدوار والصلاحيات",
     "audit": "سجل المراجعة",
     "noAccess": "ليس لديك صلاحية لعرض هذه الصفحة",
@@ -1155,7 +1194,10 @@
     "somethingWentWrong": "حدث خطأ ما. حاول مرة أخرى.",
     "unauthorized": "غير مصرّح لك بتنفيذ هذا الإجراء",
     "notFound": "المورد المطلوب غير موجود",
-    "noPermission": "ليس لديك صلاحية لعرض هذه الصفحة."
+    "noPermission": "ليس لديك صلاحية لعرض هذه الصفحة.",
+    "loadFailed": "فشل التحميل",
+    "pageLoadFailed": "فشل تحميل الصفحة",
+    "tryAgain": "حدث خطأ أثناء تحميل هذه الصفحة. يرجى المحاولة مرة أخرى."
   },
   "reportCenter": {
     "title": "مركز التقارير",
@@ -1184,7 +1226,16 @@
       "nextRun": "التشغيل القادم"
     },
     "dateRange": "نطاق التاريخ",
-    "selectDateRange": "اختر نطاق التاريخ"
+    "selectDateRange": "اختر نطاق التاريخ",
+    "selectTemplate": "يرجى اختيار قالب التقرير",
+    "enterRecipient": "يرجى إدخال بريد إلكتروني واحد على الأقل",
+    "downloadFailed": "فشل التنزيل",
+    "reportDeleted": "تم حذف التقرير",
+    "reportScheduled": "تمت جدولة التقرير بنجاح",
+    "scheduleRemoved": "تمت إزالة الجدول",
+    "deleteFailed": "فشل حذف التقرير",
+    "scheduleFailed": "فشل جدولة التقرير",
+    "selectTemplatePlaceholder": "اختر قالب التقرير"
   },
   "subscription": {
     "title": "الاشتراك",
@@ -1328,7 +1379,20 @@
     "editCamera": "تعديل الكاميرا",
     "deleteCamera": "حذف الكاميرا",
     "noCameras": "لا توجد كاميرات",
-    "configureCamera": "تهيئة"
+    "configureCamera": "تهيئة",
+    "code": "رمز الكاميرا",
+    "source": "مصدر البث (RTSP URL)",
+    "model": "الطراز",
+    "ipAddress": "عنوان IP",
+    "minConf": "الحد الأدنى للثقة",
+    "directionIn": "الاتجاه (عد الأشخاص)",
+    "directionInOption": "دخول ← خروج",
+    "directionOutOption": "خروج ← دخول",
+    "enableCounter": "تفعيل عداد الأشخاص",
+    "deleteSuccess": "تم حذف الكاميرا",
+    "onlineRefreshed": "تم تحديث الحالة",
+    "onlineCheckFailed": "فشل التحقق من الحالة",
+    "deleteFailed": "فشل الحذف"
   },
   "escalationAlerts": {
     "title": "التصعيد والتنبيهات",
@@ -1404,7 +1468,9 @@
     "priorityUrgent": "عاجلة",
     "priorityHigh": "عالية",
     "priorityMedium": "متوسطة",
-    "priorityLow": "منخفضة"
+    "priorityLow": "منخفضة",
+    "taskStarted": "تم بدء المهمة",
+    "taskCompleted": "تمت المهمة"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -1428,7 +1494,8 @@
     "tasks": "المهام",
     "warning": "تحذير",
     "total": "الإجمالي",
-    "warnings": "التحذيرات"
+    "warnings": "التحذيرات",
+    "allRead": "تم تعيين جميع الإشعارات كمقروءة"
   },
   "projects": {
     "title": "المشاريع",
@@ -1449,7 +1516,16 @@
     "editProject": "تعديل المشروع",
     "deleteProject": "حذف المشروع",
     "noProjects": "لا توجد مشاريع",
-    "viewDetails": "عرض التفاصيل"
+    "viewDetails": "عرض التفاصيل",
+    "branches": "الفروع",
+    "selectManager": "اختر المدير",
+    "branchNote": "المهام في هذا المشروع مرتبطة بالفرع المحدد",
+    "cancelSuccess": "تم إلغاء المشروع",
+    "deleteSuccess": "تم حذف المشروع",
+    "deleteFailed": "فشل الحذف",
+    "createSuccess": "تم إنشاء المشروع",
+    "updateSuccess": "تم تحديث المشروع",
+    "saveFailed": "فشل الحفظ"
   },
   "auth": {
     "brand": {
@@ -1566,7 +1642,8 @@
       "strengthWeak": "ضعيفة",
       "strengthFair": "متوسطة",
       "strengthGood": "جيدة",
-      "strengthStrong": "قوية"
+      "strengthStrong": "قوية",
+      "stepLabel": "الخطوة"
     },
     "forgotPassword": {
       "title": "نسيت كلمة المرور؟",
@@ -1642,7 +1719,15 @@
       "langAr": "AR",
       "securityPlatform": "منصة الأمان"
     },
-    "faceLoginDesc": "تسجيل الدخول بالتعرف على الوجه"
+    "faceLoginDesc": "تسجيل الدخول بالتعرف على الوجه",
+    "faceLogin": {
+      "dialogTitle": "تسجيل الدخول بوجهك",
+      "cameraError": "تعذر الوصول إلى الكاميرا",
+      "success": "مرحباً بعودتك",
+      "failed": "فشل تسجيل الدخول بالوجه",
+      "capture": "التقاط وتسجيل الدخول",
+      "verifying": "جارٍ التحقق..."
+    }
   },
   "dateRanges": {
     "today": "اليوم",
@@ -1777,7 +1862,8 @@
     "missingDepsHint": "يرجى تفعيل الصلاحيات أعلاه للمتابعة.",
     "gotIt": "حسناً",
     "confirmDeleteTitle": "حذف الدور",
-    "confirmDeleteDesc": "هل أنت متأكد من حذف هذا الدور؟ لا يمكن التراجع عن هذا الإجراء."
+    "confirmDeleteDesc": "هل أنت متأكد من حذف هذا الدور؟ لا يمكن التراجع عن هذا الإجراء.",
+    "nameRequired": "يرجى إدخال اسم الدور"
   },
   "departments": {
     "title": "الأقسام",
@@ -1859,7 +1945,10 @@
     "nationalIdHint": "رقم الهوية الوطنية أو الإقامة",
     "passwordOptional": "كلمة المرور (اتركها فارغة للاحتفاظ بالحالية)",
     "uploadCertificate": "رفع صورة الشهادة",
-    "workingHoursSubtitle": "حدد الجدول الزمني لكل يوم من أيام الأسبوع"
+    "workingHoursSubtitle": "حدد الجدول الزمني لكل يوم من أيام الأسبوع",
+    "placeholder_nameEn": "أدخل الاسم بالإنجليزية",
+    "placeholder_phone": "05XXXXXXXX",
+    "placeholder_email": "employee@example.com"
   },
   "branches": {
     "title": "الفروع",
@@ -1894,7 +1983,12 @@
     "total": "إجمالي الفروع",
     "permitImage": "صورة الترخيص",
     "uploadPermitImage": "رفع صورة الترخيص",
-    "submit": "إضافة فرع"
+    "submit": "إضافة فرع",
+    "placeholder_name": "أدخل اسم الفرع",
+    "placeholder_phone": "أدخل رقم الهاتف",
+    "placeholder_address": "أدخل عنوان الفرع",
+    "placeholder_permit": "أدخل رقم رخصة البلدية",
+    "placeholder_activity": "أدخل نوع النشاط"
   },
   "permissions": {
     "title": "الصلاحيات",
@@ -2063,7 +2157,11 @@
     "accessDenied": "رفض الوصول",
     "noPermission": "ليس لديك صلاحية لعرض هذه الصفحة.",
     "exportCsv": "تصدير CSV",
-    "exportPdf": "طباعة / PDF"
+    "exportPdf": "طباعة / PDF",
+    "drawerSynced": "تمت مزامنة عمليات الدرج",
+    "syncFailed": "فشلت المزامنة",
+    "branchesImported": "تم استيراد الفروع بنجاح",
+    "importFailed": "فشل الاستيراد"
   },
   "paginatedSelect": {
     "loading": "جارٍ تحميل الخيارات…",
@@ -2130,7 +2228,9 @@
     "colRecipient": "المستلم",
     "colStatus": "الحالة",
     "colTime": "الوقت",
-    "subtitle": "إعداد قواعد التصعيد ومراجعة سجل التنبيهات."
+    "subtitle": "إعداد قواعد التصعيد ومراجعة سجل التنبيهات.",
+    "ruleUpdated": "تم تحديث القاعدة",
+    "ruleDeleted": "تم حذف القاعدة"
   },
   "kanban": {
     "newTask": "مهمة جديدة",
@@ -2432,5 +2532,27 @@
     "customer_traffic": "حركة عملاء",
     "gate_crossing": "عبور بوابة",
     "license_plate_detected": "لوحة أرقام مكتشفة"
+  },
+  "eventTimeline": {
+    "title": "الجدول الزمني للأحداث",
+    "subtitle": "عرض وتصفية جميع أحداث النظام عبر الفروع والكاميرات",
+    "alerts": "التنبيهات",
+    "found": "تم العثور على {{n}} حدثاً",
+    "noEvents": "لا توجد أحداث"
+  },
+  "visitorRecords": {
+    "title": "سجلات الزوار",
+    "subtitle": "تتبع نشاط دخول وخروج الزوار",
+    "total": "إجمالي الزوار",
+    "entered": "دخل",
+    "exited": "خرج",
+    "noRecords": "لا توجد سجلات زوار"
+  },
+  "visitors": {
+    "enter": "دخول",
+    "exit": "خروج"
+  },
+  "clients": {
+    "placeholder_name": "الاسم"
   }
 }

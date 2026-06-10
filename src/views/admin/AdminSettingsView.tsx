@@ -8,10 +8,10 @@ import {
   Bell,
   Loader2,
   Save,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import {  } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,19 @@ export default function AdminSettingsView() {
   const qc = useQueryClient();
 
   // AdminSettings.raw is Record<string,string> — flat key/value map
+  // ISSUE-S01: Guard — any authenticated user was previously able to access settings
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.noAccess")}</p>
+        </div>
+      </div>
+    );
+  }
+
   const q = useQuery({
     queryKey: ["admin", "settings"],
     queryFn: fetchAdminSettings,
@@ -94,13 +107,22 @@ export default function AdminSettingsView() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const saveGeneral = () =>
+  const saveGeneral = () => {
+    if (!v("app_name").trim()) {
+      toast.error(t("admin.settings.appNameRequired", "App name is required"));
+      return;
+    }
+    if (v("contact_email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("contact_email"))) {
+      toast.error(t("admin.settings.invalidEmail", "Invalid email format"));
+      return;
+    }
     mut.mutate([
       { key: "app_name",        value: v("app_name") },
       { key: "app_description", value: v("app_description") },
       { key: "contact_email",   value: v("contact_email") },
       { key: "support_phone",   value: v("support_phone") },
     ]);
+  };
 
   const saveLegal = () =>
     mut.mutate([
@@ -109,11 +131,16 @@ export default function AdminSettingsView() {
       { key: "cookie_policy",   value: v("cookie_policy") },
     ]);
 
-  const saveNotifications = () =>
+  const saveNotifications = () => {
+    if (v("notification_email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("notification_email"))) {
+      toast.error(t("admin.settings.invalidEmail", "Invalid email format"));
+      return;
+    }
     mut.mutate([
       { key: "notification_email", value: v("notification_email") },
       { key: "email_signature",    value: v("email_signature") },
     ]);
+  };
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -155,7 +182,7 @@ export default function AdminSettingsView() {
                   <Input
                     value={v("app_name")}
                     onChange={set("app_name")}
-                    placeholder="My App"
+                    placeholder={t("admin.settings.placeholder_appName", "My App")}
                   />
                 </Field>
                 <Field label={t("admin.settings_appDesc")}>
@@ -163,7 +190,7 @@ export default function AdminSettingsView() {
                     value={v("app_description")}
                     onChange={set("app_description")}
                     rows={4}
-                    placeholder="Short description of the application"
+                    placeholder={t("admin.settings.placeholder_appDesc", "Short description of the application")}
                   />
                 </Field>
                 <Field label={t("admin.settings_contactEmail")}>
@@ -191,7 +218,7 @@ export default function AdminSettingsView() {
                     value={v("privacy_policy")}
                     onChange={set("privacy_policy")}
                     rows={8}
-                    placeholder="Privacy policy content…"
+                    placeholder={t("admin.settings.placeholder_privacy", "Privacy policy content…")}
                   />
                 </Field>
                 <Field label={t("admin.settings_terms")}>
@@ -199,7 +226,7 @@ export default function AdminSettingsView() {
                     value={v("terms_of_service")}
                     onChange={set("terms_of_service")}
                     rows={8}
-                    placeholder="Terms of service content…"
+                    placeholder={t("admin.settings.placeholder_terms", "Terms of service content…")}
                   />
                 </Field>
                 <Field label={t("admin.settings_cookies")}>
@@ -207,7 +234,7 @@ export default function AdminSettingsView() {
                     value={v("cookie_policy")}
                     onChange={set("cookie_policy")}
                     rows={8}
-                    placeholder="Cookie policy content…"
+                    placeholder={t("admin.settings.placeholder_cookies", "Cookie policy content…")}
                   />
                 </Field>
                 <SaveBar onSave={saveLegal} isPending={mut.isPending} t={t} />
@@ -228,7 +255,7 @@ export default function AdminSettingsView() {
                     value={v("email_signature")}
                     onChange={set("email_signature")}
                     rows={8}
-                    placeholder="Email signature HTML or text…"
+                    placeholder={t("admin.settings.placeholder_emailSig", "Email signature HTML or text…")}
                   />
                 </Field>
                 <SaveBar onSave={saveNotifications} isPending={mut.isPending} t={t} />

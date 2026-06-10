@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MessageSquare,
   MessagesSquare,
+  RefreshCw,
   Users,
   Clock,
   DollarSign,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -50,11 +52,15 @@ export default function ChatAnalyticsView() {
   const [channels, setChannels] = useState<SeriesPoint[]>([]);
   const [langs, setLangs] = useState<DistributionSlice[]>([]);
   const [hourly, setHourly] = useState<SeriesPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   /* fetch analytics */
-  useEffect(() => {
+  const loadData = useCallback(() => {
     let cancelled = false;
     const f = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+    setLoading(true);
+    setLoadError(null);
     void Promise.all([
       chatAnalyticsService.summary(f),
       chatAnalyticsService.conversationsOverTime(f),
@@ -70,11 +76,17 @@ export default function ChatAnalyticsView() {
       setChannels(ch);
       setLangs(lg);
       setHourly(hr);
+    }).catch((err) => {
+      if (!cancelled) setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [dateFrom, dateTo]);
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo, t]);
+
+  useEffect(() => {
+    return loadData();
+  }, [loadData]);
 
   const coloredIntents = useMemo(
     () =>
@@ -99,17 +111,32 @@ export default function ChatAnalyticsView() {
       dir={isRTL ? "rtl" : "ltr"}
     >
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {t("chatAnalytics.title", "Chat Analytics")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t(
-            "chatAnalytics.subtitle",
-            "Monitor your AI assistant performance and user interactions"
-          )}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("chatAnalytics.title", "Chat Analytics")}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t(
+              "chatAnalytics.subtitle",
+              "Monitor your AI assistant performance and user interactions"
+            )}
+          </p>
+        </div>
+        <Button variant="outline" size="icon" onClick={() => loadData()} disabled={loading} aria-label={t("common.refresh")}>
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
       </div>
+
+      {/* Error banner */}
+      {loadError && !loading && (
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <span>{loadError}</span>
+          <button onClick={() => loadData()} className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30">
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

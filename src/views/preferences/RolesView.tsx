@@ -711,7 +711,7 @@ function RoleDialog({
 
   const handleSave = () => {
     if (!name.trim()) {
-      toast.error("Please enter a role name");
+      toast.error(t("roles.nameRequired", "Please enter a role name"));
       return;
     }
     const missing = findMissingDeps();

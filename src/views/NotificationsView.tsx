@@ -58,7 +58,7 @@ export default function NotificationsView() {
     mutationFn: () => notificationsService.markAllRead(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });
-      toast.success("All notifications marked as read");
+      toast.success(t("notifications.allRead", "All notifications marked as read"));
     },
     onError: (e: Error) => toast.error(e.message),
   });

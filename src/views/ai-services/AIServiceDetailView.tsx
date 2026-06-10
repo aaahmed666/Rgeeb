@@ -32,39 +32,6 @@ interface Props {
   service: AIServiceMeta;
 }
 
-const RECENT_EVENTS = [
-  {
-    time: "2 min ago",
-    label: "Detection triggered",
-    cam: "Camera 3",
-    status: "alert",
-  },
-  {
-    time: "8 min ago",
-    label: "Detection triggered",
-    cam: "Camera 1",
-    status: "alert",
-  },
-  {
-    time: "14 min ago",
-    label: "Normal — no event",
-    cam: "Camera 2",
-    status: "ok",
-  },
-  {
-    time: "22 min ago",
-    label: "Detection triggered",
-    cam: "Camera 5",
-    status: "alert",
-  },
-  {
-    time: "31 min ago",
-    label: "Normal — no event",
-    cam: "Camera 4",
-    status: "ok",
-  },
-];
-
 // If service has an apiId, render the live monitor; otherwise the static fallback
 export default function AIServiceDetailView({ service }: Props) {
   if (service.apiId != null) {
@@ -324,33 +291,9 @@ function StaticDetailView({ service }: Props) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {RECENT_EVENTS.map((ev, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm"
-                  >
-                    {ev.status === "alert" ? (
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{ev.label}</p>
-                      <p className="text-xs text-muted-foreground">{ev.cam}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {ev.time}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <Eye className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">{t("aiServices.noLiveEvents", "No live event data — assign a camera to this service to see real-time detections.")}</p>
               </div>
             </CardContent>
           </Card>

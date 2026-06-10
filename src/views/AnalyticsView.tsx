@@ -2,17 +2,19 @@
 
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BarChart3,
   Building2,
   CheckCircle2,
   Eye,
+  RefreshCw,
   ShieldAlert,
   Video } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -53,6 +55,7 @@ export default function AnalyticsView() {
   const [byCamera, setByCamera] = useState<CameraRow[]>([]);
   const [byBranch, setByBranch] = useState<BranchRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Derive from/to: custom picker takes priority over preset buttons
   const from = useMemo(() => {
@@ -73,7 +76,7 @@ export default function AnalyticsView() {
     void analyticsService.getBranches().then(setBranches);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     let cancelled = false;
     const filters = {
       dateFrom: from,
@@ -81,6 +84,7 @@ export default function AnalyticsView() {
       branchId: branchId === "all" ? undefined : branchId,
     };
     setLoading(true);
+    setLoadError(null);
     void Promise.all([
       analyticsService.getSummary(filters),
       analyticsService.getTrends(filters),
@@ -94,10 +98,17 @@ export default function AnalyticsView() {
       setByService(sv);
       setByCamera(cm);
       setByBranch(br);
-      setLoading(false);
+    }).catch((err) => {
+      if (!cancelled) setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [from, to, branchId]); // ← string primitives, stable deps
+  }, [from, to, branchId, t]);
+
+  useEffect(() => {
+    return loadData();
+  }, [loadData]); // ← loadData is memoized on from/to/branchId/t
 
   const maxDet = Math.max(1, ...trends.map((t) => t.detections));
 
@@ -163,9 +174,29 @@ export default function AnalyticsView() {
                 placeholder="All Branches"
                 isClearable
               />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => loadData()}
+              disabled={loading}
+              className="bg-white/15 border-white/30 text-white hover:bg-white/25"
+              aria-label={t("common.refresh")}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Error banner */}
+      {loadError && !loading && (
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <span>{loadError}</span>
+          <button onClick={() => loadData()} className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30">
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

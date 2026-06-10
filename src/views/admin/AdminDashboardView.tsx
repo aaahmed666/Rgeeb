@@ -5,9 +5,21 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Users, Tag, Briefcase, Package, Bot, Settings,
-  CreditCard, ShieldAlert, ShieldCheck, Globe, Building2,
+  Users,
+  Tag,
+  Briefcase,
+  Package,
+  Bot,
+  Settings,
+  CreditCard,
+  ShieldAlert,
+  ShieldCheck,
+  Globe,
+  Building2,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
@@ -21,25 +33,103 @@ const STAT_KEYS: Array<{
   textColor: string;
   bgColor: string;
 }> = [
-  { key: "clients",             labelKey: "admin.statClients",             icon: Users,      textColor: "text-blue-500",    bgColor: "bg-blue-500/10"    },
-  { key: "categories",          labelKey: "admin.statCategories",          icon: Tag,        textColor: "text-purple-500",  bgColor: "bg-purple-500/10"  },
-  { key: "services",            labelKey: "admin.statServices",            icon: Briefcase,  textColor: "text-orange-500",  bgColor: "bg-orange-500/10"  },
-  { key: "packages",            labelKey: "admin.statPackages",            icon: Package,    textColor: "text-pink-500",    bgColor: "bg-pink-500/10"    },
-  { key: "aiModels",            labelKey: "admin.statAiModels",            icon: Bot,        textColor: "text-teal-500",    bgColor: "bg-teal-500/10"    },
-  { key: "subscriptions",       labelKey: "admin.statSubscriptions",       icon: CreditCard, textColor: "text-green-500",   bgColor: "bg-green-500/10"   },
-  { key: "activeSubscriptions", labelKey: "admin.statActiveSubscriptions", icon: ShieldCheck,textColor: "text-emerald-500", bgColor: "bg-emerald-500/10" },
+  {
+    key: "clients",
+    labelKey: "admin.statClients",
+    icon: Users,
+    textColor: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+  },
+  {
+    key: "categories",
+    labelKey: "admin.statCategories",
+    icon: Tag,
+    textColor: "text-purple-500",
+    bgColor: "bg-purple-500/10",
+  },
+  {
+    key: "services",
+    labelKey: "admin.statServices",
+    icon: Briefcase,
+    textColor: "text-orange-500",
+    bgColor: "bg-orange-500/10",
+  },
+  {
+    key: "packages",
+    labelKey: "admin.statPackages",
+    icon: Package,
+    textColor: "text-pink-500",
+    bgColor: "bg-pink-500/10",
+  },
+  {
+    key: "aiModels",
+    labelKey: "admin.statAiModels",
+    icon: Bot,
+    textColor: "text-teal-500",
+    bgColor: "bg-teal-500/10",
+  },
+  {
+    key: "subscriptions",
+    labelKey: "admin.statSubscriptions",
+    icon: CreditCard,
+    textColor: "text-green-500",
+    bgColor: "bg-green-500/10",
+  },
+  {
+    key: "activeSubscriptions",
+    labelKey: "admin.statActiveSubscriptions",
+    icon: ShieldCheck,
+    textColor: "text-emerald-500",
+    bgColor: "bg-emerald-500/10",
+  },
 ];
 
 const NAV_SECTIONS = [
-  { href: "/dashboard/admin/clients",       icon: Users,     labelKey: "admin.clients.title"       },
-  { href: "/dashboard/admin/categories",    icon: Tag,       labelKey: "admin.categories.title"    },
-  { href: "/dashboard/admin/services",      icon: Briefcase, labelKey: "admin.services.title"      },
-  { href: "/dashboard/admin/packages",      icon: Package,   labelKey: "admin.packages.title"      },
-  { href: "/dashboard/admin/ai-models",     icon: Bot,       labelKey: "admin.aiModels.title"      },
-  { href: "/dashboard/admin/subscriptions", icon: CreditCard,labelKey: "admin.subscriptions.title" },
-  { href: "/dashboard/admin/countries",     icon: Globe,     labelKey: "admin.countries"     },
-  { href: "/dashboard/admin/cities",        icon: Building2, labelKey: "admin.cities"        },
-  { href: "/dashboard/admin/settings",      icon: Settings,  labelKey: "admin.settings"      },
+  {
+    href: "/dashboard/admin/clients",
+    icon: Users,
+    labelKey: "admin.clients.title",
+  },
+  {
+    href: "/dashboard/admin/categories",
+    icon: Tag,
+    labelKey: "admin.categories.title",
+  },
+  {
+    href: "/dashboard/admin/services",
+    icon: Briefcase,
+    labelKey: "admin.services.title",
+  },
+  {
+    href: "/dashboard/admin/packages",
+    icon: Package,
+    labelKey: "admin.packages.title",
+  },
+  {
+    href: "/dashboard/admin/ai-models",
+    icon: Bot,
+    labelKey: "admin.aiModels.title",
+  },
+  {
+    href: "/dashboard/admin/subscriptions",
+    icon: CreditCard,
+    labelKey: "admin.subscriptions.title",
+  },
+  {
+    href: "/dashboard/admin/countries",
+    icon: Globe,
+    labelKey: "admin.countries",
+  },
+  {
+    href: "/dashboard/admin/cities",
+    icon: Building2,
+    labelKey: "admin.cities",
+  },
+  {
+    href: "/dashboard/admin/settings",
+    icon: Settings,
+    labelKey: "admin.settings",
+  },
 ] as const;
 
 export default function AdminDashboardView() {
@@ -61,8 +151,12 @@ export default function AdminDashboardView() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
           </div>
-          <h2 className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{t("admin.noAccess")}</p>
+          <h2 className="text-lg font-semibold">
+            {t("errors.unauthorized", "Access Denied")}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("admin.noAccess")}
+          </p>
         </div>
       </div>
     );
@@ -70,40 +164,85 @@ export default function AdminDashboardView() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 p-4 sm:p-6 lg:p-10">
-
       {/* ── Header ── */}
       <header className="flex flex-col items-center gap-3 text-center">
         <div className="rounded-full bg-primary/10 p-3 text-primary">
           <ShieldCheck className="h-6 w-6" />
         </div>
         <h1 className="text-lg font-bold sm:text-xl">{t("admin.title")}</h1>
-        <p className="max-w-xl text-sm text-muted-foreground">{t("admin.description")}</p>
+        <p className="max-w-xl text-sm text-muted-foreground">
+          {t("admin.description")}
+        </p>
       </header>
+
+      {/* ── Header with refresh button — ISSUE-D04 ── */}
+      <div className="flex items-center justify-between">
+        <div />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => stats.refetch()}
+          disabled={stats.isFetching}
+        >
+          <RefreshCw
+            className={`me-2 h-4 w-4 ${stats.isFetching ? "animate-spin" : ""}`}
+          />
+          {t("common.refresh", "Refresh")}
+        </Button>
+      </div>
 
       {/* ── Stats grid — responsive 2/3/4 cols ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {stats.isLoading
-          ? Array.from({ length: STAT_KEYS.length }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-xl" />
-            ))
-          : STAT_KEYS.map(({ key, labelKey, icon: Icon, textColor, bgColor }) => {
-              const value = (stats.data as Record<string, unknown> | undefined)?.[key] ?? 0;
-              return (
-                <Card key={key} className="border-border/60 shadow-sm transition hover:shadow-md">
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bgColor}`}>
-                      <Icon className={`h-5 w-5 ${textColor}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs text-muted-foreground">
-                        {t(labelKey)}
-                      </p>
-                      <p className="text-2xl font-bold tabular-nums">{String(value)}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+        {stats.isLoading ? (
+          Array.from({ length: STAT_KEYS.length }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="h-24 rounded-xl"
+            />
+          ))
+        ) : stats.isError ? (
+          <div className="col-span-full flex flex-col items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <p className="text-sm font-medium text-destructive">
+              {t("admin.common.loadingFailed", "Failed to load stats")}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => stats.refetch()}
+            >
+              <RefreshCw className="me-2 h-4 w-4" />
+              {t("common.retry", "Retry")}
+            </Button>
+          </div>
+        ) : (
+          STAT_KEYS.map(({ key, labelKey, icon: Icon, textColor, bgColor }) => {
+            const value =
+              (stats.data as Record<string, unknown> | undefined)?.[key] ?? 0;
+            return (
+              <Card
+                key={key}
+                className="border-border/60 shadow-sm transition hover:shadow-md"
+              >
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bgColor}`}
+                  >
+                    <Icon className={`h-5 w-5 ${textColor}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-muted-foreground">
+                      {t(labelKey)}
+                    </p>
+                    <p className="text-2xl font-bold tabular-nums">
+                      {String(value)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       {/* ── Navigation grid ── */}

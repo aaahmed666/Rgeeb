@@ -46,11 +46,31 @@ export interface AdminDashboardStats {
 
 /**
  * Builds stats by running parallel count queries on the list endpoints.
- * /admin/dashboard-stats may not exist in all envs — this is resilient.
+ * Tries a dedicated /admin/dashboard-stats endpoint first (fast, accurate).
+ * Falls back to list queries, preferring meta.total over array length to avoid
+ * pagination caps (ISSUE-D01). Uses /admin/clients not /admin/users (ISSUE-D02).
  */
 export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
+  // 1. Try dedicated stats endpoint (fast, accurate)
+  try {
+    const raw = await api.get<unknown>("/admin/dashboard-stats");
+    const obj = unwrap(raw);
+    if (obj.clients !== undefined) {
+      return {
+        clients:             num(obj, "clients",               "total_clients") ?? 0,
+        categories:          num(obj, "categories")            ?? 0,
+        services:            num(obj, "services")              ?? 0,
+        packages:            num(obj, "packages")              ?? 0,
+        aiModels:            num(obj, "ai_models", "aiModels") ?? 0,
+        subscriptions:       num(obj, "subscriptions")         ?? 0,
+        activeSubscriptions: num(obj, "active_subscriptions",  "activeSubscriptions") ?? 0,
+      };
+    }
+  } catch { /* fall through to list fallback */ }
+
+  // 2. Parallel list queries — use meta.total when available (avoids pagination cap)
   const results = await Promise.allSettled([
-    api.get<unknown>(endpoints.admin.users),
+    api.get<unknown>(endpoints.admin.clients ?? endpoints.admin.users), // ISSUE-D02: clients, not users
     api.get<unknown>(endpoints.admin.categories),
     api.get<unknown>(endpoints.admin.services),
     api.get<unknown>(endpoints.admin.packages),
@@ -59,16 +79,20 @@ export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
     api.get<unknown>(endpoints.admin.subscriptionsActive),
   ]);
 
-  const count = (r: PromiseSettledResult<unknown>) =>
-    r.status === "fulfilled" ? unwrapArray(r.value).length : 0;
+  const count = (r: PromiseSettledResult<unknown>) => {
+    if (r.status !== "fulfilled") return 0;
+    const raw = r.value as Record<string, unknown>;
+    const meta = raw?.meta as Record<string, unknown> | undefined;
+    return num(meta ?? {}, "total") ?? unwrapArray(r.value).length;
+  };
 
   return {
-    clients: count(results[0]),
-    categories: count(results[1]),
-    services: count(results[2]),
-    packages: count(results[3]),
-    aiModels: count(results[4]),
-    subscriptions: count(results[5]),
+    clients:             count(results[0]),
+    categories:          count(results[1]),
+    services:            count(results[2]),
+    packages:            count(results[3]),
+    aiModels:            count(results[4]),
+    subscriptions:       count(results[5]),
     activeSubscriptions: count(results[6]),
   };
 }

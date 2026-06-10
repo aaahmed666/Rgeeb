@@ -78,7 +78,7 @@ export default function MyTasksView() {
     mutationFn: (id: string) => myTasksService.start(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tasks"] });
-      toast.success("Task started");
+      toast.success(t("myTasks.taskStarted", "Task started"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -87,7 +87,7 @@ export default function MyTasksView() {
     mutationFn: (id: string) => myTasksService.complete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tasks"] });
-      toast.success("Task completed");
+      toast.success(t("myTasks.taskCompleted", "Task completed"));
     },
     onError: (e: Error) => toast.error(e.message),
   });

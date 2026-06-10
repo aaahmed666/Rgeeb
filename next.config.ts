@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
-const BACKEND_URL = "https://api.dev.rgeeb.com";
+// Use environment variable for backend URL — falls back to dev for local development.
+// Set BACKEND_URL in your deployment environment for production.
+const BACKEND_URL = process.env.BACKEND_URL ?? "https://api.dev.rgeeb.com";
 
 const nextConfig: NextConfig = {
   // Gzip/Brotli compress all responses — reduces transfer size significantly
