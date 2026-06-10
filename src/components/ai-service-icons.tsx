@@ -1180,3 +1180,40 @@ export function FireDetectionIcon({ className, ...p }: IconProps) {
     </svg>
   );
 }
+
+// ── Smoke Detection (separate from Fire Detection) ──
+export function SmokeDetectionIcon({ className, ...p }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      {...p}
+    >
+      {/* Smoke cloud layers */}
+      <path
+        d="M4 18c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2s-.9 2-2 2H6c-1.1 0-2-.9-2-2z"
+        fill="currentColor"
+        opacity="0.5"
+      />
+      <path
+        d="M6 14c0-1.1.9-2 2-2h8c1.1 0 2 .9 2 2s-.9 2-2 2H8c-1.1 0-2-.9-2-2z"
+        fill="currentColor"
+        opacity="0.7"
+      />
+      <path
+        d="M8 10c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2s-.9 2-2 2h-4c-1.1 0-2-.9-2-2z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      {/* Wisp at top */}
+      <path
+        d="M11 8c0-2 1-3 1-5 0 0 1 1 1 3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.6"
+      />
+    </svg>
+  );
+}

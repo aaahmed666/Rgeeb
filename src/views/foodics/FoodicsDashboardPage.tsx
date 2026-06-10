@@ -63,10 +63,20 @@ export default function FoodicsDashboardPage() {
     );
   }
 
+  const STAT_GRADIENTS: Record<string, string> = {
+    "bg-gradient-to-br from-indigo-500 to-purple-600":  "linear-gradient(to bottom right, #6366f1, #9333ea)",
+    "bg-gradient-to-br from-emerald-500 to-teal-600":   "linear-gradient(to bottom right, #10b981, #0d9488)",
+    "bg-gradient-to-br from-sky-500 to-cyan-600":       "linear-gradient(to bottom right, #0ea5e9, #0891b2)",
+    "bg-gradient-to-br from-amber-500 to-orange-600":   "linear-gradient(to bottom right, #f59e0b, #ea580c)",
+    "bg-gradient-to-br from-rose-500 to-red-600":       "linear-gradient(to bottom right, #f43f5e, #dc2626)",
+    "bg-gradient-to-br from-orange-500 to-amber-600":   "linear-gradient(to bottom right, #f97316, #d97706)",
+    "bg-gradient-to-br from-violet-500 to-purple-600":  "linear-gradient(to bottom right, #8b5cf6, #9333ea)",
+    "bg-gradient-to-br from-pink-500 to-rose-600":      "linear-gradient(to bottom right, #ec4899, #e11d48)",
+  };
   const StatCard = ({
     icon: Icon, label, value, sub, bg,
   }: { icon: React.ElementType; label: string; value: string; sub?: string; bg: string }) => (
-    <div className={`rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden ${bg}`}>
+    <div className="rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden" style={{ background: STAT_GRADIENTS[bg] ?? bg }}>
       <div className="flex items-center gap-2">
         <Icon className="w-5 h-5 text-white/80" />
         <p className="text-xs text-white/80 uppercase tracking-wide font-medium">{label}</p>

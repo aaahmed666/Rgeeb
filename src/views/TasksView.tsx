@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -251,6 +252,15 @@ export default function TasksView() {
   const [taskForm, setTaskForm] = React.useState<typeof EMPTY_TASK>(EMPTY_TASK);
 
   function openCreateTask() { setEditingTask(null); setTaskForm(EMPTY_TASK); setTaskOpen(true); }
+
+  // Auto-open create dialog when navigated with ?action=create
+  const searchParams = useSearchParams();
+  React.useEffect(() => {
+    if (searchParams?.get("action") === "create") {
+      openCreateTask();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   function openEditTask(t: TaskItem) {
     setEditingTask(t);
     setTaskForm({

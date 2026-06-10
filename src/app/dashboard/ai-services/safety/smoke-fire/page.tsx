@@ -1,15 +1,16 @@
 "use client";
 
-import React from "react";
-import dynamic from "next/dynamic";
-import { SERVICE_MAP } from "@/views/ai-services/aiServicesData";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-const AIServiceDetailView = dynamic(() => import("@/views/ai-services/AIServiceDetailView"), {
-  ssr: false,
-});
-
+/**
+ * Legacy route — "smoke-fire" was split into separate "fire-detection" and "smoke-detection" services.
+ * Redirect to fire-detection for backward compatibility.
+ */
 export default function Page() {
-  const service = SERVICE_MAP["smoke-fire"];
-  if (!service) return <div className="p-8 text-muted-foreground">Service not found.</div>;
-  return <AIServiceDetailView service={service} />;
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/dashboard/ai-services/safety/fire-detection");
+  }, [router]);
+  return null;
 }

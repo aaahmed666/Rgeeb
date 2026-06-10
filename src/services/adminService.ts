@@ -773,3 +773,84 @@ export async function deleteAdminCity(cityId: string | number): Promise<void> {
     (endpoints.admin.cityDelete as (id: string | number) => string)(cityId)
   );
 }
+
+// ─── Clients ──────────────────────────────────────────────────────────────────
+
+export interface AdminClient {
+  id: string;
+  name: string;
+  nameEn?: string;
+  nameAr?: string;
+  email?: string;
+  phone?: string;
+  country?: string;
+  city?: string;
+  active?: boolean;
+  mainAdmin?: boolean;
+  avatar?: string;
+  createdAt?: string;
+}
+
+function mapClient(c: RawObject): AdminClient {
+  const country = c.country as RawObject | undefined;
+  return {
+    id: str(c, "id") ?? String(c.id ?? ""),
+    name: str(c, "name_en", "name") ?? "",
+    nameEn: str(c, "name_en"),
+    nameAr: str(c, "name_ar"),
+    email: str(c, "email"),
+    phone: str(c, "phone"),
+    country:
+      (country && str(country, "name_en", "name")) ?? str(c, "country_name"),
+    active: c.active !== false && c.active !== 0,
+    mainAdmin: Boolean(c.main_admin),
+    city: str(c, "city"),
+    avatar: str(c, "avatar", "avatar_url"),
+    createdAt: str(c, "created_at"),
+  };
+}
+
+export async function fetchAdminClients(): Promise<AdminClient[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.clients)).map(
+    mapClient
+  );
+}
+
+export interface AdminClientInput {
+  name_en: string;
+  name_ar?: string;
+  email: string;
+  phone?: string;
+  password?: string;
+  active?: boolean;
+  main_admin?: boolean;
+}
+
+export async function createAdminClient(
+  input: AdminClientInput
+): Promise<AdminClient> {
+  return mapClient(
+    unwrap(await api.post<unknown>(endpoints.admin.clientCreate, input))
+  );
+}
+
+export async function updateAdminClient(
+  clientId: string | number,
+  input: Partial<AdminClientInput>
+): Promise<AdminClient> {
+  return mapClient(
+    unwrap(
+      await api.put<unknown>(
+        endpoints.admin.clientUpdate,
+        { id: clientId, ...input }
+      )
+    )
+  );
+}
+
+export async function deleteAdminClient(
+  clientId: string | number
+): Promise<void> {
+  const deleteFn = endpoints.admin.clientDelete as (id: string | number) => string;
+  await api.delete<unknown>(deleteFn(clientId));
+}

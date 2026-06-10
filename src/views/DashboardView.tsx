@@ -17,7 +17,6 @@ import {
   ShieldCheck,
   TrendingUp,
   RefreshCcw,
-  Hand,
   ChevronDown,
   ChevronUp,
   ShieldAlert,
@@ -28,6 +27,8 @@ import {
   ChefHatIcon,
   LockIcon as LockServiceIcon,
   FlameIcon,
+  FireDetectionIcon,
+  SmokeDetectionIcon,
   CigaretteIcon,
   DropletsIcon,
   UsersIcon as AiUsersIcon,
@@ -104,6 +105,13 @@ const CATEGORY_COLORS: Record<AIServiceItem["category"], string> = {
   monitoring: "from-emerald-500 to-teal-500",
 };
 
+const CATEGORY_GRADIENT: Record<string, string> = {
+  safety:     "linear-gradient(to bottom right, #f43f5e, #ef4444)",
+  analytics:  "linear-gradient(to bottom right, #8b5cf6, #6d28d9)",
+  operations: "linear-gradient(to bottom right, #3b82f6, #1d4ed8)",
+  monitoring: "linear-gradient(to bottom right, #10b981, #059669)",
+};
+
 // Maps API service key → custom icon component
 const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   age_gender: AiUsersIcon,
@@ -116,7 +124,8 @@ const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   delivery_tracking: TruckIcon,
   drive_thru: CarIcon,
   face_detection: ScanFaceIcon,
-  fire_detection: FlameIcon,
+  fire_detection: FireDetectionIcon,
+  smoke_detection: SmokeDetectionIcon,
   gate_monitoring: NavigationIcon,
   helmet: HardHatIcon,
   kitchen_ppe: ChefHatIcon,
@@ -149,7 +158,8 @@ const SERVICE_KEY_MAP: Record<string, { cat: string; slug: string }> = {
   delivery_tracking: { cat: "operations", slug: "delivery-tracking" },
   drive_thru: { cat: "operations", slug: "drive-thru" },
   face_detection: { cat: "analytics", slug: "face-detection" },
-  fire_detection: { cat: "safety", slug: "smoke-fire" },
+  fire_detection: { cat: "safety", slug: "fire-detection" },
+  smoke_detection: { cat: "safety", slug: "smoke-detection" },
   gate_monitoring: { cat: "monitoring", slug: "gate-monitoring" },
   helmet: { cat: "safety", slug: "helmet-detection" },
   kitchen_ppe: { cat: "safety", slug: "kitchen-ppe" },
@@ -182,7 +192,8 @@ const SERVICE_LABEL_MAP: Record<string, string> = {
   delivery_tracking: "aiServices.deliveryTracking",
   drive_thru: "aiServices.driveThru",
   face_detection: "aiServices.faceDetection",
-  fire_detection: "aiServices.smokeFire",
+  fire_detection: "aiServices.fireDetection",
+  smoke_detection: "aiServices.smokeDetection",
   gate_monitoring: "aiServices.gateMonitoring",
   helmet: "aiServices.helmetDetection",
   kitchen_ppe: "aiServices.kitchenPpe",
@@ -334,7 +345,13 @@ export default function DashboardView() {
       const q = serviceQuery.toLowerCase();
       list = list.filter((s) => s.name.toLowerCase().includes(q));
     }
-    return list;
+    // Deduplicate by key — guard against API returning duplicate service entries
+    const seen = new Set<string>();
+    return list.filter((s) => {
+      if (seen.has(s.key)) return false;
+      seen.add(s.key);
+      return true;
+    });
   }, [services, category, serviceQuery]);
 
   const visibleServices = showAllServices
@@ -368,10 +385,10 @@ export default function DashboardView() {
         <div className="absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
         <div className="relative grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl select-none" role="img" aria-hidden="true">👋</span>
               <h1 className="text-lg font-bold sm:text-xl">
-                {t("dashboard.welcome", { name: displayName })}{" "}
-                <Hand className="inline-block h-6 w-6 -rotate-12 align-middle" />
+                {t("dashboard.welcome", { name: displayName })}
               </h1>
             </div>
             <p className="text-sm opacity-90">
@@ -471,7 +488,11 @@ export default function DashboardView() {
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={serviceQuery}
-                onChange={(e) => setServiceQuery(e.target.value)}
+                onChange={(e) => {
+                  setServiceQuery(e.target.value);
+                  // Auto-switch to "all" when searching so results aren't filtered by category too
+                  if (e.target.value.trim()) setCategory("all");
+                }}
                 placeholder={t("aiServices.searchPlaceholder")}
                 className="ps-9"
               />
@@ -520,7 +541,8 @@ export default function DashboardView() {
                   }`}
                 >
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${CATEGORY_COLORS[s.category]} text-white`}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
+                    style={{ background: CATEGORY_GRADIENT[s.category] ?? "linear-gradient(to bottom right, #f43f5e, #ef4444)" }}
                   >
                     <ServiceIcon className="h-5 w-5" />
                   </div>
@@ -669,29 +691,18 @@ export default function DashboardView() {
                   return (
                     <div
                       key={p.hour}
-                      className="group relative flex flex-1 flex-col items-center"
+                      className="group relative flex flex-1 flex-col items-center justify-end"
                       style={{ height: "100%" }}
                     >
-                      {/* bar anchored to bottom */}
+                      {/* bar anchored to bottom, above hour label */}
                       <div
-                        className="absolute bottom-5 w-full rounded-t bg-gradient-to-t from-indigo-500 to-purple-500 transition-all hover:opacity-80"
-                        style={{ height: `calc(${heightPct}% - 20px)` }}
-                        title={`${p.hour}:00 — ${p.in} in / ${p.out} out`}
+                        className="w-full rounded-t bg-gradient-to-t from-indigo-500 to-purple-500 transition-all hover:opacity-80"
+                        style={{ height: `${Math.max(0, heightPct)}%`, minHeight: heightPct > 0 ? "2px" : "0" }}
+                        title={`${String(p.hour).padStart(2, "0")}:00 — ${p.in} in / ${p.out} out`}
                       />
-                      {/* value label above bar */}
-                      {p.in > 0 && (
-                        <span
-                          className="absolute text-[9px] font-semibold text-muted-foreground"
-                          style={{
-                            bottom: `calc(${heightPct}% - 20px + 4px)`,
-                          }}
-                        >
-                          {p.in}
-                        </span>
-                      )}
                       {/* hour label at bottom */}
-                      <span className="absolute bottom-0 text-[9px] text-muted-foreground">
-                        {p.hour}
+                      <span className="mt-1 text-[9px] text-muted-foreground">
+                        {String(p.hour).padStart(2, "0")}
                       </span>
                     </div>
                   );
@@ -809,7 +820,15 @@ export default function DashboardView() {
             <div className="flex items-center gap-5">
               <Donut
                 value={compliance?.score ?? 0}
-                label={t("dashboard.needsImprovement")}
+                label={
+                  (compliance?.score ?? 0) >= 90
+                    ? t("dashboard.excellent", "Excellent")
+                    : (compliance?.score ?? 0) >= 70
+                      ? t("dashboard.good", "Good")
+                      : (compliance?.score ?? 0) >= 50
+                        ? t("dashboard.needsImprovement", "Needs Improvement")
+                        : t("dashboard.critical", "Critical")
+                }
                 color={
                   (compliance?.score ?? 0) >= 90
                     ? "oklch(0.7 0.16 145)"
@@ -1023,6 +1042,13 @@ export default function DashboardView() {
 
 /* ----------------------- small subcomponents ----------------------- */
 
+const TASK_METRIC_GRADIENTS: Record<string, string> = {
+  "from-blue-500 to-indigo-600":  "linear-gradient(to bottom right, #3b82f6, #4f46e5)",
+  "from-amber-500 to-orange-600": "linear-gradient(to bottom right, #f59e0b, #ea580c)",
+  "from-rose-500 to-red-600":     "linear-gradient(to bottom right, #f43f5e, #dc2626)",
+  "from-rose-600 to-red-700":     "linear-gradient(to bottom right, #e11d48, #b91c1c)",
+};
+
 function TaskMetric({
   icon: Icon,
   label,
@@ -1036,7 +1062,8 @@ function TaskMetric({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-4 text-white shadow-md`}
+      className="relative overflow-hidden rounded-xl p-4 text-white shadow-md"
+      style={{ background: TASK_METRIC_GRADIENTS[gradient] ?? "linear-gradient(to bottom right, #3b82f6, #4f46e5)" }}
     >
       <Icon className="absolute end-3 top-3 h-5 w-5 opacity-50" />
       <p className="text-3xl font-bold tabular-nums">{value}</p>

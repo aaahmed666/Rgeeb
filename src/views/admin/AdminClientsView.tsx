@@ -25,12 +25,12 @@ import {
 // AdminUser:      id, nameAr?, nameEn?, name, email?, phone?, active?, mainAdmin?, clientId?, country?, city?, avatar?
 // AdminUserInput: name_ar*, name_en*, email*, password?, phone?, active?, main_admin?, client_id?
 import {
-  fetchAdminUsers,
-  createAdminUser,
-  updateAdminUser,
-  deleteAdminUser,
-  type AdminUser,
-  type AdminUserInput,
+  fetchAdminClients,
+  createAdminClient,
+  updateAdminClient,
+  deleteAdminClient,
+  type AdminClient as AdminUser,
+  type AdminClientInput as AdminUserInput,
 } from "@/services/adminService";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { useAuth } from "@/lib/auth";
@@ -40,7 +40,7 @@ import { useTranslation } from "react-i18next";
 
 const EMPTY: Partial<AdminUserInput> = {
   name_ar: "", name_en: "", email: "", phone: "",
-  password: "", active: true, main_admin: false,
+  password: "", active: true,
 };
 
 export default function AdminClientsView() {
@@ -55,7 +55,7 @@ export default function AdminClientsView() {
   const [form,     setForm]     = useState<Partial<AdminUserInput>>(EMPTY);
   const [toDelete, setToDelete] = useState<AdminUser | null>(null);
 
-  const q = useQuery({ queryKey: ["admin", "users"], queryFn: fetchAdminUsers });
+  const q = useQuery({ queryKey: ["admin", "clients"], queryFn: fetchAdminClients });
 
   const filtered = useMemo(() => {
     const s = debouncedValue.trim().toLowerCase();
@@ -66,20 +66,20 @@ export default function AdminClientsView() {
     );
   }, [q.data, debouncedValue]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "users"] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "clients"] });
 
   const createMut = useMutation({
-    mutationFn: (v: AdminUserInput) => createAdminUser(v),
+    mutationFn: (v: AdminUserInput) => createAdminClient(v),
     onSuccess: () => { toast.success(t("admin.clients.clientAddedSuccess")); invalidate(); setOpen(false); },
     onError:   (e: Error) => toast.error(e.message),
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, v }: { id: string; v: Partial<AdminUserInput> }) => updateAdminUser(id, v),
+    mutationFn: ({ id, v }: { id: string; v: Partial<AdminUserInput> }) => updateAdminClient(id, v),
     onSuccess: () => { toast.success(t("admin.clients.clientUpdatedSuccess")); invalidate(); setOpen(false); },
     onError:   (e: Error) => toast.error(e.message),
   });
   const deleteMut = useMutation({
-    mutationFn: (id: string) => deleteAdminUser(id),
+    mutationFn: (id: string) => deleteAdminClient(id),
     onSuccess: () => { toast.success(t("admin.clients.clientDeletedSuccess")); invalidate(); setToDelete(null); },
     onError:   (e: Error) => toast.error(e.message),
   });
@@ -138,9 +138,11 @@ export default function AdminClientsView() {
         onRefresh={invalidate}
         isRefreshing={q.isFetching}
         right={
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1.5 h-4 w-4" /> {t("admin.clients.addClient")}
-          </Button>
+          can.create ? (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-1.5 h-4 w-4" /> {t("admin.clients.addClient")}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -203,12 +205,12 @@ export default function AdminClientsView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openEdit(u)}>
+                  {can.update && <DropdownMenuItem onClick={() => openEdit(u)}>
                     <Pencil className="me-2 h-4 w-4" /> {t("common.edit")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => setToDelete(u)}>
+                  }{can.delete && <DropdownMenuItem className="text-destructive" onClick={() => setToDelete(u)}>
                     <Trash2 className="me-2 h-4 w-4" /> {t("common.delete")}
-                  </DropdownMenuItem>
+                  </DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
             ),

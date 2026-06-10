@@ -189,7 +189,7 @@ export default function EmployeesView() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 via-slate-700 to-orange-500 p-6 text-white shadow-lg">
+      <div className="overflow-hidden rounded-2xl p-6 text-white shadow-lg" style={{ background: "linear-gradient(to right, #1e293b, #334155, #f97316)" }}>
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-white/15 p-3 backdrop-blur">
             <Users className="h-6 w-6" />
@@ -590,7 +590,7 @@ function EmployeeDrawer({
         {/* Header */}
         <SheetHeader className="border-b px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-orange-500 text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg text-white" style={{ background: "linear-gradient(to bottom right, #334155, #f97316)" }}>
               <Users className="h-4 w-4" />
             </div>
             <div>

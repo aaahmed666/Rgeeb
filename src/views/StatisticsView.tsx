@@ -87,8 +87,10 @@ export default function StatisticsView() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const today = toISO(new Date());
   const from = dateRange ? toISO(dateRange[0]) : "";
-  const to = dateRange ? toISO(dateRange[1]) : "";
+  // Cap end date to today — never allow future dates to be sent to the API
+  const to = dateRange ? (toISO(dateRange[1]) > today ? today : toISO(dateRange[1])) : "";
   const canFetch = useMemo(() => Boolean(from && to && from <= to), [from, to]);
 
   const load = useCallback(
@@ -155,12 +157,12 @@ export default function StatisticsView() {
         </div>
       )}
 
-      {/* Filter card */}
+      {/* Filter card — all controls in ONE row */}
       <Card className="overflow-hidden border-border shadow-sm">
-        <CardContent className="space-y-5 p-5 sm:p-6">
-          {/* Quick presets */}
+        <CardContent className="p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {/* Quick presets */}
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
               {t("reports.quick", "Quick")}:
             </span>
             {PRESETS.map(([k, label]) => (
@@ -169,7 +171,7 @@ export default function StatisticsView() {
                 size="sm"
                 variant={activePreset === k ? "default" : "outline"}
                 className={cn(
-                  "rounded-full transition-all",
+                  "rounded-full transition-all shrink-0",
                   activePreset === k && "shadow-sm shadow-primary/30"
                 )}
                 onClick={() => applyPreset(k)}
@@ -180,14 +182,10 @@ export default function StatisticsView() {
                 )}
               </Button>
             ))}
-          </div>
-
-          {/* Date range picker + fetch button */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                {t("reports.dateRange", "Date Range")}
-              </label>
+            {/* Divider */}
+            <span className="h-6 w-px bg-border shrink-0 hidden sm:block" />
+            {/* Date range picker */}
+            <div className="flex-1 min-w-[220px]">
               <SharedDateRangePicker
                 value={dateRange}
                 onChange={(val) => {
@@ -196,10 +194,11 @@ export default function StatisticsView() {
                 }}
               />
             </div>
+            {/* Fetch button */}
             <Button
               disabled={!canFetch || loading}
               onClick={() => load(tab)}
-              className="h-10 gap-2 px-6 shadow-sm shadow-primary/20"
+              className="gap-2 px-5 shrink-0"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -94,23 +94,31 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     ]);
 
     // Use rankings by_score as efficiency data when efficiency-index returns empty
+    const scoreToStatus = (
+      s: number
+    ): EfficiencyRow["status"] =>
+      s >= 80 ? "Outstanding" : s >= 60 ? "On Target" : s >= 40 ? "Needs Attention" : "Critical";
+
     const effData =
       Array.isArray(eff) && eff.length > 0
         ? eff
-        : (rnk?.by_score ?? []).map((r, i) => ({
-            branch: r.branch,
-            score: typeof r.value === "number" ? r.value : Number(r.value),
-            compliance: 0,
-            detections: 0,
-            violations: 0,
-            violation_rate: 0,
-            tasks_done: 0,
-            tasks_total: 0,
-            task_rate: 0,
-            trend: 0,
-            status: "Outstanding" as const,
-            _rank: i,
-          }));
+        : (rnk?.by_score ?? []).map((r, i) => {
+            const score = typeof r.value === "number" ? r.value : Number(r.value);
+            return {
+              branch: r.branch,
+              score,
+              compliance: 0,
+              detections: 0,
+              violations: 0,
+              violation_rate: 0,
+              tasks_done: 0,
+              tasks_total: 0,
+              task_rate: 0,
+              trend: 0,
+              status: scoreToStatus(score),
+              _rank: i,
+            };
+          });
     setState((prev) => ({
       ...prev,
       efficiency: effData,

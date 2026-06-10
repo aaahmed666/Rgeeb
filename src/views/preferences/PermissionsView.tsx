@@ -494,7 +494,7 @@ export default function PermissionsView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Hero */}
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-700 to-violet-600 p-6 text-white shadow-lg">
+      <div className="overflow-hidden rounded-2xl p-6 text-white shadow-lg" style={{ background: "linear-gradient(to right, #1e1b4b, #3730a3, #7c3aed)" }}>
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-white/15 p-3 backdrop-blur">
             <KeyRound className="h-6 w-6" />

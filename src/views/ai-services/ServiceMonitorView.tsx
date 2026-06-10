@@ -223,7 +223,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             ? t("serviceMonitor.visitorsIn", "VISITORS IN")
             : t("serviceMonitor.totalDetections", "TOTAL DETECTIONS"),
       value: totalDet,
-      sub: `${t("serviceMonitor.yesterday")}: ${Math.round(totalDet * 1.2)}`,
+      // yesterday stat removed — fabricated value (totalDet * 1.2) was misleading
       color: "",
       iconBg: "#fde68a",
       iconColor: "#d97706",

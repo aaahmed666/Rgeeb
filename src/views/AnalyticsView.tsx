@@ -117,7 +117,7 @@ export default function AnalyticsView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Banner */}
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-orange-400 via-orange-500 to-cyan-500 p-6 text-white shadow-lg">
+      <div className="overflow-hidden rounded-2xl p-6 text-white shadow-lg" style={{ background: "linear-gradient(to right, #fb923c, #f97316, #06b6d4)" }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
@@ -265,7 +265,7 @@ export default function AnalyticsView() {
                 />
               </div>
             </div>
-            <div className="flex h-64 items-end gap-2">
+            <div className="relative flex h-64 items-end gap-2">
               {loading
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <Skeleton
@@ -275,7 +275,7 @@ export default function AnalyticsView() {
                   ))
                 : trends.length === 0
                   ? (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <BarChart3 className="h-10 w-10 opacity-20" />
                       <p className="text-sm">{t("analytics.noData", "No detection data for this period")}</p>
                     </div>

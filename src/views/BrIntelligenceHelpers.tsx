@@ -266,7 +266,7 @@ export function RankCard({
       </p>
       <div className="space-y-2">
         {items.length === 0 ? (
-          <Skeleton className="h-6 w-full" />
+          <p className="text-xs text-muted-foreground">—</p>
         ) : (
           items.map((it, i) => (
             <div
@@ -345,13 +345,12 @@ export function ClassCard({
 
 export function Heatmap({ data }: { data: HeatmapPayload | null }) {
   const { t } = useTranslation();
-  if (!data) return <Skeleton className="h-40 w-full" />;
-  const cells = data.cells ?? [];
-  const dates = data.dates ?? [];
+  const cells = data?.cells ?? [];
+  const dates = data?.dates ?? [];
   if (!cells.length || !dates.length) {
     return (
       <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
-        {t("intel.noHeatmapData", "No heatmap data for this period")}
+        {t("intel.noHeatmapData", "No heatmap data available")}
       </div>
     );
   }
@@ -666,12 +665,14 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
                   <div className="flex-1">
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full rounded-full bg-indigo-500 transition-all"
+                        className={cn("h-full rounded-full transition-all",
+                          m.invert && pctA > 50 ? "bg-rose-500" : "bg-indigo-500")}
                         style={{ width: `${pctA}%` }}
                       />
                     </div>
                   </div>
-                  <span className="w-12 text-end text-xs font-semibold tabular-nums text-indigo-600">
+                  <span className={cn("w-12 text-end text-xs font-semibold tabular-nums",
+                    m.invert && valA > 50 ? "text-rose-600" : "text-indigo-600")}>
                     {valA.toFixed(1)}
                     {m.unit}
                   </span>
@@ -683,12 +684,14 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
                   <div className="flex-1">
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full rounded-full bg-teal-500 transition-all"
+                        className={cn("h-full rounded-full transition-all",
+                          m.invert && pctB > 50 ? "bg-rose-500" : "bg-teal-500")}
                         style={{ width: `${pctB}%` }}
                       />
                     </div>
                   </div>
-                  <span className="w-12 text-end text-xs font-semibold tabular-nums text-teal-600">
+                  <span className={cn("w-12 text-end text-xs font-semibold tabular-nums",
+                    m.invert && valB > 50 ? "text-rose-600" : "text-teal-600")}>
                     {valB.toFixed(1)}
                     {m.unit}
                   </span>
@@ -1100,6 +1103,25 @@ export function ForecastSection({
   forecast: TrendForecast | null;
 }) {
   const { t } = useTranslation();
+  if (!forecast || forecast.points.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+          <svg viewBox="0 0 24 24" className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6" strokeDasharray="3 3"/>
+          </svg>
+        </div>
+        <div>
+          <p className="font-semibold text-slate-600">
+            {t("intel.noForecastData", "Insufficient Data for Forecasting")}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t("intel.forecastRequirement", "At least 2 days of detection data are required for trend analysis")}
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (!forecast) return <Skeleton className="h-56 w-full" />;
   const dirColor =
     forecast.direction === "falling"

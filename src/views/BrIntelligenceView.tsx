@@ -195,7 +195,7 @@ export default function BrIntelligenceView() {
         </p>
       </div>
       {/* Banner — hidden when printing */}
-      <div className="no-print rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 p-5 text-white shadow-lg">
+      <div className="no-print rounded-2xl p-5 text-white shadow-lg" style={{ background: "linear-gradient(to right, #0f172a, #1e293b, #1e1b4b)" }}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
             <div className="rounded-xl bg-indigo-500/20 p-3 backdrop-blur-sm">
@@ -312,6 +312,7 @@ export default function BrIntelligenceView() {
                 setSectionsWithData(withData);
                 setPrintMode(true);
                 // Wait for React to render all sections before opening print dialog
+                // Increased timeout to allow complex charts/tables to fully render before print
                 setTimeout(() => {
                   const htmlEl = document.documentElement;
                   const prevDir = htmlEl.getAttribute("dir") ?? "ltr";
@@ -405,7 +406,7 @@ export default function BrIntelligenceView() {
                   };
                   window.addEventListener("afterprint", restoreAfterPrint);
                   window.print();
-                }, 500);
+                }, 800);
               }}
               title="Print"
               className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10"
@@ -712,7 +713,7 @@ export default function BrIntelligenceView() {
           <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">
             {t("intel.peak", "Peak")}:{" "}
             {heatmap?.cells?.length
-              ? Math.max(...heatmap.cells.map((c) => c.value))
+              ? (heatmap.cells.length > 0 ? Math.max(...heatmap.cells.map((c) => c.value)) : 0)
               : 0}{" "}
             {t("intel.detections", "detections")}
           </span>
@@ -820,31 +821,38 @@ export default function BrIntelligenceView() {
           ) : undefined
         }
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {comparison.map((c) => (
-            <div
-              key={c.metric}
-              className="rounded-lg border p-4"
-            >
-              <p className="text-xs uppercase text-muted-foreground">
-                {t(`intel.metric_${c.metric.toLowerCase()}`, c.metric)}
-              </p>
-              <p className="mt-1 text-2xl font-bold tabular-nums">
-                {c.current.toLocaleString()}
-              </p>
-              <p
-                className={cn(
-                  "mt-1 text-xs font-medium",
-                  c.delta_pct >= 0 ? "text-emerald-600" : "text-rose-600"
-                )}
+        {comparison.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">—</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {comparison.map((c) => (
+              <div
+                key={c.metric}
+                className="rounded-xl border p-4"
               >
-                {c.delta_pct >= 0 ? "+" : ""}
-                {c.delta_pct}% {t("intel.vsPrevious", "vs previous")} (
-                {c.previous.toLocaleString()})
-              </p>
-            </div>
-          ))}
-        </div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t(`intel.metric_${c.metric.toLowerCase()}`, c.metric)}
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-sky-50 p-2">
+                    <p className="text-[10px] text-muted-foreground">{t("intel.current", "Current")}</p>
+                    <p className="text-lg font-bold text-sky-700 tabular-nums">{c.current.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-2">
+                    <p className="text-[10px] text-muted-foreground">{t("intel.previous", "Previous")}</p>
+                    <p className="text-lg font-bold text-slate-600 tabular-nums">{c.previous.toLocaleString()}</p>
+                  </div>
+                  <div className={cn("rounded-lg p-2", c.delta_pct >= 0 ? "bg-emerald-50" : "bg-rose-50")}>
+                    <p className="text-[10px] text-muted-foreground">{t("intel.change", "Change")}</p>
+                    <p className={cn("text-lg font-bold tabular-nums", c.delta_pct >= 0 ? "text-emerald-700" : "text-rose-700")}>
+                      {c.delta_pct >= 0 ? "+" : ""}{c.delta_pct}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       {/* AI Insights */}
@@ -984,9 +992,29 @@ export default function BrIntelligenceView() {
         }
       >
         {anomalies.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {t("intel.noAnomalies", "No anomalies detected")}
-          </p>
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+              <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+            </div>
+            <div>
+              <p className="font-semibold text-emerald-700">
+                {t("intel.noAnomalies", "No Anomalies Detected")}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t("intel.noAnomaliesDesc", "All branches are operating within normal parameters")}
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
+                <TrendingUp className="h-3 w-3" />
+                {t("intel.zScoreThreshold", "Z-score threshold: 2.0")}
+              </span>
+              <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
+                <Brain className="h-3 w-3" />
+                {efficiency.length} {t("intel.branchesMonitored", "branches monitored")}
+              </span>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
             {anomalies.map((a, i) => {

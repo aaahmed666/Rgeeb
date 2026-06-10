@@ -429,7 +429,7 @@ export default function ReportCenterView() {
   /* ── Hero ────────────────────────────────────────────────────────── */
   const hero = useMemo(
     () => (
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-6 text-white shadow-lg sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg sm:p-8" style={{ background: "linear-gradient(to bottom right, #4f46e5, #7c3aed, #7e22ce)" }}>
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
         <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -746,7 +746,9 @@ export default function ReportCenterView() {
                           variant="ghost"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           title="Download"
+                          disabled={!can.read}
                           onClick={() => {
+                            if (!can.read) return;
                             const url = h.download_url ?? h.file_url;
                             if (url) {
                               triggerDownload(
@@ -765,7 +767,8 @@ export default function ReportCenterView() {
                           variant="ghost"
                           className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                           title="Delete"
-                          onClick={() => deleteGenMut.mutate(h.id)}
+                          disabled={!can.delete}
+                          onClick={() => can.delete && deleteGenMut.mutate(h.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -859,7 +862,8 @@ export default function ReportCenterView() {
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                        onClick={() => deleteSchedMut.mutate(s.id)}
+                        disabled={!can.delete}
+                        onClick={() => can.delete && deleteSchedMut.mutate(s.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

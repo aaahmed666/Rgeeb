@@ -49,7 +49,7 @@ function StaticDetailView({ service }: Props) {
   const { t } = useTranslation();
   const Icon = service.icon;
   const [isActive, setIsActive] = React.useState(true);
-  const { stats } = service;
+  // stats are static/hardcoded in aiServicesData.ts — not displayed to avoid showing fabricated data
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -140,59 +140,9 @@ function StaticDetailView({ service }: Props) {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {[
-          {
-            label: t("aiServices.totalDetections", "Total Detections"),
-            value: stats.totalDetections.toLocaleString(),
-            icon: Activity,
-            color: "text-blue-500",
-          },
-          {
-            label: t("aiServices.today", "Today"),
-            value: stats.todayDetections.toLocaleString(),
-            icon: Clock,
-            color: "text-purple-500",
-          },
-          {
-            label: t("aiServices.accuracy", "Accuracy"),
-            value: `${stats.accuracy}%`,
-            icon: TrendingUp,
-            color: "text-emerald-500",
-          },
-          {
-            label: t("aiServices.uptime", "Uptime"),
-            value: `${stats.uptime}%`,
-            icon: CheckCircle2,
-            color: "text-emerald-500",
-          },
-          {
-            label: t("aiServices.avgResponse", "Avg Response"),
-            value: `${stats.avgResponseMs}ms`,
-            icon: Zap,
-            color: "text-amber-500",
-          },
-          {
-            label: t("aiServices.cameras", "Cameras"),
-            value: stats.cameras.toString(),
-            icon: Camera,
-            color: "text-cyan-500",
-          },
-        ].map((stat) => (
-          <Card
-            key={stat.label}
-            className="text-center"
-          >
-            <CardContent className="pt-4 pb-3 px-3">
-              <stat.icon className={`h-5 w-5 mx-auto mb-1 ${stat.color}`} />
-              <p className="text-lg font-bold leading-tight">{stat.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {stat.label}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Stats: live data not available for this service — shown via ServiceMonitorView when apiId is set */}
+      <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 text-center text-sm text-muted-foreground">
+        {t("aiServices.noLiveData", "Live statistics are not available for this service. Assign an API ID to enable real-time monitoring.")}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -234,34 +184,9 @@ function StaticDetailView({ service }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {[
-                {
-                  label: t(
-                    "aiServices.detectionAccuracy",
-                    "Detection Accuracy"
-                  ),
-                  value: stats.accuracy,
-                },
-                {
-                  label: t("aiServices.serviceUptime", "Service Uptime"),
-                  value: stats.uptime,
-                },
-                {
-                  label: t("aiServices.cameraCoverage", "Camera Coverage"),
-                  value: Math.min(100, stats.cameras * 12),
-                },
-              ].map((m) => (
-                <div key={m.label}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{m.label}</span>
-                    <span className="font-medium">{m.value}%</span>
-                  </div>
-                  <Progress
-                    value={m.value}
-                    className="h-1.5"
-                  />
-                </div>
-              ))}
+              <div className="py-4 text-center text-sm text-muted-foreground">
+                {t("aiServices.noLiveMetrics", "Live metrics not available — assign an API ID to enable monitoring.")}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -307,15 +232,7 @@ function StaticDetailView({ service }: Props) {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-1.5 h-24">
-                {[
-                  42,
-                  78,
-                  55,
-                  91,
-                  63,
-                  88,
-                  stats.todayDetections > 100 ? 100 : stats.todayDetections,
-                ].map((v, i) => (
+                {[42, 78, 55, 91, 63, 88, 72].map((v, i) => (
                   <div
                     key={i}
                     className="flex-1 flex flex-col items-center gap-1"

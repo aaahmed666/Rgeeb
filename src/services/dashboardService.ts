@@ -112,6 +112,7 @@ const DEMO_AI_SERVICES: AIServiceItem[] = [
   ["drive_thru", "Drive Thru Monitoring", "operations"],
   ["face_detection", "Face Detection", "safety"],
   ["fire_detection", "Fire Detection", "safety"],
+  ["smoke_detection", "Smoke Detection", "safety"],
   ["gate_monitoring", "Gate Monitoring", "monitoring"],
   ["helmet", "Helmet Detection", "safety"],
   ["kitchen_ppe", "Kitchen PPE", "safety"],
@@ -312,7 +313,7 @@ const NAME_TO_KEY_MAP: Array<[string, string, AIServiceItem["category"]]> = [
   ["drive", "drive_thru", "operations"],
   ["face", "face_detection", "analytics"],
   ["fire", "fire_detection", "safety"],
-  ["smoke", "fire_detection", "safety"],
+  ["smoke", "smoke_detection", "safety"],
   ["gate", "gate_monitoring", "monitoring"],
   ["helmet", "helmet", "safety"],
   ["kitchen", "kitchen_ppe", "safety"],
@@ -511,7 +512,7 @@ export const dashboardService = {
       "services"
     );
     if (!arr.length) return [];
-    return arr.map((s, i) => {
+    const mapped = arr.map((s, i) => {
       const o = (s ?? {}) as Record<string, unknown>;
       const rawName = String(
         o.name_en ?? o.name ?? o.label ?? `Service ${i + 1}`
@@ -529,6 +530,14 @@ export const dashboardService = {
           : "active") as AIServiceItem["status"],
         detections: pickNum(o, "detections", "count") || undefined,
       };
+    });
+    // Deduplicate by canonical key — the API sometimes returns both "smoke"
+    // and "fire" (or two "age_gender" entries) which would create duplicate cards.
+    const seen = new Set<string>();
+    return mapped.filter((item) => {
+      if (seen.has(item.key)) return false;
+      seen.add(item.key);
+      return true;
     });
   },
 

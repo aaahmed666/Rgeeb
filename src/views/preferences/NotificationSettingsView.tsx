@@ -80,7 +80,7 @@ export default function NotificationSettingsView() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      <Card className="overflow-hidden border-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 text-white">
+      <Card className="overflow-hidden border-0 text-white" style={{ background: "linear-gradient(to right, #4f46e5, #9333ea, #6366f1)" }}>
         <CardContent className="flex items-center gap-4 p-6">
           <div className="rounded-xl bg-white/15 p-3 backdrop-blur"><Bell className="h-6 w-6" /></div>
           <div>

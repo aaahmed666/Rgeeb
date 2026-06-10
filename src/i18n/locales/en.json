@@ -345,7 +345,14 @@
     "errorTitle": "Branch Intelligence Failed to Load",
     "errorDesc": "An error occurred while loading branch intelligence analytics. Please try again.",
     "printDate": "Report Date",
-    "noForecastData": "Insufficient data for trend forecast — more historical data required"
+    "noForecastData": "Insufficient data for trend forecast — more historical data required",
+    "current": "Current",
+    "previous": "Previous",
+    "change": "Change",
+    "forecastRequirement": "At least 2 days of detection data are required for trend analysis",
+    "noAnomaliesDesc": "All branches are operating within normal parameters",
+    "zScoreThreshold": "Z-score threshold: 2.0",
+    "branchesMonitored": "branches monitored"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -400,7 +407,10 @@
     "selectDateRange": "Select Date Range",
     "dateRange": "Date Range",
     "noFlowData": "No visitor flow data",
-    "secsAgo": "{{n}}s ago"
+    "secsAgo": "{{n}}s ago",
+    "excellent": "Excellent",
+    "good": "Good",
+    "critical": "Critical"
   },
   "statistics": {
     "title": "Statistics",
@@ -539,7 +549,9 @@
     "activeStatus": "Active",
     "inactiveStatus": "Inactive",
     "serviceNotFound": "Service not found",
-    "noLiveEvents": "No live event data — assign a camera to this service to see real-time detections."
+    "noLiveEvents": "No live event data — assign a camera to this service to see real-time detections.",
+    "fireDetection": "Fire Detection",
+    "smokeDetection": "Smoke Detection"
   },
   "monitoring": {
     "title": "Monitoring",

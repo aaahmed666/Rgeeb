@@ -143,7 +143,7 @@ export default function AiTaskRulesView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header className="flex items-center gap-3">
-        <div className="rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 p-3 text-white shadow-lg">
+        <div className="rounded-xl p-3 text-white shadow-lg" style={{ background: "linear-gradient(to bottom right, #334155, #0f172a)" }}>
           <Bot className="h-6 w-6" />
         </div>
         <div>

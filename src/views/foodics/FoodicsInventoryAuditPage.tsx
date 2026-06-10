@@ -6,10 +6,13 @@ import {
   Loader2, Plus, Trash2, Edit2, X, Check, History,
   Package, AlertCircle } from "lucide-react";
 import { foodicsService, FoodicsInventoryZone, FoodicsInventoryAudit } from "@/services/foodicsService";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAuth } from "@/lib/auth";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function FoodicsInventoryAuditPage() {
   const { hasPermission } = useAuth();
+  const can = usePermission("foodics");
   const { t } = useTranslation();
   const [zones, setZones] = useState<FoodicsInventoryZone[]>([]);
   const [auditHistory, setAuditHistory] = useState<FoodicsInventoryAudit[]>([]);
@@ -18,6 +21,7 @@ export default function FoodicsInventoryAuditPage() {
   const [activeTab, setActiveTab] = useState<"zones" | "history">("zones");
 
   const [branchId, setBranchId] = useState("");
+  const [deleteZoneId, setDeleteZoneId] = useState<string | null>(null);
 
   // Add zone dialog
   const [showAdd, setShowAdd] = useState(false);
@@ -99,7 +103,6 @@ export default function FoodicsInventoryAuditPage() {
   };
 
   const handleDeleteZone = async (id: string) => {
-    if (!confirm(t("validation.deleteConfirm"))) return;
     try {
       await foodicsService.deleteInventoryZone(id);
       await fetchZones();
@@ -124,6 +127,7 @@ export default function FoodicsInventoryAuditPage() {
   }
 
   return (
+    <>
     <div className="p-6 space-y-6">
       {/* Tabs */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -156,7 +160,8 @@ export default function FoodicsInventoryAuditPage() {
             </select>
             {activeTab === "zones" && (
               <button
-                onClick={() => setShowAdd(true)}
+                disabled={!can.create}
+                onClick={() => can.create && setShowAdd(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition"
               >
                 <Plus className="w-4 h-4" /> {t("foodics.addZone")}
@@ -193,8 +198,8 @@ export default function FoodicsInventoryAuditPage() {
                         {editId === zone.id ? (
                           <>
                             <button
-                              onClick={() => handleEditZone(zone.id)}
-                              disabled={editLoading}
+                              disabled={!can.update || editLoading}
+                              onClick={() => can.update && !editLoading && handleEditZone(zone.id)}
                               className="p-1 rounded hover:bg-muted text-green-600 transition"
                             >
                               {editLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -206,13 +211,15 @@ export default function FoodicsInventoryAuditPage() {
                         ) : (
                           <>
                             <button
-                              onClick={() => { setEditId(zone.id); setEditName(zone.name); }}
+                              disabled={!can.update}
+                              onClick={() => { if (can.update) { setEditId(zone.id); setEditName(zone.name); } }}
                               className="p-1 rounded hover:bg-muted text-muted-foreground transition"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteZone(zone.id)}
+                              disabled={!can.delete}
+                              onClick={() => can.delete && setDeleteZoneId(zone.id)}
                               className="p-1 rounded hover:bg-muted text-destructive transition"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -333,5 +340,13 @@ export default function FoodicsInventoryAuditPage() {
         </div>
       )}
     </div>
+    <ConfirmDeleteDialog
+      open={deleteZoneId !== null}
+      onOpenChange={(o) => { if (!o) setDeleteZoneId(null); }}
+      title={t("validation.deleteConfirm", "Delete Zone")}
+      description={t("validation.deleteConfirmDesc", "Are you sure you want to delete this zone? This cannot be undone.")}
+      onConfirm={() => { const id = deleteZoneId; setDeleteZoneId(null); if (id) void handleDeleteZone(id); }}
+    />
+    </>
   );
 }

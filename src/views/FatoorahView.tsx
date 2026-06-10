@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useTranslation } from "react-i18next";
 import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -61,6 +62,7 @@ async function unlinkFatoorah(): Promise<void> {
 /* View                                                                 */
 /* ------------------------------------------------------------------ */
 export default function FatoorahView() {
+  const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const { t } = useTranslation();
   const can = usePermission("fatoorah");
   const qc = useQueryClient();
@@ -141,17 +143,7 @@ export default function FatoorahView() {
             </p>
           )}
           <button
-            onClick={() => {
-              if (
-                confirm(
-                  t(
-                    "fatoorah.confirmUnlink",
-                    "Are you sure you want to unlink your Fatoorah account?"
-                  )
-                )
-              )
-                unlinkMut.mutate();
-            }}
+            onClick={() => setShowUnlinkConfirm(true)}
             disabled={!can.delete || unlinkMut.isPending}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 px-6 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
           >
@@ -169,6 +161,7 @@ export default function FatoorahView() {
 
   /* ── Not connected — Link form ───────────────────────────────────── */
   return (
+    <>
     <div className="flex min-h-[70vh] items-center justify-center p-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-10 shadow-sm">
         {/* Icon */}
@@ -270,5 +263,13 @@ export default function FatoorahView() {
       {/* Registration → Fatoorah flow diagram */}
       <RegistrationFatoorahFlow />
     </div>
+    <ConfirmDeleteDialog
+      open={showUnlinkConfirm}
+      onOpenChange={setShowUnlinkConfirm}
+      title={t("fatoorah.confirmUnlink", "Unlink Account")}
+      description={t("fatoorah.confirmUnlinkDesc", "Are you sure you want to unlink your Fatoorah account? This cannot be undone.")}
+      onConfirm={() => { setShowUnlinkConfirm(false); unlinkMut.mutate(); }}
+    />
+    </>
   );
 }

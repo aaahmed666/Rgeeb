@@ -818,4 +818,30 @@ button,
     page-break-inside: avoid;
     margin-bottom: 12px;
   }
+
+  /* ── Br Intelligence specific print fixes ── */
+  /* Ensure score rings and SVG elements render in print */
+  svg {
+    overflow: visible !important;
+  }
+  /* Ensure bar charts and progress bars show */
+  [style*="width:"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  /* Force background colors to print (for colored badges/pills) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Hide scrollbars in print */
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+  /* Ensure heatmap cells show */
+  .min-w-\[800px\] {
+    min-width: unset !important;
+    width: 100% !important;
+  }
 }

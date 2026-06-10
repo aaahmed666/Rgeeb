@@ -11,6 +11,8 @@ import {
   AlertCircle } from "lucide-react";
 import { foodicsService, FoodicsStatus } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { usePermission } from "@/hooks/usePermission";
 
 const SERVICE_ICONS = [
   {
@@ -42,6 +44,8 @@ const SERVICE_ICONS = [
 ];
 
 export default function FoodicsConnectionPage() {
+  const can = usePermission("foodics");
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = React.useState(false);
   const { hasPermission } = useAuth();
   const { t } = useTranslation();
   const [status, setStatus] = useState<FoodicsStatus | null>(null);
@@ -82,7 +86,6 @@ export default function FoodicsConnectionPage() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm(t("foodics.disconnect") + "?")) return;
     setDisconnecting(true);
     try {
       await foodicsService.disconnect();
@@ -198,6 +201,7 @@ export default function FoodicsConnectionPage() {
   }
 
   return (
+    <>
     <div className="p-6 space-y-6">
       {/* Health Header */}
       <div className="rounded-2xl border border-border bg-card p-6 flex items-center gap-6">
@@ -253,7 +257,7 @@ export default function FoodicsConnectionPage() {
             Refresh
           </button>
           <button
-            onClick={handleDisconnect}
+            onClick={() => setShowDisconnectConfirm(true)}
             disabled={disconnecting}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/5 transition"
           >
@@ -348,5 +352,13 @@ export default function FoodicsConnectionPage() {
         </div>
       )}
     </div>
+    <ConfirmDeleteDialog
+      open={showDisconnectConfirm}
+      onOpenChange={setShowDisconnectConfirm}
+      title={t("foodics.disconnect", "Disconnect Foodics")}
+      description={t("foodics.disconnectConfirm", "Are you sure you want to disconnect Foodics? This will remove the integration.")}
+      onConfirm={() => { setShowDisconnectConfirm(false); void handleDisconnect(); }}
+    />
+    </>
   );
 }

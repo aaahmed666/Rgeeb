@@ -337,7 +337,7 @@ export default function AdminUsersView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Hero */}
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 via-slate-700 to-primary p-6 text-white shadow-lg">
+      <div className="overflow-hidden rounded-2xl p-6 text-white shadow-lg" style={{ background: "linear-gradient(to right, #1e293b, #334155, var(--color-primary, #f97316))" }}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-white/15 p-3 backdrop-blur">
