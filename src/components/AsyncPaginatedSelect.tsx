@@ -12,6 +12,7 @@ import type { GroupBase, StylesConfig, Theme } from "react-select";
 import { apiFetch } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "@/components/auth-styles";
+import { isRtl as checkRtl } from "@/lib/i18n";
 
 export interface SelectOption {
   value: string;
@@ -79,6 +80,8 @@ export interface AuthPaginatedSelectProps {
   isDark: boolean;
   hasError?: boolean;
   id?: string;
+  /** Control height in px. Defaults to 52 for auth pages, use 36 for dashboard. */
+  height?: number;
 }
 
 export function AuthPaginatedSelect({
@@ -97,6 +100,7 @@ export function AuthPaginatedSelect({
   isDark,
   hasError = false,
   id,
+  height = 52,
 }: AuthPaginatedSelectProps) {
   const [resolvedOption, setResolvedOption] =
     React.useState<SelectOption | null>(
@@ -107,8 +111,10 @@ export function AuthPaginatedSelect({
     if (!value) setResolvedOption(null);
   }, [value]);
 
-  const { t } = useTranslation();
-  const loadingText = placeholder ?? t("paginatedSelect.loading", "Loading options…");
+  const { t, i18n } = useTranslation();
+  const isRtl = checkRtl(i18n.resolvedLanguage ?? i18n.language ?? "en");
+  const loadingText =
+    placeholder ?? t("paginatedSelect.loading", "Loading options…");
   const noOptionsText = t("paginatedSelect.noOptions", "No options found");
   const loadOptions: LoadOptions<
     SelectOption,
@@ -172,8 +178,8 @@ export function AuthPaginatedSelect({
     () => ({
       control: (base, state) => ({
         ...base,
-        minHeight: 52,
-        height: 52,
+        minHeight: height,
+        height: height,
         borderRadius: 12,
         borderColor: state.isFocused ? focusBorderColor : borderColor,
         borderWidth: 2,
@@ -184,17 +190,22 @@ export function AuthPaginatedSelect({
         },
         fontSize: "14.5px",
         fontFamily: "inherit",
+        direction: isRtl ? "rtl" : "ltr",
         transition: "border-color 0.2s, box-shadow 0.2s",
         cursor: isDisabled ? "not-allowed" : "pointer",
         opacity: isDisabled ? 0.6 : 1,
       }),
-      valueContainer: (base) => ({ ...base, padding: "0 48px 0 16px" }),
-      indicatorsContainer: (base) => ({ ...base, height: 52 }),
+      valueContainer: (base) => ({
+        ...base,
+        padding: isRtl ? "0 16px 0 48px" : "0 48px 0 16px",
+      }),
+      indicatorsContainer: (base) => ({ ...base, height: height }),
       placeholder: (base) => ({
         ...base,
         color: isDark ? COLORS.textDarkFaint : COLORS.textLightFaint,
         fontSize: "14.5px",
         fontWeight: 500,
+        textAlign: isRtl ? "right" : "left",
       }),
       singleValue: (base) => ({
         ...base,
@@ -277,7 +288,15 @@ export function AuthPaginatedSelect({
       }),
       indicatorSeparator: () => ({ display: "none" }),
     }),
-    [isDark, borderColor, focusBorderColor, focusShadow, isDisabled]
+    [
+      isDark,
+      borderColor,
+      focusBorderColor,
+      focusShadow,
+      isDisabled,
+      isRtl,
+      height,
+    ]
   );
 
   const selectTheme = React.useCallback(
@@ -344,6 +363,8 @@ export interface AsyncPaginatedSelectProps extends Omit<
   "isDark"
 > {
   isDark?: boolean;
+  /** Height in px. Defaults to 36 for dashboard (matches rsuite date picker). */
+  height?: number;
 }
 
 /**
@@ -353,11 +374,13 @@ export interface AsyncPaginatedSelectProps extends Omit<
  */
 export function AsyncPaginatedSelect({
   isDark = false,
+  height = 36,
   ...props
 }: AsyncPaginatedSelectProps) {
   return (
     <AuthPaginatedSelect
       isDark={isDark}
+      height={height}
       {...props}
     />
   );

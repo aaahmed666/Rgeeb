@@ -119,10 +119,10 @@
 
 .dark {
   /* Base: #2E3F5C navy blue from design spec */
-  --background: oklch(0.367 0.055 261);   /* #2E3F5C — page bg  */
+  --background: oklch(0.367 0.055 261); /* #2E3F5C — page bg  */
   --foreground: oklch(0.97 0.005 80);
 
-  --card: oklch(0.399 0.062 262);         /* #354769 — cards, panels */
+  --card: oklch(0.399 0.062 262); /* #354769 — cards, panels */
   --card-foreground: oklch(0.97 0.005 80);
   --popover: oklch(0.399 0.062 262);
   --popover-foreground: oklch(0.97 0.005 80);
@@ -130,11 +130,11 @@
   --primary: var(--brand-orange);
   --primary-foreground: oklch(0.18 0.03 255);
 
-  --secondary: oklch(0.448 0.063 261);    /* #415578 — secondary surfaces */
+  --secondary: oklch(0.448 0.063 261); /* #415578 — secondary surfaces */
   --secondary-foreground: oklch(0.97 0.005 80);
 
-  --muted: oklch(0.416 0.051 257);        /* #3A4D68 — muted bg */
-  --muted-foreground: oklch(0.80 0.020 255);
+  --muted: oklch(0.416 0.051 257); /* #3A4D68 — muted bg */
+  --muted-foreground: oklch(0.8 0.02 255);
 
   --accent: oklch(0.54 0.06 65);
   --accent-foreground: oklch(0.97 0.005 80);
@@ -142,7 +142,7 @@
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.435 0.065 262);       /* #3D5175 — borders */
+  --border: oklch(0.435 0.065 262); /* #3D5175 — borders */
   --input: oklch(0.435 0.065 262);
   --ring: var(--brand-orange);
 
@@ -152,7 +152,7 @@
   --chart-4: oklch(0.65 0.2 25);
   --chart-5: oklch(0.65 0.15 295);
 
-  --sidebar: oklch(0.326 0.053 263);      /* #263450 — sidebar (darker) */
+  --sidebar: oklch(0.326 0.053 263); /* #263450 — sidebar (darker) */
   --sidebar-foreground: oklch(0.97 0.005 80);
   --sidebar-primary: var(--brand-orange);
   --sidebar-primary-foreground: oklch(0.18 0.03 255);
@@ -493,19 +493,19 @@ a:not(.rs-btn):not([class*="rs-"]) {
   border-inline-end: none;
 }
 
-/* Sidebar group labels: always right-aligned in RTL */
-[dir="rtl"] [data-sidebar="group-label"] {
-  justify-content: flex-end;
-  text-align: right;
-}
+/* Sidebar group labels: dir="rtl" on the sidebar handles alignment naturally */
+/* No override needed - flex items flow right-to-left automatically */
 
-/* Ensure sidebar header row aligns correctly */
-[dir="rtl"] [data-sidebar="header"] {
-  flex-direction: row-reverse;
-}
+/* Sidebar header: dir="rtl" on the sidebar handles flex direction naturally */
+/* row-reverse here causes double-reverse (back to LTR) so we remove it */
 
 /* ms-auto (logical margin) works in both directions natively — no override needed */
 
+/* ── Sidebar position: right side in RTL ──────────────────────────────────── */
+/* The SidebarProvider wrapper is a flex row; reversing it moves sidebar right */
+[dir="rtl"] .group\/sidebar-wrapper {
+  flex-direction: row-reverse;
+}
 /* ── Button border-radius — force design system token on all buttons ───────── */
 button,
 [role="button"],
@@ -661,24 +661,37 @@ button,
   letter-spacing: 0.05em;
 }
 [dir="rtl"] .table-responsive-wrapper table th,
-[dir="rtl"] .table-responsive-wrapper table td { text-align: end; }
+[dir="rtl"] .table-responsive-wrapper table td {
+  text-align: end;
+}
 
 @media (max-width: 1024px) and (min-width: 769px) {
-  .table-responsive-wrapper table { font-size: 13px; }
-  .table-responsive-wrapper th { padding: 10px 8px; }
-  .table-responsive-wrapper td { padding: 8px 10px; }
+  .table-responsive-wrapper table {
+    font-size: 13px;
+  }
+  .table-responsive-wrapper th {
+    padding: 10px 8px;
+  }
+  .table-responsive-wrapper td {
+    padding: 8px 10px;
+  }
 }
 @media (max-width: 768px) {
   .table-responsive-wrapper table,
-  .table-responsive-wrapper tbody { display: block; width: 100%; }
-  .table-responsive-wrapper thead  { display: none; }
+  .table-responsive-wrapper tbody {
+    display: block;
+    width: 100%;
+  }
+  .table-responsive-wrapper thead {
+    display: none;
+  }
   .table-responsive-wrapper tbody tr {
     display: block;
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius-md, 0.5rem);
     margin: 0 0 12px;
     background: hsl(var(--card));
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   }
   .table-responsive-wrapper tbody td {
     display: flex;
@@ -690,7 +703,9 @@ button,
     font-size: 13px;
     gap: 8px;
   }
-  .table-responsive-wrapper tbody td:last-child { border-bottom: none; }
+  .table-responsive-wrapper tbody td:last-child {
+    border-bottom: none;
+  }
   .table-responsive-wrapper tbody td::before {
     content: attr(data-label);
     flex-shrink: 0;
@@ -704,39 +719,103 @@ button,
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  [dir="rtl"] .table-responsive-wrapper tbody td { flex-direction: row-reverse; }
+  [dir="rtl"] .table-responsive-wrapper tbody td {
+    flex-direction: row-reverse;
+  }
 }
 
-/* ── Print styles for Br Intelligence ───────────────────────────────────── */
+/* Hidden outside print, shown inside print */
+/* ── Print styles ──────────────────────────────────────────────────────── */
+
+.print-only {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 15mm;
+}
+
 @media print {
-  /* Hide navigation, sidebar, header, FAB, and non-essential elements */
-  aside,
-  nav,
+  /* ── visibility ── */
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  /* ── hide chrome ── */
+  [data-sidebar],
   header,
-  [data-tour],
-  button[aria-label="close"],
-  .fixed {
+  .fixed,
+  [role="progressbar"] {
     display: none !important;
   }
 
-  /* Expand all collapsed sections */
-  [data-section-content] {
+  /* ── layout ── */
+  .group\/sidebar-wrapper {
     display: block !important;
+  }
+
+  html,
+  body {
+    width: 100% !important;
     height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    font-size: 10px;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
     overflow: visible !important;
   }
 
-  /* Ensure cards don't break awkwardly across pages */
+  .overflow-y-auto,
+  .overflow-x-auto,
   .overflow-hidden {
     overflow: visible !important;
   }
 
-  /* Avoid page breaks inside cards */
-  [class*="rounded"] {
-    break-inside: avoid;
+  /* RTL handled by JavaScript before window.print() */
+
+  /* ── tables ── */
+  table {
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse;
+    font-size: 8px !important;
+  }
+  table td,
+  table th {
+    padding: 3px 5px !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+  thead {
+    display: table-header-group;
   }
 
-  body {
-    font-size: 11px;
+  /* ── page breaks ── */
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Each section takes full width and avoids breaking mid-content.
+     If it's too tall for one page, it flows naturally to the next. */
+  [data-section-id] {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 12px;
   }
 }

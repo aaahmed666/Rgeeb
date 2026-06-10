@@ -20,6 +20,14 @@ if (!i18n.isInitialized) {
       fallbackLng: "en",
       supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
       interpolation: { escapeValue: false },
+      // Make init synchronous — resources are bundled inline so no async loading needed.
+      // Without this, components render before init resolves and t() returns the key.
+      // (initImmediate was renamed to initAsync in i18next v26)
+      initAsync: false,
+      react: {
+        // Disable Suspense — we don't use it and it causes issues with SSR/App Router.
+        useSuspense: false,
+      },
       detection: {
         order: ["localStorage", "navigator"],
         caches: ["localStorage"],

@@ -32,9 +32,8 @@ function AuthSkeleton() {
   );
 }
 
-// Memoize heavy stable components so they never re-render on page navigation
-const StableAppSidebar = React.memo(AppSidebar);
-const StableAppHeader = React.memo(AppHeader);
+// NOTE: Do NOT wrap translation-aware components in React.memo without a custom
+// comparator — memo prevents re-renders, which breaks language switching.
 const StableAIAssistant = React.memo(AIAssistant);
 
 export default function DashboardLayout({
@@ -60,9 +59,9 @@ export default function DashboardLayout({
       {/* Progress bar — appears instantly on Link click, before new page loads */}
       <NavigationProgress />
       <div className="flex min-h-screen w-full">
-        <StableAppSidebar />
+        <AppSidebar />
         <SidebarInset className="flex min-h-screen flex-1 flex-col">
-          <StableAppHeader />
+          <AppHeader />
           <main className="flex-1 overflow-y-auto bg-background">
             {children}
           </main>

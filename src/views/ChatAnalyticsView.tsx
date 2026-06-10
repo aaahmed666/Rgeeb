@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  Fragment as FragmentWithKey,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MessageSquare,
@@ -14,59 +8,41 @@ import {
   Users,
   Clock,
   DollarSign,
-  Search,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DataTable } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import {
   chatAnalyticsService,
   type ChatSummary,
-  type ConversationLog,
   type DistributionSlice,
-  type Paginated,
   type SeriesPoint,
 } from "@/services/chatAnalyticsService";
-import { SharedDateRangePicker } from "@/components/Shareddaterangepicker";
 
+/* ─── Colour palette ─────────────────────────────────────────────────────── */
 const INTENT_COLORS = [
   "#1e3a8a",
+  "#0ea5e9",
   "#10b981",
   "#f59e0b",
-  "#06b6d4",
   "#ef4444",
   "#8b5cf6",
+  "#06b6d4",
   "#22c55e",
-  "#3b82f6",
   "#f97316",
   "#a855f7",
 ];
+const LANG_COLORS = ["#1e3a8a", "#22d3ee"];
 
+/* ─── Main view ──────────────────────────────────────────────────────────── */
 export default function ChatAnalyticsView() {
   const { t, i18n } = useTranslation();
   const { hasPermission } = useAuth();
   const isRTL = i18n.dir() === "rtl";
 
-  const [channel, setChannel] = useState("all");
-  const [intent, setIntent] = useState("all");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const perPage = 10;
 
   const [summary, setSummary] = useState<ChatSummary | null>(null);
   const [overTime, setOverTime] = useState<SeriesPoint[]>([]);
@@ -74,20 +50,18 @@ export default function ChatAnalyticsView() {
   const [channels, setChannels] = useState<SeriesPoint[]>([]);
   const [langs, setLangs] = useState<DistributionSlice[]>([]);
   const [hourly, setHourly] = useState<SeriesPoint[]>([]);
-  const [logs, setLogs] = useState<Paginated<ConversationLog> | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
 
-  // Use primitive deps directly to avoid spurious re-fires from object reference changes
+  /* fetch analytics */
   useEffect(() => {
     let cancelled = false;
-    const baseFilters = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+    const f = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
     void Promise.all([
-      chatAnalyticsService.summary(baseFilters),
-      chatAnalyticsService.conversationsOverTime(baseFilters),
-      chatAnalyticsService.intentDistribution(baseFilters),
-      chatAnalyticsService.messagesByChannel(baseFilters),
-      chatAnalyticsService.languageDistribution(baseFilters),
-      chatAnalyticsService.hourlyActivity(baseFilters),
+      chatAnalyticsService.summary(f),
+      chatAnalyticsService.conversationsOverTime(f),
+      chatAnalyticsService.intentDistribution(f),
+      chatAnalyticsService.messagesByChannel(f),
+      chatAnalyticsService.languageDistribution(f),
+      chatAnalyticsService.hourlyActivity(f),
     ]).then(([s, ot, it, ch, lg, hr]) => {
       if (cancelled) return;
       setSummary(s);
@@ -97,32 +71,39 @@ export default function ChatAnalyticsView() {
       setLangs(lg);
       setHourly(hr);
     });
-    return () => { cancelled = true; };
-  }, [dateFrom, dateTo]); // ← primitives only, no object refs
+    return () => {
+      cancelled = true;
+    };
+  }, [dateFrom, dateTo]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const logFilters = { channel, intent, search, page, perPage, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
-    void chatAnalyticsService.conversations(logFilters).then((l) => {
-      if (!cancelled) setLogs(l);
-    });
-    return () => { cancelled = true; };
-  }, [channel, intent, search, page, perPage, dateFrom, dateTo]); // ← all primitives
-
-  const totalPages = logs
-    ? Math.max(1, Math.ceil(logs.total / logs.per_page))
-    : 1;
-
-  // Read guard via aliases in auth.tsx
+  const coloredIntents = useMemo(
+    () =>
+      intents.map((s, i) => ({
+        ...s,
+        color: s.color ?? INTENT_COLORS[i % INTENT_COLORS.length],
+      })),
+    [intents]
+  );
+  const coloredLangs = useMemo(
+    () =>
+      langs.map((l, i) => ({
+        ...l,
+        color: l.color ?? LANG_COLORS[i % LANG_COLORS.length],
+      })),
+    [langs]
+  );
 
   return (
-    <div className="space-y-6 p-6">
+    <div
+      className="space-y-6 p-4 md:p-6"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="text-2xl font-bold text-foreground">
           {t("chatAnalytics.title", "Chat Analytics")}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {t(
             "chatAnalytics.subtitle",
             "Monitor your AI assistant performance and user interactions"
@@ -130,39 +111,36 @@ export default function ChatAnalyticsView() {
         </p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard
-          label={t("chatAnalytics.totalConversations", "Total Conversations")}
+          label={t("chatAnalytics.totalConversations")}
           value={summary?.total_conversations ?? 0}
           icon={MessagesSquare}
           tone="indigo"
         />
         <StatCard
-          label={t("chatAnalytics.totalMessages", "Total Messages")}
+          label={t("chatAnalytics.totalMessages")}
           value={summary?.total_messages ?? 0}
           icon={MessageSquare}
           tone="sky"
         />
         <StatCard
-          label={t("chatAnalytics.activeUsers", "Active Users")}
+          label={t("chatAnalytics.activeUsers")}
           value={summary?.active_users ?? 0}
           icon={Users}
           tone="emerald"
         />
         <StatCard
-          label={t("chatAnalytics.avgResponseTime", "Avg Response Time")}
+          label={t("chatAnalytics.avgResponseTime")}
           value={`${summary?.avg_response_time_ms ?? 0}ms`}
           icon={Clock}
           tone="amber"
         />
         <StatCard
-          label={t("chatAnalytics.geminiCost", "Gemini Cost")}
+          label={t("chatAnalytics.geminiCost")}
           value={`$${(summary?.gemini_cost ?? 0).toFixed(2)}`}
-          sub={
-            summary?.cost_period_label ??
-            t("chatAnalytics.thisMonth", "This month")
-          }
+          sub={summary?.cost_period_label ?? t("chatAnalytics.thisMonth")}
           icon={DollarSign}
           tone="rose"
         />
@@ -171,265 +149,50 @@ export default function ChatAnalyticsView() {
       {/* Conversations over time + Intent distribution */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2 p-5">
-          <h3 className="mb-4 text-base font-semibold">
-            {t(
-              "chatAnalytics.conversationsOverTime",
-              "Conversations Over Time"
-            )}
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            {t("chatAnalytics.conversationsOverTime")}
           </h3>
           <AreaChart points={overTime} />
         </Card>
         <Card className="p-5">
-          <h3 className="mb-4 text-base font-semibold">
-            {t("chatAnalytics.intentDistribution", "Intent Distribution")}
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            {t("chatAnalytics.intentDistribution")}
           </h3>
-          <PieChart slices={withColors(intents)} />
+          <IntentBarList slices={coloredIntents} />
         </Card>
       </div>
 
-      {/* Channels + Languages + Hourly */}
+      {/* Channel + Language + Hourly */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="p-5">
-          <h3 className="mb-4 text-base font-semibold">
-            {t("chatAnalytics.messagesByChannel", "Messages by Channel")}
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            {t("chatAnalytics.messagesByChannel")}
           </h3>
-          <BarChart points={channels} />
+          <ColumnChart points={channels} />
         </Card>
         <Card className="p-5">
-          <h3 className="mb-4 text-base font-semibold">
-            {t("chatAnalytics.languageDistribution", "Language Distribution")}
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            {t("chatAnalytics.languageDistribution")}
           </h3>
-          <DonutChart
-            slices={langs.map((l, i) => ({
-              ...l,
-              color: l.color ?? (i === 0 ? "#0c2340" : "#22d3ee"),
-            }))}
-          />
+          <DonutChart slices={coloredLangs} />
         </Card>
         <Card className="p-5">
-          <h3 className="mb-4 text-base font-semibold">
-            {t("chatAnalytics.hourlyActivity", "Hourly Activity")}
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            {t("chatAnalytics.hourlyActivity")}
           </h3>
-          <BarChart
+          <ColumnChart
             points={hourly}
             dense
           />
         </Card>
       </div>
-
-      {/* Conversation Logs */}
-      <Card className="p-5">
-        <h3 className="mb-4 text-base font-semibold">
-          {t("chatAnalytics.conversationLogs", "Conversation Logs")}
-        </h3>
-
-        <div className="mb-4 flex flex-wrap items-end gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute start-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder={t(
-                "chatAnalytics.searchPlaceholder",
-                "Search by customer..."
-              )}
-              className="ps-9"
-            />
-          </div>
-          <SharedDateRangePicker
-            from={dateFrom}
-            to={dateTo}
-            onFromChange={(v: string) => { setDateFrom(v); setPage(1); }}
-            onToChange={(v: string) => { setDateTo(v); setPage(1); }}
-          />
-          <div className="min-w-[160px]">
-            <label className="mb-1 block text-xs text-muted-foreground">
-              {t("chatAnalytics.channel", "Channel")}
-            </label>
-            <Select
-              value={channel}
-              onValueChange={(v) => {
-                setChannel(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("common.all", "All")}</SelectItem>
-                <SelectItem value="web">Web</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="telegram">Telegram</SelectItem>
-                <SelectItem value="messenger">Messenger</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="min-w-[180px]">
-            <label className="mb-1 block text-xs text-muted-foreground">
-              {t("chatAnalytics.intent", "Intent")}
-            </label>
-            <Select
-              value={intent}
-              onValueChange={(v) => {
-                setIntent(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("common.all", "All")}</SelectItem>
-                {intents.map((i) => (
-                  <SelectItem
-                    key={i.label}
-                    value={i.label.toLowerCase()}
-                  >
-                    {i.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DataTable
-          data={logs?.data ?? []}
-          emptyMessage={t("common.noData", "No data")}
-          columns={[
-            {
-              key: "expand",
-              header: "",
-              headClassName: "w-8",
-              render: (row) => (
-                <button
-                  onClick={() =>
-                    setExpanded(expanded === row.id ? null : row.id)
-                  }
-                  className="text-muted-foreground"
-                >
-                  {expanded === row.id ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </button>
-              ),
-            },
-            {
-              key: "customer",
-              header: t("chatAnalytics.customer", "Customer"),
-              render: (row) => (
-                <span className="font-medium">{row.customer}</span>
-              ),
-            },
-            {
-              key: "channel",
-              header: t("chatAnalytics.channel", "Channel"),
-              render: (row) => (
-                <Badge
-                  variant="outline"
-                  className="border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
-                >
-                  {row.channel}
-                </Badge>
-              ),
-            },
-            {
-              key: "language",
-              header: t("chatAnalytics.language", "Language"),
-              render: (row) => <Badge variant="outline">{row.language}</Badge>,
-            },
-            {
-              key: "intent",
-              header: t("chatAnalytics.intent", "Intent"),
-              render: (row) => (
-                <Badge
-                  variant="outline"
-                  className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                >
-                  {row.intent}
-                </Badge>
-              ),
-            },
-            {
-              key: "response_time",
-              header: t("chatAnalytics.responseTime", "Response Time"),
-              render: (row) => <span>{row.response_time_ms}ms</span>,
-            },
-            {
-              key: "ai_usage",
-              header: t("chatAnalytics.aiUsage", "AI Usage"),
-              render: (row) => (
-                <span className="text-muted-foreground">
-                  {row.ai_tokens} tokens (${row.ai_cost.toFixed(4)})
-                </span>
-              ),
-            },
-            {
-              key: "date",
-              header: t("chatAnalytics.date", "Date"),
-              render: (row) => (
-                <span className="text-muted-foreground">
-                  {formatDate(row.date, isRTL)}
-                </span>
-              ),
-            },
-          ]}
-        />
-
-        <div className="mt-3 flex items-center justify-end gap-3 text-sm text-muted-foreground">
-          <span>
-            {t("chatAnalytics.rowsPerPage", "Rows per page:")}{" "}
-            {logs?.per_page ?? perPage}
-          </span>
-          <span>
-            {(page - 1) * perPage + 1}–
-            {Math.min(page * perPage, logs?.total ?? 0)} {t("common.of", "of")}{" "}
-            {logs?.total ?? 0}
-          </span>
-          <button
-            className="rounded border px-2 py-1 disabled:opacity-50"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            ‹
-          </button>
-          <button
-            className="rounded border px-2 py-1 disabled:opacity-50"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            ›
-          </button>
-        </div>
-      </Card>
     </div>
   );
 }
 
-/* ---------------- helpers + viz ---------------- */
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
 
-function withColors(slices: DistributionSlice[]): DistributionSlice[] {
-  return slices.map((s, i) => ({
-    ...s,
-    color: s.color ?? INTENT_COLORS[i % INTENT_COLORS.length],
-  }));
-}
-
-function formatDate(iso: string, rtl: boolean) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return rtl ? `${yyyy}/${mm}/${dd}` : `${dd}/${mm}/${yyyy}`;
-}
-
+/* ─── StatCard ───────────────────────────────────────────────────────────── */
 function StatCard({
   label,
   value,
@@ -451,17 +214,19 @@ function StatCard({
     rose: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
   };
   return (
-    <Card className="flex items-center justify-between p-5">
-      <div>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <Card className="flex items-center justify-between gap-3 p-4">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-muted-foreground leading-tight">
+          {label}
+        </p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
         {sub && (
           <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>
         )}
       </div>
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-lg",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
           tones[tone]
         )}
       >
@@ -471,38 +236,51 @@ function StatCard({
   );
 }
 
-function AreaChart({ points, uid = "caArea" }: { points: SeriesPoint[]; uid?: string }) {
-  const w = 800,
-    h = 240,
-    pad = 32;
-  const max = Math.max(1, ...points.map((p) => p.value));
-  const step = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
-  const coords = points.map(
-    (p, i) =>
-      [pad + i * step, h - pad - (p.value / max) * (h - pad * 2)] as const
-  );
-  const path = coords.length
-    ? `M ${coords[0][0]} ${coords[0][1]} ` +
-      coords
-        .slice(1)
-        .map(([x, y], i) => {
-          const [px, py] = coords[i];
-          const cx = (px + x) / 2;
-          return `C ${cx} ${py}, ${cx} ${y}, ${x} ${y}`;
-        })
-        .join(" ")
-    : "";
-  const fill = coords.length
-    ? `${path} L ${coords[coords.length - 1][0]} ${h - pad} L ${coords[0][0]} ${h - pad} Z`
-    : "";
+/* ─── AreaChart ──────────────────────────────────────────────────────────── */
+function AreaChart({ points }: { points: SeriesPoint[] }) {
+  if (!points.length) return <EmptyChart />;
+
+  const W = 800,
+    H = 220,
+    PL = 48,
+    PR = 20,
+    PT = 24,
+    PB = 36;
+  const innerW = W - PL - PR;
+  const innerH = H - PT - PB;
+  const maxVal = Math.max(1, ...points.map((p) => p.value));
+  const step = points.length > 1 ? innerW / (points.length - 1) : 0;
+
+  const coords = points.map((p, i): [number, number] => [
+    PL + i * step,
+    PT + (1 - p.value / maxVal) * innerH,
+  ]);
+
+  const linePath = coords
+    .map(([x, y], i) => {
+      if (i === 0) return `M ${x} ${y}`;
+      const [px, py] = coords[i - 1];
+      const cx = (px + x) / 2;
+      return `C ${cx} ${py} ${cx} ${y} ${x} ${y}`;
+    })
+    .join(" ");
+
+  const areaPath =
+    linePath +
+    ` L ${coords[coords.length - 1][0]} ${H - PB}` +
+    ` L ${coords[0][0]} ${H - PB} Z`;
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+
   return (
     <svg
-      viewBox={`0 0 ${w} ${h}`}
+      viewBox={`0 0 ${W} ${H}`}
       className="w-full"
+      style={{ overflow: "visible" }}
     >
       <defs>
         <linearGradient
-          id={uid}
+          id="areaGrad"
           x1="0"
           x2="0"
           y1="0"
@@ -511,207 +289,258 @@ function AreaChart({ points, uid = "caArea" }: { points: SeriesPoint[]; uid?: st
           <stop
             offset="0%"
             stopColor="#1e3a8a"
-            stopOpacity="0.35"
+            stopOpacity="0.22"
           />
           <stop
             offset="100%"
             stopColor="#1e3a8a"
-            stopOpacity="0"
+            stopOpacity="0.01"
           />
         </linearGradient>
       </defs>
-      {[0, 0.25, 0.5, 0.75, 1].map((t) => (
-        <line
-          key={t}
-          x1={pad}
-          x2={w - pad}
-          y1={pad + t * (h - pad * 2)}
-          y2={pad + t * (h - pad * 2)}
-          stroke="currentColor"
-          strokeOpacity="0.08"
-          strokeDasharray="3 3"
-        />
+
+      {/* horizontal grid lines + y labels */}
+      {yTicks.map((t) => {
+        const y = PT + (1 - t) * innerH;
+        return (
+          <g key={t}>
+            <line
+              x1={PL}
+              x2={W - PR}
+              y1={y}
+              y2={y}
+              stroke="currentColor"
+              strokeOpacity="0.07"
+              strokeDasharray="4 3"
+            />
+            <text
+              x={PL - 8}
+              y={y + 4}
+              fontSize="11"
+              textAnchor="end"
+              fill="currentColor"
+              opacity="0.45"
+            >
+              {Math.round(maxVal * t)}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* area + line */}
+      <path
+        d={areaPath}
+        fill="url(#areaGrad)"
+      />
+      <path
+        d={linePath}
+        stroke="#1e3a8a"
+        strokeWidth="2.5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* dots, x-labels, value labels */}
+      {coords.map(([x, y], i) => (
+        <g key={i}>
+          {/* value above dot */}
+          <text
+            x={x}
+            y={y - 10}
+            fontSize="11"
+            textAnchor="middle"
+            fill="#1e3a8a"
+            fontWeight="700"
+            opacity="0.9"
+          >
+            {points[i].value}
+          </text>
+          {/* dot outer */}
+          <circle
+            cx={x}
+            cy={y}
+            r="5"
+            fill="#1e3a8a"
+            opacity="0.2"
+          />
+          {/* dot inner */}
+          <circle
+            cx={x}
+            cy={y}
+            r="3.5"
+            fill="#1e3a8a"
+          />
+          <circle
+            cx={x}
+            cy={y}
+            r="1.5"
+            fill="white"
+          />
+          {/* x label */}
+          <text
+            x={x}
+            y={H - 6}
+            fontSize="11"
+            textAnchor="middle"
+            fill="currentColor"
+            opacity="0.55"
+          >
+            {points[i].label}
+          </text>
+        </g>
       ))}
-      {fill && (
-        <path
-          d={fill}
-          fill={`url(#${uid})`}
-        />
-      )}
-      {path && (
-        <path
-          d={path}
-          stroke="#1e3a8a"
-          strokeWidth="2.5"
-          fill="none"
-        />
-      )}
-      {points.map((p, i) => (
-        <text
-          key={i}
-          x={pad + i * step}
-          y={h - 8}
-          fontSize="11"
-          textAnchor="middle"
-          fill="currentColor"
-          opacity="0.6"
-        >
-          {p.label}
-        </text>
-      ))}
-      {[0, 0.25, 0.5, 0.75, 1].map((tt) => (
-        <text
-          key={tt}
-          x={pad - 6}
-          y={h - pad - tt * (h - pad * 2) + 4}
-          fontSize="11"
-          textAnchor="end"
-          fill="currentColor"
-          opacity="0.5"
-        >
-          {Math.round(max * tt)}
-        </text>
-      ))}
+
+      {/* baseline */}
+      <line
+        x1={PL}
+        x2={W - PR}
+        y1={H - PB}
+        y2={H - PB}
+        stroke="currentColor"
+        strokeOpacity="0.1"
+      />
     </svg>
   );
 }
 
-function BarChart({
+/* ─── ColumnChart (bar with value labels on top) ─────────────────────────── */
+function ColumnChart({
   points,
   dense,
 }: {
   points: SeriesPoint[];
   dense?: boolean;
 }) {
-  const max = Math.max(1, ...points.map((p) => p.value));
-  return (
-    <div className="space-y-2">
-      <div className={cn("flex items-end gap-2", dense ? "h-44" : "h-56")}>
-        {points.map((p) => (
-          <div
-            key={p.label}
-            className="flex flex-1 flex-col items-center gap-1"
-          >
-            <div className="relative w-full flex-1">
-              <div
-                className="absolute bottom-0 left-0 right-0 rounded-t bg-[#1e3a8a]"
-                style={{ height: `${(p.value / max) * 100}%` }}
-              />
-            </div>
-            <span className="text-[10px] text-muted-foreground">{p.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+  if (!points.length) return <EmptyChart />;
 
-function PieChart({ slices }: { slices: DistributionSlice[] }) {
-  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
-  const r = 70,
-    cx = 100,
-    cy = 100;
-  let acc = 0;
-  const paths = slices.map((s) => {
-    const start = (acc / total) * Math.PI * 2;
-    acc += s.value;
-    const end = (acc / total) * Math.PI * 2;
-    const large = end - start > Math.PI ? 1 : 0;
-    const x1 = cx + r * Math.sin(start);
-    const y1 = cy - r * Math.cos(start);
-    const x2 = cx + r * Math.sin(end);
-    const y2 = cy - r * Math.cos(end);
-    const mid = (start + end) / 2;
-    const lx = cx + r * 0.65 * Math.sin(mid);
-    const ly = cy - r * 0.65 * Math.cos(mid);
-    return {
-      d: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`,
-      color: s.color ?? "#888",
-      label: `${((s.value / total) * 100).toFixed(1)}%`,
-      lx,
-      ly,
-      name: s.label,
-    };
-  });
+  const W = 400,
+    H = dense ? 160 : 180,
+    PB = 28,
+    PT = 20;
+  const innerH = H - PB - PT;
+  const max = Math.max(1, ...points.map((p) => p.value));
+  const slotW = W / points.length;
+  const barW = Math.max(8, slotW * 0.55);
+
   return (
-    <div className="flex flex-col items-center gap-3">
-      <svg
-        viewBox="0 0 200 200"
-        className="h-48 w-48"
-      >
-        {paths.map((p, i) => (
+    <svg
+      viewBox={`0 0 ${W} ${H + PB}`}
+      className="w-full"
+    >
+      {/* baseline */}
+      <line
+        x1="0"
+        x2={W}
+        y1={H}
+        y2={H}
+        stroke="currentColor"
+        strokeOpacity="0.1"
+      />
+
+      {points.map((p, i) => {
+        const barH = Math.max(3, (p.value / max) * innerH);
+        const x = slotW * i + (slotW - barW) / 2;
+        const y = PT + innerH - barH;
+        return (
           <g key={i}>
-            <path
-              d={p.d}
-              fill={p.color}
+            {/* bar */}
+            <rect
+              x={x}
+              y={y}
+              width={barW}
+              height={barH}
+              fill="#1e3a8a"
+              rx="3"
+              opacity="0.82"
             />
+            {/* value on top */}
             <text
-              x={p.lx}
-              y={p.ly}
-              fontSize="9"
+              x={x + barW / 2}
+              y={y - 5}
+              fontSize={dense ? "10" : "11"}
               textAnchor="middle"
-              fill="white"
-              fontWeight="700"
+              fill="currentColor"
+              opacity="0.75"
+              fontWeight="600"
+            >
+              {p.value}
+            </text>
+            {/* x-label */}
+            <text
+              x={x + barW / 2}
+              y={H + 18}
+              fontSize={dense ? "9" : "10"}
+              textAnchor="middle"
+              fill="currentColor"
+              opacity="0.5"
             >
               {p.label}
             </text>
           </g>
-        ))}
-      </svg>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px]">
-        {slices.map((s) => (
-          <span
-            key={s.label}
-            className="flex items-center gap-1.5"
-          >
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ background: s.color }}
-            />
-            {s.label}
-          </span>
-        ))}
-      </div>
-    </div>
+        );
+      })}
+    </svg>
   );
 }
 
+/* ─── DonutChart ─────────────────────────────────────────────────────────── */
+interface DonutPath {
+  d: string;
+  color: string;
+  pctLabel: string;
+  lx: number;
+  ly: number;
+  label: string;
+  value: number;
+}
+
 function DonutChart({ slices }: { slices: DistributionSlice[] }) {
+  if (!slices.length) return <EmptyChart />;
+
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70,
-    r = 42,
+    r = 44,
     cx = 100,
     cy = 100;
   let acc = 0;
-  const paths = slices.map((s) => {
-    const start = (acc / total) * Math.PI * 2;
-    acc += s.value;
-    const end = (acc / total) * Math.PI * 2;
-    const large = end - start > Math.PI ? 1 : 0;
-    const x1 = cx + R * Math.sin(start);
-    const y1 = cy - R * Math.cos(start);
-    const x2 = cx + R * Math.sin(end);
-    const y2 = cy - R * Math.cos(end);
-    const x3 = cx + r * Math.sin(end);
-    const y3 = cy - r * Math.cos(end);
-    const x4 = cx + r * Math.sin(start);
-    const y4 = cy - r * Math.cos(start);
-    const mid = (start + end) / 2;
-    const lx = cx + ((R + r) / 2) * Math.sin(mid);
-    const ly = cy - ((R + r) / 2) * Math.cos(mid);
-    return {
-      d: `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${r} ${r} 0 ${large} 0 ${x4} ${y4} Z`,
-      color: s.color,
-      label: `${((s.value / total) * 100).toFixed(1)}%`,
-      lx,
-      ly,
-    };
-  });
+
+  const paths = slices
+    .map((s): DonutPath | null => {
+      const pct = s.value / total;
+      const start = acc * Math.PI * 2;
+      acc += pct;
+      const end = acc * Math.PI * 2;
+      if (end - start < 0.001) return null;
+      const large = end - start > Math.PI ? 1 : 0;
+      const x1 = cx + R * Math.sin(start),
+        y1 = cy - R * Math.cos(start);
+      const x2 = cx + R * Math.sin(end),
+        y2 = cy - R * Math.cos(end);
+      const x3 = cx + r * Math.sin(end),
+        y3 = cy - r * Math.cos(end);
+      const x4 = cx + r * Math.sin(start),
+        y4 = cy - r * Math.cos(start);
+      const mid = (start + end) / 2;
+      const lx = cx + ((R + r) / 2) * Math.sin(mid);
+      const ly = cy - ((R + r) / 2) * Math.cos(mid);
+      return {
+        d: `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${r} ${r} 0 ${large} 0 ${x4} ${y4} Z`,
+        color: s.color ?? "#888",
+        pctLabel: `${(pct * 100).toFixed(1)}%`,
+        lx,
+        ly,
+        label: s.label,
+        value: s.value,
+      };
+    })
+    .filter((p): p is DonutPath => p !== null);
+
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-4">
       <svg
         viewBox="0 0 200 200"
-        className="h-48 w-48"
+        className="h-44 w-44"
       >
         {paths.map((p, i) => (
           <g key={i}>
@@ -726,26 +555,101 @@ function DonutChart({ slices }: { slices: DistributionSlice[] }) {
               textAnchor="middle"
               fill="white"
               fontWeight="700"
+              dominantBaseline="middle"
             >
-              {p.label}
+              {p.pctLabel}
             </text>
           </g>
         ))}
+        <text
+          x="100"
+          y="96"
+          fontSize="18"
+          textAnchor="middle"
+          fill="currentColor"
+          fontWeight="700"
+        >
+          {total}
+        </text>
+        <text
+          x="100"
+          y="112"
+          fontSize="9"
+          textAnchor="middle"
+          fill="currentColor"
+          opacity="0.45"
+        >
+          total
+        </text>
       </svg>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px]">
+
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs">
         {slices.map((s) => (
           <span
             key={s.label}
             className="flex items-center gap-1.5"
           >
             <span
-              className="h-2.5 w-2.5 rounded-full"
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ background: s.color }}
             />
-            {s.label}
+            <span className="text-muted-foreground">{s.label}</span>
+            <span className="font-semibold tabular-nums">{s.value}</span>
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ─── IntentBarList (horizontal progress bars — much clearer than pie) ───── */
+function IntentBarList({ slices }: { slices: DistributionSlice[] }) {
+  if (!slices.length) return <EmptyChart />;
+  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
+
+  return (
+    <div className="space-y-3">
+      {slices.slice(0, 10).map((s) => {
+        const pct = Math.round((s.value / total) * 100);
+        return (
+          <div key={s.label}>
+            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+              <span className="flex min-w-0 items-center gap-1.5 truncate">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: s.color }}
+                />
+                <span className="truncate text-muted-foreground">
+                  {s.label}
+                </span>
+              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-muted-foreground tabular-nums">
+                  {s.value}
+                </span>
+                <span className="w-8 text-right font-semibold tabular-nums">
+                  {pct}%
+                </span>
+              </div>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${pct}%`, background: s.color }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── EmptyChart ─────────────────────────────────────────────────────────── */
+function EmptyChart() {
+  return (
+    <div className="flex h-32 items-center justify-center text-sm text-muted-foreground opacity-40">
+      — no data —
     </div>
   );
 }

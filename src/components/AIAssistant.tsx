@@ -347,7 +347,9 @@ function ChatBubble({
         <span>{formatTime(msg.timestamp, lang)}</span>
         {msg.source && msg.source !== "keyword" && (
           <span className="rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-medium text-primary">
-            {msg.source === "gemini" ? t("assistant.sourceAi", "AI") : t("assistant.sourceKb", "KB")}
+            {msg.source === "gemini"
+              ? t("assistant.sourceAi", "AI")
+              : t("assistant.sourceKb", "KB")}
           </span>
         )}
         {msg.intent && msg.intent !== "unknown" && (
@@ -620,7 +622,7 @@ export function AIAssistant() {
         }}
         size="icon"
         data-tour="assistant"
-        className="fixed bottom-6 right-6 z-[60] h-14 w-14 !rounded-full shadow-xl shadow-primary/40 ring-2 ring-primary/20 hover:shadow-primary/60 hover:scale-105 transition-all duration-200"
+        className="fixed bottom-6 end-6 z-[60] h-14 w-14 !rounded-full shadow-xl shadow-primary/40 ring-2 ring-primary/20 hover:shadow-primary/60 hover:scale-105 transition-all duration-200"
         aria-label={t("assistant.title")}
       >
         {open ? (
@@ -637,7 +639,7 @@ export function AIAssistant() {
       <div
         dir={dir}
         className={cn(
-          "fixed bottom-24 right-6 z-[59] flex flex-col overflow-hidden rounded-2xl shadow-2xl transition-all duration-300",
+          "fixed bottom-24 end-6 z-[59] flex flex-col overflow-hidden rounded-2xl shadow-2xl transition-all duration-300",
           "w-[min(390px,calc(100vw-1.5rem))]",
           "border border-primary/20 bg-background",
           "ring-1 ring-primary/10",

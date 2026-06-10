@@ -70,7 +70,10 @@ import {
 } from "@/components/ui/select";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { useAuth } from "@/lib/auth";
-import { dashboardService, invalidateDashboardCache } from "@/services/dashboardService";
+import {
+  dashboardService,
+  invalidateDashboardCache,
+} from "@/services/dashboardService";
 import type {
   AIServiceItem,
   AttendanceData,
@@ -165,6 +168,39 @@ const SERVICE_KEY_MAP: Record<string, { cat: string; slug: string }> = {
   spill: { cat: "safety", slug: "spill-detection" },
   vehicle: { cat: "monitoring", slug: "vehicle-tracking" },
   waiting: { cat: "analytics", slug: "waiting-customer" },
+};
+
+// Maps API service key → i18n translation key
+const SERVICE_LABEL_MAP: Record<string, string> = {
+  age_gender: "aiServices.ageGender",
+  attendance: "aiServices.faceAttendance",
+  behavior: "aiServices.behaviorAnalysis",
+  cash_register: "aiServices.cashRegister",
+  clean_tables: "aiServices.cleanTables",
+  cup_counting: "aiServices.cupCounting",
+  customer_traffic: "aiServices.customerTraffic",
+  delivery_tracking: "aiServices.deliveryTracking",
+  drive_thru: "aiServices.driveThru",
+  face_detection: "aiServices.faceDetection",
+  fire_detection: "aiServices.smokeFire",
+  gate_monitoring: "aiServices.gateMonitoring",
+  helmet: "aiServices.helmetDetection",
+  kitchen_ppe: "aiServices.kitchenPpe",
+  license_plate: "aiServices.licensePlate",
+  mask: "aiServices.maskDetection",
+  motion: "aiServices.motionDetection",
+  object: "aiServices.objectDetection",
+  overcrowd: "aiServices.overcrowdViolation",
+  people_counting: "aiServices.peopleCounting",
+  person: "aiServices.personDetection",
+  queue: "aiServices.queueManagement",
+  receipt: "aiServices.receiptDetection",
+  restricted: "aiServices.restrictedArea",
+  sandwich: "aiServices.sandwichCounting",
+  smoking: "aiServices.smokingDetection",
+  spill: "aiServices.spillDetection",
+  vehicle: "aiServices.vehicleTracking",
+  waiting: "aiServices.waitingCustomer",
 };
 
 function serviceHref(s: AIServiceItem): string {
@@ -341,22 +377,28 @@ export default function DashboardView() {
               <span className="mb-1 font-medium text-white/80">
                 {t("dashboard.branch")}
               </span>
-              <AsyncPaginatedSelect
+              <div style={{ minWidth: 180 }}>
+                <AsyncPaginatedSelect
                   endpoint="/customer/branches"
                   labelKey="name"
                   valueKey="id"
                   extraParams={{ active: 1 }}
                   value={branchId === "all" ? null : branchId}
                   onChange={(v) => setBranchId(v ?? "all")}
-                  placeholder="All Branches"
+                  placeholder={t("common.allBranches", "All Branches")}
                   isClearable
                 />
+              </div>
             </div>
             <Button
               size="icon"
               variant="secondary"
               onClick={() => {
-                invalidateDashboardCache({ from, to, branchId: branchId === "all" ? undefined : branchId });
+                invalidateDashboardCache({
+                  from,
+                  to,
+                  branchId: branchId === "all" ? undefined : branchId,
+                });
                 load();
               }}
               disabled={loading}
@@ -447,7 +489,11 @@ export default function DashboardView() {
                     <ServiceIcon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold">{s.name}</p>
+                    <p className="truncate text-xs font-semibold">
+                      {SERVICE_LABEL_MAP[s.key]
+                        ? t(SERVICE_LABEL_MAP[s.key], s.name)
+                        : s.name}
+                    </p>
                     <p className="text-[10px] capitalize text-muted-foreground">
                       {inactive
                         ? t("aiServices.inactive")
@@ -650,14 +696,18 @@ export default function DashboardView() {
                     <BellIcon severity={a.severity} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold">{a.type}</p>
+                    <p className="truncate text-xs font-semibold">
+                      {t(`eventTypes.${a.type}`, a.type.replace(/_/g, " "))}
+                    </p>
                     <p className="truncate text-[10px] text-muted-foreground">
                       {a.source} · {a.branch}
                     </p>
                   </div>
                   <div className="text-end">
                     <p className="text-[10px] font-medium text-muted-foreground">
-                      {a.agoSeconds}s ago
+                      {t("dashboard.secsAgo", "{{n}}s ago", {
+                        n: a.agoSeconds,
+                      })}
                     </p>
                     <p className="text-[10px] text-muted-foreground/70">
                       {a.timestamp}

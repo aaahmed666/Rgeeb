@@ -18,35 +18,15 @@ import {
   Download,
   Eye,
   Zap,
-  ShieldAlert } from "lucide-react";
+  ShieldAlert,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import ServiceMonitorView from "./ServiceMonitorView";
-
-export interface AIServiceMeta {
-  id: string;
-  /** Numeric backend service id used for /customer/service-monitor/{id}/dashboard */
-  apiId?: number;
-  label: string;
-  category: string;
-  categoryHref: string;
-  color: string;
-  bgColor: string;
-  icon: React.ElementType;
-  description: string;
-  detailedDescription: string;
-  useCases: string[];
-  stats: {
-    totalDetections: number;
-    todayDetections: number;
-    accuracy: number;
-    uptime: number;
-    avgResponseMs: number;
-    cameras: number;
-  };
-}
+import type { AIServiceMeta } from "./aiServiceTypes";
+export type { AIServiceMeta } from "./aiServiceTypes";
 
 interface Props {
   service: AIServiceMeta;
@@ -148,16 +128,16 @@ function StaticDetailView({ service }: Props) {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold sm:text-xl">
-                {service.label}
-              </h1>
+              <h1 className="text-lg font-bold sm:text-xl">{service.label}</h1>
               <Badge
                 variant={isActive ? "default" : "secondary"}
                 className={
                   isActive ? "bg-emerald-500 hover:bg-emerald-600" : ""
                 }
               >
-                {isActive ? t("aiServices.activeStatus", "Active") : t("aiServices.inactiveStatus", "Inactive")}
+                {isActive
+                  ? t("aiServices.activeStatus", "Active")
+                  : t("aiServices.inactiveStatus", "Inactive")}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -186,7 +166,9 @@ function StaticDetailView({ service }: Props) {
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
-            {isActive ? t("aiServices.deactivate", "Deactivate") : t("aiServices.activate", "Activate")}
+            {isActive
+              ? t("aiServices.deactivate", "Deactivate")
+              : t("aiServices.activate", "Activate")}
           </Button>
         </div>
       </div>
@@ -251,14 +233,18 @@ function StaticDetailView({ service }: Props) {
         <div className="lg:col-span-1 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("aiServices.about", "About this Service")}</CardTitle>
+              <CardTitle className="text-base">
+                {t("aiServices.about", "About this Service")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {service.detailedDescription}
               </p>
               <div>
-                <p className="text-sm font-semibold mb-2">{t("aiServices.useCases")}</p>
+                <p className="text-sm font-semibold mb-2">
+                  {t("aiServices.useCases")}
+                </p>
                 <ul className="space-y-1.5">
                   {service.useCases.map((uc) => (
                     <li
@@ -276,12 +262,23 @@ function StaticDetailView({ service }: Props) {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("aiServices.performance", "Performance")}</CardTitle>
+              <CardTitle className="text-base">
+                {t("aiServices.performance", "Performance")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: t("aiServices.detectionAccuracy", "Detection Accuracy"), value: stats.accuracy },
-                { label: t("aiServices.serviceUptime", "Service Uptime"), value: stats.uptime },
+                {
+                  label: t(
+                    "aiServices.detectionAccuracy",
+                    "Detection Accuracy"
+                  ),
+                  value: stats.accuracy,
+                },
+                {
+                  label: t("aiServices.serviceUptime", "Service Uptime"),
+                  value: stats.uptime,
+                },
                 {
                   label: t("aiServices.cameraCoverage", "Camera Coverage"),
                   value: Math.min(100, stats.cameras * 12),
@@ -306,7 +303,9 @@ function StaticDetailView({ service }: Props) {
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">{t("aiServices.recentEvents", "Recent Events")}</CardTitle>
+              <CardTitle className="text-base">
+                {t("aiServices.recentEvents", "Recent Events")}
+              </CardTitle>
               <div className="flex gap-2">
                 <Button
                   variant="ghost"

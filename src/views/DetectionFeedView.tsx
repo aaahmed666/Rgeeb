@@ -133,8 +133,15 @@ export default function DetectionFeedView() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
         <ShieldAlert className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
-        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+        <p className="text-lg font-semibold">
+          {t("errors.unauthorized", "Access Denied")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "common.noPermission",
+            "You don\'t have permission to view this page."
+          )}
+        </p>
       </div>
     );
   }
@@ -194,58 +201,66 @@ export default function DetectionFeedView() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="grid grid-cols-1 gap-4 p-4 sm:p-5 sm:grid-cols-2 xl:grid-cols-5">
+        <CardContent className="flex flex-wrap items-end gap-3 p-4 sm:p-5">
           {/* Branch — AsyncPaginatedSelect */}
-          <FilterField label={t("detectionFeed.branch", "Branch")}>
-            <AsyncPaginatedSelect
-              endpoint={endpoints.organization.branches}
-              value={branchId}
-              onChange={(v) => {
-                setBranchId(v);
-                // reset camera when branch changes
-                setCameraId(null);
-              }}
-              placeholder={t("detectionFeed.all", "All")}
-              isClearable
-            />
-          </FilterField>
+          <div className="min-w-[160px] flex-1">
+            <FilterField label={t("detectionFeed.branch", "Branch")}>
+              <AsyncPaginatedSelect
+                endpoint={endpoints.organization.branches}
+                value={branchId}
+                onChange={(v) => {
+                  setBranchId(v);
+                  // reset camera when branch changes
+                  setCameraId(null);
+                }}
+                placeholder={t("detectionFeed.all", "All")}
+                isClearable
+              />
+            </FilterField>
+          </div>
 
           {/* Camera — AsyncPaginatedSelect, filtered by branch */}
-          <FilterField label={t("detectionFeed.camera", "Camera")}>
-            <AsyncPaginatedSelect
-              endpoint={endpoints.cameras.list}
-              extraParams={branchId ? { branch_id: branchId } : undefined}
-              value={cameraId}
-              onChange={setCameraId}
-              placeholder={t("detectionFeed.all", "All")}
-              isClearable
-            />
-          </FilterField>
+          <div className="min-w-[160px] flex-1">
+            <FilterField label={t("detectionFeed.camera", "Camera")}>
+              <AsyncPaginatedSelect
+                endpoint={endpoints.cameras.list}
+                extraParams={branchId ? { branch_id: branchId } : undefined}
+                value={cameraId}
+                onChange={setCameraId}
+                placeholder={t("detectionFeed.all", "All")}
+                isClearable
+              />
+            </FilterField>
+          </div>
 
           {/* Service — AsyncPaginatedSelect */}
-          <FilterField label={t("detectionFeed.service", "Service")}>
-            <AsyncPaginatedSelect
-              endpoint={endpoints.services.list}
-              labelKey="name"
-              valueKey="id"
-              value={service === ALL ? null : service}
-              onChange={(v) => { setService(v ?? ALL); setPage(1); }}
-              placeholder={t("detectionFeed.all", "All")}
-              isClearable
-            />
-          </FilterField>
+          <div className="min-w-[160px] flex-1">
+            <FilterField label={t("detectionFeed.service", "Service")}>
+              <AsyncPaginatedSelect
+                endpoint={endpoints.services.list}
+                labelKey="name"
+                valueKey="id"
+                value={service === ALL ? null : service}
+                onChange={(v) => {
+                  setService(v ?? ALL);
+                  setPage(1);
+                }}
+                placeholder={t("detectionFeed.all", "All")}
+                isClearable
+              />
+            </FilterField>
+          </div>
 
-          {/* Date range — SharedDateRangePicker spanning 2 columns */}
-          <FilterField
-            label={t("detectionFeed.dateRange", "Date Range")}
-            className="sm:col-span-2"
-          >
-            <SharedDateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
-              placeholder={t("detectionFeed.selectDateRange", "From – To")}
-            />
-          </FilterField>
+          {/* Date range */}
+          <div className="min-w-[220px] flex-[2]">
+            <FilterField label={t("detectionFeed.dateRange", "Date Range")}>
+              <SharedDateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+                placeholder={t("detectionFeed.selectDateRange", "From – To")}
+              />
+            </FilterField>
+          </div>
         </CardContent>
       </Card>
 
@@ -259,7 +274,7 @@ export default function DetectionFeedView() {
             {
               key: "image",
               header: t("detectionFeed.image", "Image"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => (
                 <Thumbnail
                   src={d.image}
@@ -270,7 +285,7 @@ export default function DetectionFeedView() {
             {
               key: "type",
               header: t("detectionFeed.type", "Type"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => (
                 <Badge
                   variant="outline"
@@ -283,7 +298,7 @@ export default function DetectionFeedView() {
             {
               key: "score",
               header: t("detectionFeed.score", "Score"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => (
                 <Badge className={cn("font-semibold", scoreTone(d.score))}>
                   {d.score}%
@@ -293,13 +308,13 @@ export default function DetectionFeedView() {
             {
               key: "service",
               header: t("detectionFeed.service", "Service"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => <span>{d.service}</span>,
             },
             {
               key: "camera",
               header: t("detectionFeed.camera", "Camera"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => (
                 <span className="inline-flex items-center gap-1">
                   <Camera className="h-3.5 w-3.5 text-muted-foreground" />
@@ -310,13 +325,13 @@ export default function DetectionFeedView() {
             {
               key: "branch",
               header: t("detectionFeed.branch", "Branch"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => <span>{d.branch}</span>,
             },
             {
               key: "detectedAt",
               header: t("detectionFeed.detectedAt", "Detected At"),
-              headClassName: "uppercase",
+              headClassName: "uppercase text-center",
               render: (d) => (
                 <span className="text-muted-foreground">
                   {formatDate(d.detectedAt)}
@@ -326,8 +341,8 @@ export default function DetectionFeedView() {
             {
               key: "actions",
               header: t("detectionFeed.actions", "Actions"),
-              headClassName: "uppercase text-end",
-              cellClassName: "text-end",
+              headClassName: "uppercase text-center",
+              cellClassName: "text-center",
               render: (d) => (
                 <Button
                   variant="ghost"

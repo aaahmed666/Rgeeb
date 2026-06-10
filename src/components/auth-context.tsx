@@ -232,7 +232,7 @@ const AuthUIContext = React.createContext<AuthUICtx | typeof _NO_PROVIDER>(
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
 const THEME_KEY = "app.theme";
-const LANG_KEY = "app.lang";
+const LANG_KEY = "app.language"; // must match i18n lookupLocalStorage key
 
 function readStoredTheme(): Theme {
   if (typeof window === "undefined") return "light"; // SSR: default to light (no dark class on html)
@@ -253,22 +253,43 @@ function readStoredLang(fallback: string): Lang {
 export function AuthUIProvider({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation();
   // Delegate theme state to ThemeProvider — single source of truth.
-  // ThemeProvider (lib/theme.tsx) already applies the DOM class and persists to
-  // localStorage, so AuthUIProvider must not duplicate that work.
   const { theme, setTheme } = useAppTheme();
 
-  const [lang, setLangState] = React.useState<Lang>(() =>
-    readStoredLang(i18n.resolvedLanguage ?? i18n.language ?? "en")
-  );
+  // Always start with "en" to match SSR — then sync from localStorage in useEffect.
+  // Reading localStorage in useState initializer causes SSR/client hydration mismatch.
+  const [lang, setLangState] = React.useState<Lang>("en");
 
+  // On mount: sync React state from i18n (which already read localStorage via LanguageDetector).
+  // We never write to localStorage here — DirectionSync (in Providers.tsx) owns that.
   React.useEffect(() => {
-    document.documentElement.lang = lang;
-    document.documentElement.dir = checkRtl(lang) ? "rtl" : "ltr";
-    window.localStorage.setItem(LANG_KEY, lang);
-    i18n.changeLanguage(lang);
-  }, [lang, i18n]);
+    // i18n already detected the language from localStorage on init (initAsync:false = sync).
+    // Just mirror it into React state so isRtl / context are correct.
+    const detected = (i18n.resolvedLanguage ?? i18n.language ?? "en") as Lang;
+    if (detected !== "en") {
+      setLangState(detected);
+    }
 
-  const setLang = React.useCallback((l: Lang) => setLangState(l), []);
+    // When user explicitly calls i18n.changeLanguage() (e.g. from LanguageSwitcher),
+    // mirror it back into our React context so isRtl updates.
+    const onLangChanged = (lng: string) => {
+      setLangState((lng === "ar" ? "ar" : "en") as Lang);
+    };
+    i18n.on("languageChanged", onLangChanged);
+    return () => {
+      i18n.off("languageChanged", onLangChanged);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once — event listener handles future changes
+
+  // When setLang is called explicitly (AuthTopBar buttons), push change to i18n.
+  // Do NOT write localStorage here — DirectionSync owns persistence.
+  const setLang = React.useCallback(
+    (l: Lang) => {
+      setLangState(l);
+      i18n.changeLanguage(l);
+    },
+    [i18n]
+  );
 
   const value: AuthUICtx = React.useMemo(
     () => ({
@@ -299,13 +320,26 @@ export function useAuthUI(): AuthUICtx {
   const ctx = React.useContext(AuthUIContext);
   const { i18n } = useTranslation();
 
-  // These local states are only used in the fallback path
-  const [langLocal, setLangLocal] = React.useState<Lang>(() =>
-    readStoredLang(i18n.resolvedLanguage ?? i18n.language ?? "en")
-  );
-  const [themeLocal, setThemeLocal] = React.useState<Theme>(() =>
-    readStoredTheme()
-  );
+  // These local states are only used in the fallback path.
+  // Always start with "en"/"light" to match SSR, sync in useEffect.
+  const [langLocal, setLangLocal] = React.useState<Lang>("en");
+  const [themeLocal, setThemeLocal] = React.useState<Theme>("light");
+
+  React.useEffect(() => {
+    // Mirror i18n detected language into local state (no localStorage write)
+    const detected = (i18n.resolvedLanguage ?? i18n.language ?? "en") as Lang;
+    if (detected !== langLocal) setLangLocal(detected);
+    const storedTheme = readStoredTheme();
+    if (storedTheme !== themeLocal) setThemeLocal(storedTheme);
+
+    const onLangChanged = (lng: string) =>
+      setLangLocal(lng === "ar" ? "ar" : "en");
+    i18n.on("languageChanged", onLangChanged);
+    return () => {
+      i18n.off("languageChanged", onLangChanged);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (ctx !== _NO_PROVIDER) {
     return ctx as AuthUICtx;
@@ -316,12 +350,7 @@ export function useAuthUI(): AuthUICtx {
     lang: langLocal,
     setLang: (l: Lang) => {
       setLangLocal(l);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(LANG_KEY, l);
-        document.documentElement.lang = l;
-        document.documentElement.dir = checkRtl(l) ? "rtl" : "ltr";
-      }
-      i18n.changeLanguage(l);
+      i18n.changeLanguage(l); // DirectionSync will handle DOM + localStorage
     },
     theme: themeLocal,
     setTheme: (t: Theme) => {

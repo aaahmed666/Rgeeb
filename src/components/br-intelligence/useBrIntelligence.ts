@@ -1,8 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  analyticsService,
-  type Branch,
-} from "@/services/analyticsService";
+import { analyticsService, type Branch } from "@/services/analyticsService";
 import {
   intelligenceService,
   type AiInsight,
@@ -71,7 +68,8 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     () => rangeFor(filters.range, filters.customFrom, filters.customTo).to,
     [filters.range, filters.customFrom, filters.customTo]
   );
-  const branchIdFilter = filters.branchId === "all" ? undefined : filters.branchId;
+  const branchIdFilter =
+    filters.branchId === "all" ? undefined : filters.branchId;
   const { rankTop, activeService } = filters;
 
   // Main load — does NOT depend on activeService or rankTop so those filters
@@ -95,9 +93,27 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       intelligenceService.comparison(computedFilters),
     ]);
 
+    // Use rankings by_score as efficiency data when efficiency-index returns empty
+    const effData =
+      Array.isArray(eff) && eff.length > 0
+        ? eff
+        : (rnk?.by_score ?? []).map((r, i) => ({
+            branch: r.branch,
+            score: typeof r.value === "number" ? r.value : Number(r.value),
+            compliance: 0,
+            detections: 0,
+            violations: 0,
+            violation_rate: 0,
+            tasks_done: 0,
+            tasks_total: 0,
+            task_rate: 0,
+            trend: 0,
+            status: "Outstanding" as const,
+            _rank: i,
+          }));
     setState((prev) => ({
       ...prev,
-      efficiency: Array.isArray(eff) ? eff : [],
+      efficiency: effData,
       rankings:
         rnk && typeof rnk === "object" && !Array.isArray(rnk) ? rnk : null,
       heatmap: hm && typeof hm === "object" && !Array.isArray(hm) ? hm : null,

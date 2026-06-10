@@ -18,7 +18,6 @@ import {
   Info,
   LineChart,
   Medal,
-  Search,
   Sigma,
   Sparkles,
   Target,
@@ -27,16 +26,11 @@ import {
   Trophy,
   Activity,
   Grid3x3,
-  Calendar } from "lucide-react";
+  Calendar,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow } from "@/components/ui/table";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import type {
   HourlyPeak,
@@ -45,7 +39,8 @@ import type {
   TrendForecast,
   AiInsight,
   BranchHealth,
-  ServiceMatrixCell } from "@/services/intelligenceService";
+  ServiceMatrixCell,
+} from "@/services/intelligenceService";
 import { useTranslation } from "react-i18next";
 
 /* ---------------- helpers ---------------- */
@@ -58,6 +53,7 @@ export function Section({
   children,
   openSection,
   setOpenSection,
+  printVisible,
 }: {
   id: string;
   icon: React.ReactNode;
@@ -66,10 +62,38 @@ export function Section({
   children: React.ReactNode;
   openSection: string | null;
   setOpenSection: (id: string | null) => void;
+  printVisible?: boolean;
 }) {
   const open = openSection === id;
+  // In print mode: only show if printVisible is true; hide if false
+  // printVisible===undefined means not in print mode → use normal show/hide
+  if (printVisible === false) return null;
+
+  // In print mode render a clean non-Card wrapper that doesn't clip or break
+  if (printVisible === true) {
+    return (
+      <div
+        className="print-rtl rounded-xl border bg-card text-card-foreground shadow-sm"
+        style={{ marginBottom: "12px", width: "100%", boxSizing: "border-box" }}
+        data-section-id={id}
+      >
+        <div
+          className="border-b px-5 pt-4 pb-1"
+          style={{ textAlign: "right" }}
+        >
+          <h2 className="text-base font-bold">{title}</h2>
+        </div>
+        <div className="px-5 py-4">{children}</div>
+      </div>
+    );
+  }
+
   return (
-    <Card className="overflow-hidden">
+    <Card
+      className="overflow-hidden"
+      data-section-id={id}
+    >
+      {/* Accordion header */}
       <div
         role="button"
         tabIndex={0}
@@ -91,8 +115,10 @@ export function Section({
           />
         </span>
       </div>
-      {/* Always render children in print mode; otherwise only when open */}
-      <div className={cn("border-t px-5 py-4", !open && "hidden print:block")}>
+      {/* Content */}
+      <div
+        className={cn("px-5 py-4", !open && "hidden", open ? "border-t" : "")}
+      >
         {children}
       </div>
     </Card>
@@ -195,7 +221,10 @@ export function Bar({ value, good }: { value: number; good?: boolean }) {
   const v = Math.max(0, Math.min(100, value));
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+      <div
+        className="h-1.5 w-20 overflow-hidden rounded-full bg-muted"
+        dir="ltr"
+      >
         <div
           className={cn(
             "h-full",
@@ -279,6 +308,7 @@ export function ClassCard({
   label: string;
   items: EfficiencyRow[];
 }) {
+  const { t } = useTranslation();
   const toneClass = {
     emerald: "border-emerald-200 bg-emerald-50/40 text-emerald-700",
     sky: "border-sky-200 bg-sky-50/40 text-sky-700",
@@ -291,7 +321,9 @@ export function ClassCard({
         {icon}
         {label}
       </div>
-      <p className="mt-0.5 text-xs opacity-80">{items.length} branches</p>
+      <p className="mt-0.5 text-xs opacity-80">
+        {items.length} {t("intel.branches", "branches")}
+      </p>
       <div className="mt-3 space-y-2 text-sm">
         {items.length === 0 ? (
           <p className="text-muted-foreground">—</p>
@@ -312,11 +344,17 @@ export function ClassCard({
 }
 
 export function Heatmap({ data }: { data: HeatmapPayload | null }) {
+  const { t } = useTranslation();
   if (!data) return <Skeleton className="h-40 w-full" />;
   const cells = data.cells ?? [];
   const dates = data.dates ?? [];
-  if (!cells.length || !dates.length)
-    return <Skeleton className="h-40 w-full" />;
+  if (!cells.length || !dates.length) {
+    return (
+      <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noHeatmapData", "No heatmap data for this period")}
+      </div>
+    );
+  }
   const color = (v: number, max: number) => {
     if (v === 0) return "transparent";
     const ratio = v / Math.max(1, max);
@@ -386,7 +424,13 @@ export function RowOfHeatmap({
 }
 
 export function HourlyChart({ data }: { data: HourlyPeak[] }) {
-  if (data.length === 0) return <Skeleton className="h-40 w-full" />;
+  const { t } = useTranslation();
+  if (data.length === 0)
+    return (
+      <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noHourlyData", "No hourly data available for this period")}
+      </div>
+    );
   const max = Math.max(...data.map((d) => d.detections));
   const peakHour = data.reduce(
     (m, c) => (c.detections > m.detections ? c : m),
@@ -448,13 +492,14 @@ export function HourlyChart({ data }: { data: HourlyPeak[] }) {
 }
 
 export function RadarSection({ rows }: { rows: EfficiencyRow[] }) {
+  const { t } = useTranslation();
   if (rows.length === 0) return <Skeleton className="h-40 w-full" />;
   const metrics = [
-    { key: "compliance", label: "Compliance" },
-    { key: "score", label: "Score" },
-    { key: "task_rate", label: "Tasks" },
-    { key: "violation_rate", label: "Violations" },
-    { key: "detections", label: "Detections" },
+    { key: "compliance", label: "intel.compliance" },
+    { key: "score", label: "intel.score" },
+    { key: "task_rate", label: "intel.tasks" },
+    { key: "violation_rate", label: "analytics.violations" },
+    { key: "detections", label: "intel.detections" },
   ] as const;
   const maxDet = Math.max(1, ...rows.map((r) => r.detections));
   return (
@@ -475,7 +520,9 @@ export function RadarSection({ rows }: { rows: EfficiencyRow[] }) {
               return (
                 <div key={m.key}>
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">{m.label}</span>
+                    <span className="text-muted-foreground">
+                      {t(m.label, m.label.split(".").pop() ?? m.label)}
+                    </span>
                     <span className="tabular-nums">{Math.round(v)}</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -497,6 +544,7 @@ export function RadarSection({ rows }: { rows: EfficiencyRow[] }) {
 /* ---------------- new section helpers ---------------- */
 
 export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
+  const { t } = useTranslation();
   const [selectedA, setSelectedA] = useState<string>("");
   const [selectedB, setSelectedB] = useState<string>("");
 
@@ -508,7 +556,8 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
   const resolvedB = selectedB || rows[1]?.branch || rows[0]?.branch || "";
 
   const branchA = rows.find((r) => r.branch === resolvedA) ?? rows[0];
-  const branchB = rows.find((r) => r.branch === resolvedB) ?? rows[1] ?? rows[0];
+  const branchB =
+    rows.find((r) => r.branch === resolvedB) ?? rows[1] ?? rows[0];
 
   const metrics: {
     key: "score" | "compliance" | "violation_rate" | "task_rate";
@@ -517,16 +566,16 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
     unit: string;
     invert?: boolean;
   }[] = [
-    { key: "score", label: "Score", max: 100, unit: "" },
-    { key: "compliance", label: "Compliance", max: 100, unit: "%" },
+    { key: "score", label: "intel.score", max: 100, unit: "" },
+    { key: "compliance", label: "intel.compliance", max: 100, unit: "%" },
     {
       key: "violation_rate",
-      label: "Violation Rate",
+      label: "intel.violationRate",
       max: 100,
       unit: "%",
       invert: true,
     },
-    { key: "task_rate", label: "Task Completion", max: 100, unit: "%" },
+    { key: "task_rate", label: "intel.taskCompletion", max: 100, unit: "%" },
   ];
 
   return (
@@ -594,7 +643,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
               className="space-y-1.5"
             >
               <div className="flex justify-between text-xs font-medium text-slate-500">
-                <span>{m.label}</span>
+                <span>{t(m.label, m.label.split(".").pop() ?? m.label)}</span>
                 {winner !== "tie" && (
                   <span
                     className={cn(
@@ -604,7 +653,8 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
                         : "bg-teal-100 text-teal-700"
                     )}
                   >
-                    {winner === "A" ? branchA.branch : branchB.branch} wins
+                    {winner === "A" ? branchA.branch : branchB.branch}{" "}
+                    {t("intel.wins", "wins")}
                   </span>
                 )}
               </div>
@@ -705,221 +755,154 @@ export function InsightIcon({
   return <LineChart className={className} />;
 }
 
-export function BranchHealthTable({
-  rows,
-  t,
-}: {
-  rows: BranchHealth[];
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  const [query, setQuery] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
-  if (rows.length === 0) return <Skeleton className="h-32 w-full" />;
-  const filtered = rows.filter((r) =>
-    (r.branch ?? "").toLowerCase().includes(query.toLowerCase())
-  );
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("intel.searchBranches", "Search branches...")}
-            className="h-9 w-full rounded-full border border-slate-200 bg-slate-50/50 ps-9 pe-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200"
-          />
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {filtered.length} / {rows.length} {t("intel.branches", "branches")}
-        </span>
+export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
+  const { t } = useTranslation();
+  const [searchValue, setSearchValue] = useState("");
+  if (rows.length === 0)
+    return (
+      <div className="rounded-xl bg-rose-50/40 py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noBranchHealth", "No branch health data available")}
       </div>
+    );
 
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/60">
-              <TableHead className="w-10" />
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {t("intel.branch", "Branch")}
-              </TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <Camera className="me-1 inline h-3.5 w-3.5" />
-                {t("intel.cameras", "Cameras")}
-              </TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {t("intel.detections", "Detections")} ↓
-              </TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {t("analytics.violations", "Violations")}
-              </TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {t("intel.violPct", "Viol %")}
-              </TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {t("intel.uptime", "Uptime")}
-              </TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {t("intel.trend", "Trend")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((r, i) => {
-              const camsOn = r.cameras_online ?? 0;
-              const camsTot = r.cameras_total ?? 0;
-              const camsOk = camsTot > 0 && camsOn / camsTot >= 0.5;
-              const violPct = r.viol_pct;
-              const uptime = r.uptime_pct ?? 0;
-              const isOpen = expanded === r.branch;
-              return (
-                <React.Fragment key={r.branch ?? i}>
-                  <TableRow
-                    className="cursor-pointer hover:bg-slate-50/60"
-                    onClick={() => setExpanded(isOpen ? null : r.branch)}
-                  >
-                    <TableCell>
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 text-slate-400 transition",
-                          isOpen ? "rotate-0" : "-rotate-90"
-                        )}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            r.health >= 80
-                              ? "bg-emerald-500"
-                              : r.health >= 50
-                                ? "bg-amber-500"
-                                : "bg-rose-500"
-                          )}
-                        />
-                        {r.branch}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          camsOk
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-rose-100 text-rose-700"
-                        )}
-                      >
-                        {camsOn}/{camsTot}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-semibold text-sky-600 tabular-nums">
-                      {(r.detections ?? 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "tabular-nums font-semibold",
-                        (r.violations ?? 0) > 0
-                          ? "text-rose-600"
-                          : "text-slate-400"
-                      )}
-                    >
-                      {(r.violations ?? 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {violPct === null || violPct === undefined ? (
-                        <span className="text-slate-400">—</span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-xs font-semibold",
-                            violPct > 50
-                              ? "bg-rose-100 text-rose-700"
-                              : violPct > 20
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-emerald-100 text-emerald-700"
-                          )}
-                        >
-                          {violPct}%
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-rose-100">
-                          <div
-                            className={cn(
-                              "h-full",
-                              uptime >= 80
-                                ? "bg-emerald-500"
-                                : uptime >= 30
-                                  ? "bg-amber-500"
-                                  : "bg-rose-300"
-                            )}
-                            style={{ width: `${Math.max(2, uptime)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {uptime}%
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Sparkline
-                        values={r.trend_series ?? []}
-                        color="hsl(346 77% 49%)"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  {isOpen && (
-                    <TableRow
-                      key={r.branch + "-d"}
-                      className="bg-slate-50/40"
-                    >
-                      <TableCell
-                        colSpan={8}
-                        className="px-6 py-3 text-xs text-slate-600"
-                      >
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          <div>
-                            <p className="text-muted-foreground">
-                              {t("intel.status", "Status")}
-                            </p>
-                            <p className="mt-0.5 font-semibold">{r.status}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              {t("intel.health", "Health")}
-                            </p>
-                            <p className="mt-0.5 font-semibold">
-                              {r.health}/100
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              {t("intel.cameras", "Cameras")}
-                            </p>
-                            <p className="mt-0.5 font-semibold">
-                              {camsOn} / {camsTot}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              {t("intel.uptime", "Uptime")}
-                            </p>
-                            <p className="mt-0.5 font-semibold">{uptime}%</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+  const columns: DataTableColumn<BranchHealth & { id: string }>[] = [
+    {
+      key: "branch",
+      header: t("intel.branch", "Branch"),
+      headClassName: "min-w-[130px]",
+      render: (r) => (
+        <span className="flex items-center gap-2 font-medium whitespace-nowrap">
+          <span
+            className={cn(
+              "inline-block h-2 w-2 shrink-0 rounded-full",
+              r.health >= 80
+                ? "bg-emerald-500"
+                : r.health >= 50
+                  ? "bg-amber-500"
+                  : "bg-rose-500"
+            )}
+          />
+          {r.branch}
+        </span>
+      ),
+    },
+    {
+      key: "cameras",
+      header: t("intel.cameras", "Cameras") + " 📷",
+      headClassName: "w-24",
+      render: (r) => {
+        const on = r.cameras_online ?? 0;
+        const tot = r.cameras_total ?? 0;
+        const ok = tot > 0 && on / tot >= 0.5;
+        const up = r.uptime_pct ?? 0;
+        return (
+          <div className="space-y-1">
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-medium",
+                ok
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-rose-100 text-rose-700"
+              )}
+            >
+              {on}/{tot}
+            </span>
+            <div className="flex items-center gap-1">
+              <div className="h-1 w-10 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className={cn(
+                    "h-full rounded-full",
+                    up >= 80
+                      ? "bg-emerald-500"
+                      : up >= 30
+                        ? "bg-amber-500"
+                        : "bg-rose-300"
                   )}
-                </React.Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+                  style={{ width: `${Math.max(2, up)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{up}%</span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "detections",
+      header: t("intel.detections", "Detections") + " ↓",
+      headClassName: "w-24",
+      render: (r) => (
+        <span className="font-semibold text-sky-600 tabular-nums">
+          {(r.detections ?? 0).toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "violations",
+      header: t("analytics.violations", "Violations"),
+      headClassName: "w-28",
+      render: (r) => {
+        const vp = r.viol_pct;
+        return (
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "tabular-nums font-semibold",
+                (r.violations ?? 0) > 0 ? "text-rose-600" : "text-slate-400"
+              )}
+            >
+              {(r.violations ?? 0).toLocaleString()}
+            </span>
+            {vp !== null && vp !== undefined && (
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                  vp > 50
+                    ? "bg-rose-100 text-rose-700"
+                    : vp > 20
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-emerald-100 text-emerald-700"
+                )}
+              >
+                {vp}%
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "trend",
+      header: t("intel.trend", "Trend"),
+      headClassName: "w-24",
+      render: (r) => (
+        <Sparkline
+          values={r.trend_series ?? []}
+          color="hsl(346 77% 49%)"
+        />
+      ),
+    },
+  ];
+
+  const filtered = searchValue
+    ? rows.filter((r) =>
+        (r.branch ?? "").toLowerCase().includes(searchValue.toLowerCase())
+      )
+    : rows;
+  const data = filtered.map((r) => ({
+    ...r,
+    id: r.branch,
+  })) as (BranchHealth & { id: string })[];
+
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      searchPlaceholder={t("intel.searchBranches", "Search branches...")}
+      emptyMessage={t("intel.noResults", "No branches found")}
+    />
   );
 }
 
@@ -967,14 +950,14 @@ export function Sparkline({
   );
 }
 
-export function ServiceBranchMatrix({
-  cells,
-  t,
-}: {
-  cells: ServiceMatrixCell[];
-  t: ReturnType<typeof useTranslation>["t"];
-}) {
-  if (cells.length === 0) return <Skeleton className="h-40 w-full" />;
+export function ServiceBranchMatrix({ cells }: { cells: ServiceMatrixCell[] }) {
+  const { t } = useTranslation();
+  if (cells.length === 0)
+    return (
+      <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noMatrixData", "No service matrix data available")}
+      </div>
+    );
   const branches = Array.from(new Set(cells.map((c) => c.branch)));
   const services = Array.from(new Set(cells.map((c) => c.service)));
   const lookup = new Map(cells.map((c) => [`${c.branch}__${c.service}`, c]));
@@ -1018,7 +1001,9 @@ export function ServiceBranchMatrix({
             style={{ background: c }}
           />
         ))}
-        <span className="ms-1">Low → High</span>
+        <span className="ms-1">
+          {t("intel.low", "Low")} → {t("intel.high", "High")}
+        </span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-separate border-spacing-0 text-sm">
@@ -1114,6 +1099,7 @@ export function ForecastSection({
 }: {
   forecast: TrendForecast | null;
 }) {
+  const { t } = useTranslation();
   if (!forecast) return <Skeleton className="h-56 w-full" />;
   const dirColor =
     forecast.direction === "falling"
@@ -1125,7 +1111,7 @@ export function ForecastSection({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatPill
-          label="Trend"
+          label="intel.trend"
           icon={
             forecast.direction === "falling" ? (
               <TrendingDown className="h-4 w-4 text-rose-500" />
@@ -1135,7 +1121,7 @@ export function ForecastSection({
           }
           value={
             <span className={cn("capitalize", dirColor)}>
-              {forecast.direction}
+              {t(`intel.direction_${forecast.direction}`, forecast.direction)}
             </span>
           }
           tint="bg-rose-50/60 border-rose-200"
@@ -1147,15 +1133,17 @@ export function ForecastSection({
           tint="bg-indigo-50/60 border-indigo-200"
         />
         <StatPill
-          label="Slope"
+          label="intel.slope"
           icon={<LineChart className="h-4 w-4 text-sky-500" />}
           value={
-            <span className="text-sky-600">{forecast.slope ?? "—"}/day</span>
+            <span className="text-sky-600">
+              {forecast.slope ?? "—"}/{t("intel.day", "day")}
+            </span>
           }
           tint="bg-sky-50/60 border-sky-200"
         />
         <StatPill
-          label="Std Error"
+          label="intel.stdError"
           icon={<BarChart3 className="h-4 w-4 text-amber-500" />}
           value={
             <span className="text-amber-600">±{forecast.std_error ?? "—"}</span>
@@ -1179,6 +1167,7 @@ export function StatPill({
   value: React.ReactNode;
   tint: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={cn("flex items-center gap-2 rounded-xl border p-3", tint)}>
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/70">
@@ -1186,7 +1175,7 @@ export function StatPill({
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          {label}
+          {label.includes(".") ? t(label, label.split(".").pop()!) : label}
         </p>
         <p className="truncate text-sm font-bold tabular-nums">{value}</p>
       </div>
@@ -1195,8 +1184,17 @@ export function StatPill({
 }
 
 export function ForecastChartV2({ forecast }: { forecast: TrendForecast }) {
+  const { t } = useTranslation();
   const pts = forecast?.points ?? [];
-  if (pts.length === 0) return <Skeleton className="h-48 w-full" />;
+  if (pts.length === 0)
+    return (
+      <div className="rounded-xl bg-indigo-50/40 py-12 text-center text-sm text-muted-foreground">
+        {t(
+          "intel.noForecastData",
+          "Insufficient data for trend forecast — more historical data needed"
+        )}
+      </div>
+    );
   const W = 800;
   const H = 240;
   const padL = 40;
@@ -1252,7 +1250,7 @@ export function ForecastChartV2({ forecast }: { forecast: TrendForecast }) {
       : "";
 
   // Y ticks
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => Math.round(max * t));
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((frac) => Math.round(max * frac));
   const xLabelIndexes = pts
     .map((_, i) => i)
     .filter((i) => i % Math.max(1, Math.ceil(pts.length / 8)) === 0);
@@ -1356,15 +1354,15 @@ export function ForecastChartV2({ forecast }: { forecast: TrendForecast }) {
       <div className="mt-2 flex items-center justify-center gap-5 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-5 bg-indigo-500" />
-          Historical
+          {t("intel.historical", "Historical")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-5 border-t-2 border-dashed border-indigo-500" />
-          Forecast
+          {t("intel.forecast", "Forecast")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-4 rounded-sm bg-indigo-200/60" />
-          95% Confidence
+          {t("intel.confidence95", "95% Confidence")}
         </span>
       </div>
     </div>

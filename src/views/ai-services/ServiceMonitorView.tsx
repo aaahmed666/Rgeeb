@@ -7,7 +7,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Camera,
-  Trash2 } from "lucide-react";
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
@@ -17,8 +18,12 @@ import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 import { cn } from "@/lib/utils";
-import { serviceMonitorCache, serviceMonitorKey, invalidateService } from "@/lib/serviceMonitorCache";
-import type { AIServiceMeta } from "./AIServiceDetailView";
+import {
+  serviceMonitorCache,
+  serviceMonitorKey,
+  invalidateService,
+} from "@/lib/serviceMonitorCache";
+import type { AIServiceMeta } from "./aiServiceTypes";
 
 // ─── API shape ─────────────────────────────────────────────────────────────
 interface MonitorDashboard {
@@ -118,7 +123,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const { t } = useTranslation();
   const Icon = service.icon;
   const today = new Date().toISOString().slice(0, 10);
-  const [dateRange, setDateRange] = React.useState<DateRange | null>([new Date(), new Date()]);
+  const [dateRange, setDateRange] = React.useState<DateRange | null>([
+    new Date(),
+    new Date(),
+  ]);
   const from = dateRange ? dateRange[0].toISOString().slice(0, 10) : today;
   const to = dateRange ? dateRange[1].toISOString().slice(0, 10) : today;
   const [branchId, setBranchId] = React.useState("all");
@@ -269,7 +277,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold">{service.label} {t("aiServices.monitoring")}</h1>
+            <h1 className="text-lg font-bold">
+              {service.label} {t("aiServices.monitoring")}
+            </h1>
             <Badge className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               {t("serviceMonitor.live")}
@@ -313,7 +323,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             variant="ghost"
             size="icon"
             className="h-9 w-9"
-            onClick={() => { invalidateService(serviceApiId); void load(); }}
+            onClick={() => {
+              invalidateService(serviceApiId);
+              void load();
+            }}
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </Button>
@@ -382,7 +395,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             >
               <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            <h2 className="text-sm font-semibold">{t("serviceMonitor.alertStatus", "Alert Status")}</h2>
+            <h2 className="text-sm font-semibold">
+              {t("serviceMonitor.alertStatus", "Alert Status")}
+            </h2>
           </div>
 
           <div className="flex flex-col items-center justify-center py-4">
@@ -429,7 +444,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                 fill="#94a3b8"
                 fontSize="11"
               >
-                {arcPct === 0 ? t("serviceMonitor.noData", "NO DATA") : t("serviceMonitor.safe", "SAFE")}
+                {arcPct === 0
+                  ? t("serviceMonitor.noData", "NO DATA")
+                  : t("serviceMonitor.safe", "SAFE")}
               </text>
             </svg>
 
@@ -477,7 +494,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                   y2="14"
                 />
               </svg>
-              <h2 className="text-sm font-semibold">{t("serviceMonitor.detectionsPerHour", "Detections Per Hour")}</h2>
+              <h2 className="text-sm font-semibold">
+                {t("serviceMonitor.detectionsPerHour", "Detections Per Hour")}
+              </h2>
             </div>
             <span className="text-xs font-semibold text-muted-foreground bg-muted rounded px-2 py-0.5">
               {fmt(totalDet)} {t("common.total", "total")}
@@ -569,7 +588,11 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             render: (det) =>
               det.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={det.image} alt="" className="h-12 w-16 rounded object-cover border" />
+                <img
+                  src={det.image}
+                  alt=""
+                  className="h-12 w-16 rounded object-cover border"
+                />
               ) : (
                 <div className="h-12 w-16 rounded border bg-muted flex items-center justify-center">
                   <Camera className="h-4 w-4 opacity-30" />
@@ -580,7 +603,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             key: "type",
             header: t("serviceMonitor.colType", "Type"),
             render: (det) => (
-              <Badge variant="secondary" className="text-xs font-medium">
+              <Badge
+                variant="secondary"
+                className="text-xs font-medium"
+              >
                 {det.type ?? "—"}
               </Badge>
             ),
@@ -600,7 +626,13 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             header: t("serviceMonitor.colBranch", "Branch"),
             render: (det) => (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="h-3 w-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
                 {det.branch ?? "—"}
@@ -608,20 +640,29 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             ),
           },
           ...(service.id === "waiting-customer"
-            ? [{
-                key: "wait_time",
-                header: t("serviceMonitor.colWaitTime", "Wait Time"),
-                render: (det: typeof detections[number] & { id: string | number }) => (
-                  <span className="text-xs font-semibold text-amber-600">{det.wait_time ?? "—"}</span>
-                ),
-              }]
+            ? [
+                {
+                  key: "wait_time",
+                  header: t("serviceMonitor.colWaitTime", "Wait Time"),
+                  render: (
+                    det: (typeof detections)[number] & { id: string | number }
+                  ) => (
+                    <span className="text-xs font-semibold text-amber-600">
+                      {det.wait_time ?? "—"}
+                    </span>
+                  ),
+                },
+              ]
             : []),
           {
             key: "score",
             header: t("serviceMonitor.colScore", "Score"),
             render: (det) =>
               det.score != null ? (
-                <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200"
+                >
                   {det.score}%
                 </Badge>
               ) : (

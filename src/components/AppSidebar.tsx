@@ -138,7 +138,9 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = usePathname();
-  const isRtl = i18n.dir() === "rtl";
+  // Use i18n.language as dependency so this re-computes when language changes.
+  // i18n.dir() alone doesn't trigger re-render; the useTranslation hook does via languageChanged.
+  const isRtl = (i18n.resolvedLanguage ?? i18n.language) === "ar";
   const [openGroup, setOpenGroup] = React.useState<string | null>(null);
   const [openSubGroups, setOpenSubGroups] = React.useState<
     Record<string, string | null>
@@ -849,7 +851,7 @@ export function AppSidebar() {
               "rounded-md mx-1 transition-colors",
               isActive(item.href) &&
                 "bg-sidebar-accent text-sidebar-accent-foreground",
-              isRtl && "flex-row-reverse"
+              ""
             )}
           >
             {React.createElement(item.icon, { className: "h-4 w-4 shrink-0" })}
@@ -868,7 +870,7 @@ export function AppSidebar() {
                         className={cn(
                           "flex items-center gap-2 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest",
                           "text-sidebar-foreground/50",
-                          isRtl && "flex-row-reverse"
+                          ""
                         )}
                       >
                         {React.createElement(sg.icon, {
@@ -888,7 +890,7 @@ export function AppSidebar() {
                             "rounded-md mx-1 transition-colors",
                             isActive(c.href) &&
                               "bg-sidebar-accent text-sidebar-accent-foreground",
-                            isRtl && "flex-row-reverse pl-3 pr-6"
+                            ""
                           )}
                         >
                           {React.createElement(c.icon, {
@@ -911,7 +913,7 @@ export function AppSidebar() {
                         "rounded-md mx-1 transition-colors",
                         isActive(c.href) &&
                           "bg-sidebar-accent text-sidebar-accent-foreground",
-                        isRtl && "flex-row-reverse"
+                        ""
                       )}
                     >
                       {React.createElement(c.icon, {
@@ -976,10 +978,7 @@ export function AppSidebar() {
         <Link
           prefetch={true}
           href={item.href}
-          className={cn(
-            "flex w-full items-center gap-2",
-            isRtl && "flex-row-reverse"
-          )}
+          className={cn("flex w-full items-center gap-2", "")}
         >
           <Icon className="h-4 w-4" />
           <span className="flex-1 truncate">{item.label}</span>
@@ -1020,7 +1019,7 @@ export function AppSidebar() {
           <CollapsibleTrigger asChild>
             <SidebarMenuSubButton
               isActive={active}
-              className={cn("w-full", isRtl && "flex-row-reverse")}
+              className={cn("w-full", "")}
             >
               <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
               <span className="flex-1 truncate">{subGroup.label}</span>
@@ -1047,10 +1046,7 @@ export function AppSidebar() {
                       <Link
                         prefetch={true}
                         href={c.href}
-                        className={cn(
-                          "flex items-center gap-2",
-                          isRtl && "flex-row-reverse"
-                        )}
+                        className={cn("flex items-center gap-2", "")}
                       >
                         <ChildIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
                         <span className="flex-1 truncate">{c.label}</span>
@@ -1144,10 +1140,7 @@ export function AppSidebar() {
                           <Link
                             prefetch={true}
                             href={c.href}
-                            className={cn(
-                              "flex items-center gap-2",
-                              isRtl && "flex-row-reverse"
-                            )}
+                            className={cn("flex items-center gap-2", "")}
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
                             <span className="flex-1 truncate">{c.label}</span>
@@ -1278,7 +1271,7 @@ export function AppSidebar() {
           <div
             className={cn(
               "flex items-center gap-2.5 px-3 py-2.5 border-b border-sidebar-border/50",
-              isRtl && "flex-row-reverse"
+              ""
             )}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
@@ -1303,7 +1296,7 @@ export function AppSidebar() {
               tooltip={t("common.logout")}
               className={cn(
                 "text-destructive/80 hover:text-destructive hover:bg-destructive/10",
-                isRtl && "flex-row-reverse"
+                ""
               )}
             >
               <LogOut className="h-4 w-4" />

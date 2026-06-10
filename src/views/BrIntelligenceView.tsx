@@ -1,6 +1,7 @@
 "use client";
 
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,7 +11,6 @@ import {
   BarChart3,
   Brain,
   Building2,
-  Calendar,
   Camera,
   CheckCircle2,
   ChevronDown,
@@ -31,7 +31,8 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  Trophy } from "lucide-react";
+  Trophy,
+} from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -39,7 +40,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from "@/components/ui/select";
+  SelectValue,
+} from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import {
   Table,
@@ -47,18 +49,21 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow } from "@/components/ui/table";
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { getAuthToken } from "@/lib/api";
 import {
   useBrIntelligenceData,
   useBrIntelligenceSummary,
-  type BrIntelligenceFilters } from "@/components/br-intelligence/useBrIntelligence";
+  type BrIntelligenceFilters,
+} from "@/components/br-intelligence/useBrIntelligence";
 import {
   statusTone,
   type RangeKey,
-  rangeFor } from "@/components/br-intelligence/utils";
+  rangeFor,
+} from "@/components/br-intelligence/utils";
 import type {
   HourlyPeak,
   EfficiencyRow,
@@ -66,7 +71,8 @@ import type {
   TrendForecast,
   AiInsight,
   BranchHealth,
-  ServiceMatrixCell } from "@/services/intelligenceService";
+  ServiceMatrixCell,
+} from "@/services/intelligenceService";
 import {
   Section,
   ScoreRing,
@@ -83,7 +89,8 @@ import {
   BranchHealthTable,
   Sparkline,
   ServiceBranchMatrix,
-  ForecastSection } from "@/views/BrIntelligenceHelpers";
+  ForecastSection,
+} from "@/views/BrIntelligenceHelpers";
 
 export default function BrIntelligenceView() {
   const { t } = useTranslation();
@@ -97,19 +104,14 @@ export default function BrIntelligenceView() {
   const [activeService, setActiveService] = useState("All");
   const [rankTop, setRankTop] = useState<3 | 5 | 10>(3);
   const [openSection, setOpenSection] = useState<string | null>("efficiency");
+  const [printMode, setPrintMode] = useState(false);
+  const [sectionsWithData, setSectionsWithData] = useState<Set<string>>(
+    new Set()
+  );
 
   // Expand all sections before printing so they appear in print preview
   React.useEffect(() => {
-    const ALL_SECTIONS = [
-      "efficiency", "rankings", "classification", "heatmap",
-      "branch-comparison", "radar", "hourly", "period",
-      "insights", "health", "matrix", "forecast", "anomaly",
-    ];
-    let prevSection: string | null = null;
-
     const handleBeforePrint = () => {
-      prevSection = openSection;
-      // Set a flag on body that CSS can respond to
       document.body.dataset.printing = "true";
     };
 
@@ -123,19 +125,22 @@ export default function BrIntelligenceView() {
       window.removeEventListener("beforeprint", handleBeforePrint);
       window.removeEventListener("afterprint", handleAfterPrint);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Data fetching via custom hook
   // useMemo prevents new object reference every render → avoids duplicate API calls
-  const filters: BrIntelligenceFilters = React.useMemo(() => ({
-    range,
-    customFrom,
-    customTo,
-    branchId,
-    activeService,
-    rankTop,
-  }), [range, customFrom, customTo, branchId, activeService, rankTop]);
+  const filters: BrIntelligenceFilters = React.useMemo(
+    () => ({
+      range,
+      customFrom,
+      customTo,
+      branchId,
+      activeService,
+      rankTop,
+    }),
+    [range, customFrom, customTo, branchId, activeService, rankTop]
+  );
 
   const {
     efficiency,
@@ -175,11 +180,24 @@ export default function BrIntelligenceView() {
   }
 
   return (
-    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      {/* Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 p-5 text-white shadow-lg">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
+    <div className="print-rtl space-y-4 p-4 sm:p-6 lg:p-8 print:p-0 print:space-y-3">
+      {/* Print title - only visible when printing */}
+      <div
+        className="print-only mb-4 border-b pb-3"
+        style={{ textAlign: "right", direction: "rtl" }}
+      >
+        <h1 className="text-2xl font-bold">
+          {t("intel.title", "ذكاء الفروع")}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {t("intel.printDate", "تاريخ التقرير")}:{" "}
+          {new Date().toLocaleDateString("ar-EG")}
+        </p>
+      </div>
+      {/* Banner — hidden when printing */}
+      <div className="no-print rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 p-5 text-white shadow-lg">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="rounded-xl bg-indigo-500/20 p-3 backdrop-blur-sm">
               <Brain className="h-6 w-6 text-indigo-300" />
             </div>
@@ -195,17 +213,19 @@ export default function BrIntelligenceView() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <AsyncPaginatedSelect
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="w-44 shrink-0">
+              <AsyncPaginatedSelect
                 endpoint="/customer/branches"
                 labelKey="name"
                 valueKey="id"
                 extraParams={{ active: 1 }}
                 value={branchId === "all" ? null : branchId}
                 onChange={(v) => setBranchId(v ?? "all")}
-                placeholder="All Branches"
+                placeholder={t("common.allBranches", "All Branches")}
                 isClearable
               />
+            </div>
             <div className="flex rounded-lg bg-white/10 p-1 backdrop-blur-sm">
               {(["7", "14", "30"] as RangeKey[]).map((k) => (
                 <button
@@ -228,31 +248,18 @@ export default function BrIntelligenceView() {
               ))}
             </div>
             {/* Custom date range picker */}
-            <div className="flex items-center gap-1 rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-xs text-white/80">
-              <Calendar className="h-3.5 w-3.5 shrink-0" />
-              <input
-                type="date"
-                value={customFrom}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => {
-                  const val = e.target.value;
+            <div className="min-w-0 flex-1 sm:max-w-xs">
+              <SharedDateRangePicker
+                from={customFrom}
+                to={customTo}
+                onFromChange={(val) => {
                   setCustomFrom(val);
                   if (val && customTo) setRange("custom");
                 }}
-                className="w-[112px] bg-transparent text-white/90 outline-none [color-scheme:dark]"
-              />
-              <span>→</span>
-              <input
-                type="date"
-                value={customTo}
-                min={customFrom || undefined}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => {
-                  const val = e.target.value;
+                onToChange={(val) => {
                   setCustomTo(val);
                   if (customFrom && val) setRange("custom");
                 }}
-                className="w-[112px] bg-transparent text-white/90 outline-none [color-scheme:dark]"
               />
             </div>
             <button
@@ -268,37 +275,143 @@ export default function BrIntelligenceView() {
             </button>
             <button
               onClick={() => {
-                // Expand all sections so they render in print preview
-                const ALL_SECTIONS = [
-                  "efficiency", "rankings", "classification", "heatmap",
-                  "branch-comparison", "radar", "hourly", "period",
-                  "insights", "health", "matrix", "forecast", "anomaly",
-                ];
-                const prev = openSection;
-                // Open all by setting a special "print-all" marker
-                // We temporarily force all sections open via CSS
-                document.body.classList.add("print-expand-all");
-                window.print();
-                document.body.classList.remove("print-expand-all");
-                setOpenSection(prev);
+                // Build set of ALL sections that have data — print them all
+                const dataMap: Record<string, boolean> = {
+                  efficiency: efficiency.length > 0,
+                  classification: efficiency.length > 0,
+                  "branch-comparison": efficiency.length > 0,
+                  radar: efficiency.length > 0,
+                  rankings: (rankings?.by_score?.length ?? 0) > 0,
+                  heatmap: (heatmap?.cells?.length ?? 0) > 0,
+                  hourly: (hourly?.length ?? 0) > 0,
+                  period: comparison.length > 0,
+                  insights: insights.length > 0,
+                  health: health.length > 0,
+                  matrix: matrix.length > 0,
+                  forecast: (forecast?.points?.length ?? 0) > 0,
+                  anomaly: anomalies.length > 0,
+                };
+                const withData = new Set<string>(
+                  Object.keys(dataMap).filter((k) => dataMap[k])
+                );
+                setSectionsWithData(withData);
+                setPrintMode(true);
+                // Wait for React to render all sections before opening print dialog
+                setTimeout(() => {
+                  const htmlEl = document.documentElement;
+                  const prevDir = htmlEl.getAttribute("dir") ?? "ltr";
+
+                  const printWrapper = document.querySelector(
+                    ".print-rtl"
+                  ) as HTMLElement | null;
+                  if (printWrapper) {
+                    printWrapper.style.width = "100%";
+                    printWrapper.style.direction = "rtl";
+                  }
+                  const allEls: HTMLElement[] = printWrapper
+                    ? Array.from(printWrapper.querySelectorAll("*"))
+                    : [];
+
+                  type SavedStyle = {
+                    el: HTMLElement;
+                    direction: string;
+                    textAlign: string;
+                    flexDirection: string;
+                  };
+                  const saved: SavedStyle[] = [];
+
+                  allEls.forEach((el) => {
+                    const h = el as HTMLElement;
+                    const tag = h.tagName.toUpperCase();
+                    if (
+                      [
+                        "TABLE",
+                        "TR",
+                        "TD",
+                        "TH",
+                        "THEAD",
+                        "TBODY",
+                        "SVG",
+                        "PATH",
+                        "CIRCLE",
+                        "G",
+                      ].includes(tag)
+                    )
+                      return;
+
+                    const computed = window.getComputedStyle(h);
+                    const display = computed.display;
+                    const isFlex =
+                      display === "flex" || display === "inline-flex";
+                    const isGrid =
+                      display === "grid" || display === "inline-grid";
+                    const flexDir = computed.flexDirection;
+                    const isRowFlex =
+                      isFlex &&
+                      (flexDir === "row" || flexDir === "row-reverse");
+
+                    saved.push({
+                      el: h,
+                      direction: h.style.direction,
+                      textAlign: h.style.textAlign,
+                      flexDirection: h.style.flexDirection,
+                    });
+
+                    h.style.direction = "rtl";
+                    if (isRowFlex) {
+                      h.style.flexDirection = "row-reverse";
+                    } else if (isGrid) {
+                      // grid inherits direction:rtl automatically
+                    } else if (!isFlex) {
+                      h.style.textAlign = "right";
+                    }
+                  });
+
+                  document
+                    .querySelectorAll("[data-section-id]")
+                    .forEach((el) => {
+                      (el as HTMLElement).style.width = "100%";
+                    });
+
+                  htmlEl.setAttribute("dir", "rtl");
+
+                  const restoreAfterPrint = () => {
+                    htmlEl.setAttribute("dir", prevDir);
+                    saved.forEach(
+                      ({ el, direction, textAlign, flexDirection }) => {
+                        el.style.direction = direction;
+                        el.style.textAlign = textAlign;
+                        el.style.flexDirection = flexDirection;
+                      }
+                    );
+                    setPrintMode(false);
+                    setSectionsWithData(new Set());
+                    window.removeEventListener("afterprint", restoreAfterPrint);
+                  };
+                  window.addEventListener("afterprint", restoreAfterPrint);
+                  window.print();
+                }, 500);
               }}
               title="Print"
               className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10"
             >
               <Printer className="h-4 w-4" />
             </button>
-            {updatedAt && (
-              <span className="text-[11px] text-white/60">
-                {t("intel.lastUpdated", "Last updated")}:{" "}
-                {updatedAt.toLocaleTimeString()}
-              </span>
-            )}
           </div>
         </div>
+        {updatedAt && (
+          <p className="mt-2 text-end text-[11px] text-white/60">
+            {t("intel.lastUpdated", "Last updated")}:{" "}
+            {updatedAt.toLocaleTimeString()}
+          </p>
+        )}
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        dir="rtl"
+      >
         <SummaryCard
           icon={<Sparkles className="h-5 w-5" />}
           tint="bg-indigo-100 text-indigo-600"
@@ -332,6 +445,9 @@ export default function BrIntelligenceView() {
       {/* Branch Efficiency Index */}
       <Section
         id="efficiency"
+        printVisible={
+          printMode ? sectionsWithData.has("efficiency") : undefined
+        }
         icon={<BarChart3 className="h-5 w-5 text-sky-600" />}
         title={t("intel.efficiencyIndex", "Branch Efficiency Index")}
         openSection={openSection}
@@ -339,7 +455,8 @@ export default function BrIntelligenceView() {
         meta={
           efficiency[0] && (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-              Top: {efficiency[0].branch} ({Math.round(efficiency[0].score)})
+              {t("intel.top", "Top")}: {efficiency[0].branch} (
+              {Math.round(efficiency[0].score)})
             </span>
           )
         }
@@ -371,11 +488,14 @@ export default function BrIntelligenceView() {
               {
                 key: "branch",
                 header: t("analytics.branch", "Branch"),
+                headClassName: "min-w-[120px]",
+                cellClassName: "font-medium whitespace-nowrap",
                 render: (r) => <span className="font-medium">{r.branch}</span>,
               },
               {
                 key: "score",
                 header: `${t("intel.score", "Score")} ↓`,
+                headClassName: "w-20",
                 render: (r) => <ScoreRing score={r.score} />,
               },
               {
@@ -452,7 +572,7 @@ export default function BrIntelligenceView() {
                       statusTone(r.status)
                     )}
                   >
-                    {r.status}
+                    {t(`intel.status_${r.status}`, r.status)}
                   </span>
                 ),
               },
@@ -464,6 +584,7 @@ export default function BrIntelligenceView() {
       {/* Store Rankings */}
       <Section
         id="rankings"
+        printVisible={printMode ? sectionsWithData.has("rankings") : undefined}
         icon={<Trophy className="h-5 w-5 text-amber-500" />}
         title={t("intel.storeRankings", "Store Rankings")}
         openSection={openSection}
@@ -490,7 +611,7 @@ export default function BrIntelligenceView() {
                     : "bg-white text-slate-600"
                 )}
               >
-                Top {n}
+                {t("intel.top", "Top")} {n}
               </span>
             ))}
           </div>
@@ -528,6 +649,9 @@ export default function BrIntelligenceView() {
       {/* Branch Classification */}
       <Section
         id="classification"
+        printVisible={
+          printMode ? sectionsWithData.has("classification") : undefined
+        }
         icon={<Grid3x3 className="h-5 w-5 text-slate-600" />}
         title={t("intel.branchClassification", "Branch Classification")}
         openSection={openSection}
@@ -564,14 +688,18 @@ export default function BrIntelligenceView() {
       {/* Detection Heatmap */}
       <Section
         id="heatmap"
+        printVisible={printMode ? sectionsWithData.has("heatmap") : undefined}
         icon={<Flame className="h-5 w-5 text-orange-500" />}
         title={t("intel.detectionHeatmap", "Detection Heatmap")}
         openSection={openSection}
         setOpenSection={setOpenSection}
         meta={
           <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">
-            Peak: {heatmap?.cells?.length ? Math.max(...heatmap.cells.map((c) => c.value)) : 0}{" "}
-            detections
+            {t("intel.peak", "Peak")}:{" "}
+            {heatmap?.cells?.length
+              ? Math.max(...heatmap.cells.map((c) => c.value))
+              : 0}{" "}
+            {t("intel.detections", "detections")}
           </span>
         }
       >
@@ -593,7 +721,7 @@ export default function BrIntelligenceView() {
         </div>
         <Heatmap data={heatmap} />
         <div className="mt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          Low
+          {t("intel.low", "Low")}
           {["#10b981", "#84cc16", "#f59e0b", "#f97316", "#ef4444"].map((c) => (
             <span
               key={c}
@@ -601,13 +729,16 @@ export default function BrIntelligenceView() {
               style={{ background: c }}
             />
           ))}
-          High
+          {t("intel.high", "High")}
         </div>
       </Section>
 
       {/* Branch Comparison */}
       <Section
         id="branch-comparison"
+        printVisible={
+          printMode ? sectionsWithData.has("branch-comparison") : undefined
+        }
         icon={<TrendingUp className="h-5 w-5 text-teal-500" />}
         title={t("intel.branchComparison", "Branch Comparison")}
         openSection={openSection}
@@ -619,13 +750,14 @@ export default function BrIntelligenceView() {
       {/* Performance Radar (simple list view) */}
       <Section
         id="radar"
+        printVisible={printMode ? sectionsWithData.has("radar") : undefined}
         icon={<Sparkles className="h-5 w-5 text-violet-500" />}
         title={t("intel.performanceRadar", "Performance Radar")}
         openSection={openSection}
         setOpenSection={setOpenSection}
         meta={
           <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
-            {efficiency.length} selected
+            {efficiency.length} {t("intel.selected", "selected")}
           </span>
         }
       >
@@ -635,6 +767,7 @@ export default function BrIntelligenceView() {
       {/* Hourly Peak Analysis */}
       <Section
         id="hourly"
+        printVisible={printMode ? sectionsWithData.has("hourly") : undefined}
         icon={<Clock className="h-5 w-5 text-orange-500" />}
         title={t("intel.hourlyPeak", "Hourly Peak Analysis")}
         openSection={openSection}
@@ -658,6 +791,7 @@ export default function BrIntelligenceView() {
       {/* Period-over-Period */}
       <Section
         id="period"
+        printVisible={printMode ? sectionsWithData.has("period") : undefined}
         icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
         title={t("intel.periodOverPeriod", "Period-over-Period")}
         openSection={openSection}
@@ -666,7 +800,7 @@ export default function BrIntelligenceView() {
           comparison.length > 0 ? (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
               {comparison[0]?.delta_pct >= 0 ? "+" : ""}
-              {comparison[0]?.delta_pct}% vs previous
+              {comparison[0]?.delta_pct}% {t("intel.vsPrevious", "vs previous")}
             </span>
           ) : undefined
         }
@@ -678,7 +812,7 @@ export default function BrIntelligenceView() {
               className="rounded-lg border p-4"
             >
               <p className="text-xs uppercase text-muted-foreground">
-                {c.metric}
+                {t(`intel.metric_${c.metric.toLowerCase()}`, c.metric)}
               </p>
               <p className="mt-1 text-2xl font-bold tabular-nums">
                 {c.current.toLocaleString()}
@@ -690,7 +824,8 @@ export default function BrIntelligenceView() {
                 )}
               >
                 {c.delta_pct >= 0 ? "+" : ""}
-                {c.delta_pct}% vs previous ({c.previous.toLocaleString()})
+                {c.delta_pct}% {t("intel.vsPrevious", "vs previous")} (
+                {c.previous.toLocaleString()})
               </p>
             </div>
           ))}
@@ -700,6 +835,7 @@ export default function BrIntelligenceView() {
       {/* AI Insights */}
       <Section
         id="insights"
+        printVisible={printMode ? sectionsWithData.has("insights") : undefined}
         icon={<Sparkles className="h-5 w-5 text-fuchsia-500" />}
         title={t("intel.aiInsights", "AI Insights")}
         openSection={openSection}
@@ -735,9 +871,9 @@ export default function BrIntelligenceView() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className={cn("text-sm font-semibold", tone.title)}>
-                    {ins.title}
+                    {t(`intel.insight_${ins.title}`, ins.title)}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-600">
+                  <p className="mt-0.5 text-xs text-slate-600 ltr:text-left rtl:text-right">
                     {ins.description}
                   </p>
                 </div>
@@ -750,6 +886,7 @@ export default function BrIntelligenceView() {
       {/* Branch Health */}
       <Section
         id="health"
+        printVisible={printMode ? sectionsWithData.has("health") : undefined}
         icon={<Heart className="h-5 w-5 text-rose-500" />}
         title={t("intel.branchHealth", "Branch Health Dashboard")}
         openSection={openSection}
@@ -760,15 +897,13 @@ export default function BrIntelligenceView() {
           </span>
         }
       >
-        <BranchHealthTable
-          rows={health}
-          t={t}
-        />
+        <BranchHealthTable rows={health} />
       </Section>
 
       {/* Service × Branch Matrix */}
       <Section
         id="matrix"
+        printVisible={printMode ? sectionsWithData.has("matrix") : undefined}
         icon={<Grid3x3 className="h-5 w-5 text-slate-600" />}
         title={t("intel.serviceMatrix", "Service × Branch Matrix")}
         openSection={openSection}
@@ -782,15 +917,13 @@ export default function BrIntelligenceView() {
           </span>
         }
       >
-        <ServiceBranchMatrix
-          cells={matrix}
-          t={t}
-        />
+        <ServiceBranchMatrix cells={matrix} />
       </Section>
 
       {/* Trend Forecast */}
       <Section
         id="forecast"
+        printVisible={printMode ? sectionsWithData.has("forecast") : undefined}
         icon={<TrendingDown className="h-5 w-5 text-indigo-500" />}
         title={t("intel.trendForecast", "Trend Forecast")}
         openSection={openSection}
@@ -812,7 +945,8 @@ export default function BrIntelligenceView() {
               ) : (
                 <TrendingUp className="h-3 w-3" />
               )}
-              {forecast.direction} (R²: {forecast.r2})
+              {t(`intel.direction_${forecast.direction}`, forecast.direction)}{" "}
+              (R²: {forecast.r2})
             </span>
           )
         }
@@ -823,6 +957,7 @@ export default function BrIntelligenceView() {
       {/* Anomaly Detection */}
       <Section
         id="anomaly"
+        printVisible={printMode ? sectionsWithData.has("anomaly") : undefined}
         icon={<AlertCircle className="h-5 w-5 text-rose-500" />}
         title={t("intel.anomalyDetection", "Anomaly Detection")}
         openSection={openSection}

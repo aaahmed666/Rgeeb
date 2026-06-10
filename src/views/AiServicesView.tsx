@@ -14,10 +14,14 @@ import { dashboardService } from "@/services/dashboardService";
 import type { AIServiceItem } from "@/services/dashboardService";
 
 // TABS labels are now resolved via t() in render — see tLabel() below
-const TAB_IDS = ["all", "safety", "analytics", "operations", "monitoring"] as const;
-type Tab = typeof TAB_IDS[number];
-
-
+const TAB_IDS = [
+  "all",
+  "safety",
+  "analytics",
+  "operations",
+  "monitoring",
+] as const;
+type Tab = (typeof TAB_IDS)[number];
 
 const CATEGORY_PATH: Record<string, string> = {
   Safety: "safety",
@@ -61,16 +65,18 @@ const KEY_TO_ID: Record<string, string> = {
   waiting: "waiting-customer",
 };
 
-export default function AiServicesView({ defaultTab }: { defaultTab?: string } = {}) {
+export default function AiServicesView({
+  defaultTab,
+}: { defaultTab?: string } = {}) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
 
   // Resolve tab label via i18n
   const tLabel = (id: string): string => {
     const keys: Record<string, string> = {
-      all:        t("aiServices.all", "All"),
-      safety:     t("aiServices.safety", "Safety"),
-      analytics:  t("aiServices.analytics", "Analytics"),
+      all: t("aiServices.all", "All"),
+      safety: t("aiServices.safety", "Safety"),
+      analytics: t("aiServices.analytics", "Analytics"),
       operations: t("aiServices.operations", "Operations"),
       monitoring: t("aiServices.monitoring", "Monitoring"),
     };
@@ -103,7 +109,11 @@ export default function AiServicesView({ defaultTab }: { defaultTab?: string } =
   const filtered = ALL_SERVICES.filter((s) => {
     const matchTab = tab === "all" || s.category.toLowerCase() === tab;
     const matchQuery =
-      !query || s.label.toLowerCase().includes(query.toLowerCase());
+      !query ||
+      s.label.toLowerCase().includes(query.toLowerCase()) ||
+      (s.labelKey ? t(s.labelKey, s.label) : s.label)
+        .toLowerCase()
+        .includes(query.toLowerCase());
     return matchTab && matchQuery;
   });
 
@@ -246,7 +256,7 @@ export default function AiServicesView({ defaultTab }: { defaultTab?: string } =
               </div>
               <div className="w-full">
                 <p className="text-xs font-semibold leading-snug text-foreground line-clamp-2">
-                  {svc.label}
+                  {svc.labelKey ? t(svc.labelKey, svc.label) : svc.label}
                 </p>
                 <p className="mt-1 text-[10px] text-emerald-600 font-medium">
                   {t("aiServices.activeStatus")}

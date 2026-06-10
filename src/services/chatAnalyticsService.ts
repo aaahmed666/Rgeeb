@@ -339,26 +339,48 @@ export const chatAnalyticsService = {
     ),
   conversations: (f: ChatFilters) =>
     safe(
-      // Try the dedicated conversations endpoint first; falls back to demo on 400/404
+      // Dedicated conversations endpoint — falls back to demoLogs on any error (404 etc.)
       apiFetch<
         | Paginated<ConversationLog>
         | {
             data: ConversationLog[];
             meta?: { total: number; per_page: number; current_page: number };
+            total?: number;
+            per_page?: number;
+            current_page?: number;
           }
+        | { conversations?: ConversationLog[]; logs?: ConversationLog[] }
       >(endpoints.chatAnalytics.conversations, {
         query: q(f, { page: f.page ?? 1, per_page: f.perPage ?? 10 }),
       }).then((r) => {
+        // Shape 1: { data: [...], total, per_page, current_page }
         if (Array.isArray((r as { data?: unknown }).data)) {
           const x = r as {
             data: ConversationLog[];
             meta?: { total: number; per_page: number; current_page: number };
+            total?: number;
+            per_page?: number;
+            current_page?: number;
           };
           return {
             data: x.data,
-            total: x.meta?.total ?? x.data.length,
-            per_page: x.meta?.per_page ?? f.perPage ?? 10,
-            current_page: x.meta?.current_page ?? f.page ?? 1,
+            total: x.meta?.total ?? x.total ?? x.data.length,
+            per_page: x.meta?.per_page ?? x.per_page ?? f.perPage ?? 10,
+            current_page: x.meta?.current_page ?? x.current_page ?? f.page ?? 1,
+          } as Paginated<ConversationLog>;
+        }
+        // Shape 2: { conversations: [...] } or { logs: [...] }
+        const alt = r as {
+          conversations?: ConversationLog[];
+          logs?: ConversationLog[];
+        };
+        const list = alt.conversations ?? alt.logs ?? [];
+        if (list.length > 0) {
+          return {
+            data: list,
+            total: list.length,
+            per_page: f.perPage ?? 10,
+            current_page: 1,
           } as Paginated<ConversationLog>;
         }
         return r as Paginated<ConversationLog>;

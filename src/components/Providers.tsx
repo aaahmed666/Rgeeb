@@ -12,7 +12,6 @@ import { Toaster } from "@/components/ui/sonner";
 
 function DirectionSync({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation();
-  const lang = i18n.resolvedLanguage ?? i18n.language ?? "en";
 
   React.useEffect(() => {
     const apply = (lng: string) => {
@@ -20,17 +19,21 @@ function DirectionSync({ children }: { children: React.ReactNode }) {
       document.documentElement.lang = lng;
       document.documentElement.dir = dir;
       document.body.dir = dir;
-      // Persist using the same key i18n uses (app.language) so layout.tsx picks it up on reload
-      try { localStorage.setItem("app.language", lng); } catch {}
+      try {
+        localStorage.setItem("app.language", lng);
+      } catch {}
     };
 
-    // Apply immediately for current language
-    apply(lang);
+    // Apply for current language on mount (client only — no SSR mismatch)
+    apply(i18n.resolvedLanguage ?? i18n.language ?? "en");
 
-    // Also listen for future language changes from i18n.changeLanguage()
+    // Listen for future language changes
     i18n.on("languageChanged", apply);
-    return () => { i18n.off("languageChanged", apply); };
-  }, [lang, i18n]);
+    return () => {
+      i18n.off("languageChanged", apply);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once — the event listener handles all future changes
 
   return <>{children}</>;
 }
