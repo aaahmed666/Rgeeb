@@ -371,11 +371,23 @@ export async function downloadReport(id: string | number): Promise<void> {
   triggerDownload(URL.createObjectURL(blob), `report-${id}`);
 }
 
-/** DELETE /customer/reports/generated/:id */
+/**
+ * Delete a generated report.
+ * Tries the RESTful route first, then falls back to the legacy
+ * production route used by the OLD system:
+ *   POST /customer/reports/generated/delete { id }
+ */
 export async function deleteGeneratedReport(
   id: string | number
 ): Promise<void> {
-  await apiFetch(endpoints.reportCenter.generatedById(String(id)), { method: "DELETE" });
+  try {
+    await apiFetch(endpoints.reportCenter.generatedById(String(id)), { method: "DELETE" });
+  } catch {
+    await apiFetch("/customer/reports/generated/delete", {
+      method: "POST",
+      body: { id },
+    });
+  }
 }
 
 /** POST /customer/reports/schedule */
@@ -392,11 +404,23 @@ export async function scheduleReport(
   }
 }
 
-/** DELETE /customer/reports/scheduled/:id */
+/**
+ * Delete a scheduled report.
+ * Tries the RESTful route first, then falls back to the legacy
+ * production route used by the OLD system:
+ *   POST /customer/reports/schedule/delete { id }
+ */
 export async function deleteScheduledReport(
   id: string | number
 ): Promise<void> {
-  await apiFetch(endpoints.reportCenter.scheduledById(String(id)), {
-    method: "DELETE",
-  });
+  try {
+    await apiFetch(endpoints.reportCenter.scheduledById(String(id)), {
+      method: "DELETE",
+    });
+  } catch {
+    await apiFetch("/customer/reports/schedule/delete", {
+      method: "POST",
+      body: { id },
+    });
+  }
 }

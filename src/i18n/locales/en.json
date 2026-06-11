@@ -69,7 +69,8 @@
     "dateRange": "Date Range",
     "type": "Type",
     "prev": "Previous",
-    "page": "Page"
+    "page": "Page",
+    "previous": "Previous"
   },
   "sidebar": {
     "statistics": "Statistics",
@@ -132,7 +133,8 @@
     "foodicsInventory": "Inventory Audit",
     "foodicsDashboard": "Foodics Dashboard",
     "foodicsHealth": "System Health",
-    "systemHealth": "System Health"
+    "systemHealth": "System Health",
+    "customerIsland": "Customer Island"
   },
   "insights": {
     "overview": "Overview",
@@ -2592,5 +2594,90 @@
   },
   "clients": {
     "placeholder_name": "John Doe"
+  },
+  "island": {
+    "title": "Customer Island",
+    "subtitle": "Passers, stoppers, buyers and staff coverage analytics",
+    "dateRange": "Date range",
+    "allBranches": "All Branches",
+    "tabs": {
+      "dashboard": "Island Dashboard",
+      "traffic": "Traffic Analytics",
+      "conversion": "Conversion Funnel",
+      "presence": "Employee Presence",
+      "responseTime": "Response Time",
+      "demographics": "Demographics",
+      "heatmap": "Heatmap Analysis",
+      "violations": "Violations"
+    },
+    "kpi": {
+      "passers": "Total Passers",
+      "stoppers": "Total Stoppers",
+      "buyers": "Total Buyers",
+      "avgResponse": "Average Response Time",
+      "presence": "Presence Percentage",
+      "violations": "Total Violations"
+    },
+    "traffic": {
+      "title": "Hourly Traffic & Attraction Rate",
+      "passers": "Passers",
+      "stoppers": "Stoppers",
+      "attractionRate": "Attraction Rate"
+    },
+    "conversion": {
+      "title": "Conversion Funnel",
+      "passers": "Passers",
+      "stoppers": "Stoppers",
+      "buyers": "Buyers"
+    },
+    "presence": {
+      "title": "Employee Presence Timeline",
+      "present": "Present",
+      "absent": "Absent",
+      "coverage": "Coverage"
+    },
+    "responseTime": {
+      "title": "Hourly Response Time (seconds)",
+      "avg": "Average",
+      "min": "Min",
+      "max": "Max"
+    },
+    "demographics": {
+      "gender": "Gender Distribution",
+      "ageGroups": "Age Groups",
+      "male": "Male",
+      "female": "Female",
+      "visitors": "Visitors"
+    },
+    "heatmap": {
+      "title": "Heatmap Analysis",
+      "camera": "Camera",
+      "selectCamera": "Select camera",
+      "date": "Date",
+      "hour": "Hour",
+      "selectPrompt": "Please select a camera and date from the filters above",
+      "noData": "No heatmap available for the selected camera, date and hour.",
+      "stoppers": "Stoppers",
+      "dwell": "Avg dwell time",
+      "alt": "Stopper heatmap"
+    },
+    "violations": {
+      "title": "Island Violations",
+      "type": "Violation",
+      "employee": "Employee",
+      "branch": "Branch",
+      "detectedAt": "Detected At",
+      "duration": "Duration",
+      "status": "Status",
+      "snapshot": "Snapshot",
+      "view": "View",
+      "empty": "No violations recorded for the selected period.",
+      "rowsPerPage": "Rows per page:",
+      "statuses": {
+        "pending": "Pending",
+        "resolved": "Resolved",
+        "ignored": "Ignored"
+      }
+    }
   }
 }

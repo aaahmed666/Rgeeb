@@ -362,6 +362,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           cameras:              ["cameras"],
           attendance:           ["attendances", "attendance"],
           projects:             ["projects"],
+          // ── Customer Island (parity with old ACL subject "island") ──
+          island:               ["island", "customer_island"],
+          customer_island:      ["island", "customer_island"],
           // ── Preferences ──
           preferences:          ["roles", "notification_settings", "settings"],
           roles:                ["roles"],

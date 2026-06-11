@@ -64,6 +64,9 @@ import {
   ClipboardCheck as ClipboardCheckIcon,
   BarChart2,
   HeartPulse,
+  Landmark,
+  MapPin,
+  Filter,
 } from "lucide-react";
 import {
   HardHatIcon as HardHat,
@@ -233,6 +236,23 @@ export function AppSidebar() {
           label: t("insights.chatSettings", "Chat Settings"),
           permission: "chat-settings",
         },
+      ],
+    },
+    // ── Customer Island (parity with old project's island module) ──
+    {
+      href: "/dashboard/customer-island/dashboard",
+      icon: Landmark,
+      label: t("navigation.customerIsland", "Customer Island"),
+      permission: "island",
+      children: [
+        { href: "/dashboard/customer-island/dashboard", icon: LayoutDashboard, label: t("island.tabs.dashboard", "Island Dashboard"), permission: "island" },
+        { href: "/dashboard/customer-island/traffic", icon: TrendingUp, label: t("island.tabs.traffic", "Traffic Analytics"), permission: "island" },
+        { href: "/dashboard/customer-island/conversion", icon: Filter, label: t("island.tabs.conversion", "Conversion Funnel"), permission: "island" },
+        { href: "/dashboard/customer-island/employee-presence", icon: UserCheck, label: t("island.tabs.presence", "Employee Presence"), permission: "island" },
+        { href: "/dashboard/customer-island/response-time", icon: Clock, label: t("island.tabs.responseTime", "Response Time"), permission: "island" },
+        { href: "/dashboard/customer-island/demographics", icon: Users, label: t("island.tabs.demographics", "Demographics"), badge: { text: "NEW", tone: "new" }, permission: "island" },
+        { href: "/dashboard/customer-island/heatmap", icon: MapPin, label: t("island.tabs.heatmap", "Heatmap Analysis"), badge: { text: "NEW", tone: "new" }, permission: "island" },
+        { href: "/dashboard/customer-island/violations", icon: AlertTriangle, label: t("island.tabs.violations", "Violations"), badge: { text: "NEW", tone: "new" }, permission: "island" },
       ],
     },
   ];

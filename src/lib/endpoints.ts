@@ -153,7 +153,11 @@ export const endpoints = {
     transactions: "/customer/subscription-transactions",
     transactionSingle: "/customer/subscription-transactions/single",
     usage: "/customer/subscriptions/usage",
-    availableServices: "/customer/services",
+    // Production contract (verified against the OLD system):
+    //   list  → GET  /customer/services/available?all=1
+    //   add   → POST /customer/subscriptions/add-service { service_ids }
+    availableServices: "/customer/services/available",
+    addServices: "/customer/subscriptions/add-service",
     services: "/customer/services",
   },
 

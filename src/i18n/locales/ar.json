@@ -69,7 +69,8 @@
     "dateRange": "نطاق التاريخ",
     "type": "النوع",
     "prev": "السابق",
-    "page": "الصفحة"
+    "page": "الصفحة",
+    "previous": "السابق"
   },
   "sidebar": {
     "statistics": "الإحصائيات",
@@ -132,7 +133,8 @@
     "foodicsPrepTime": "وقت التحضير",
     "foodicsRefund": "التحقق من الاسترداد",
     "systemHealth": "صحة النظام",
-    "permissions": "الصلاحيات"
+    "permissions": "الصلاحيات",
+    "customerIsland": "جزيرة العملاء"
   },
   "insights": {
     "overview": "نظرة عامة",
@@ -2592,5 +2594,90 @@
   },
   "clients": {
     "placeholder_name": "الاسم"
+  },
+  "island": {
+    "title": "جزيرة العملاء",
+    "subtitle": "تحليلات المارّة والمتوقفين والمشترين وتغطية الموظفين",
+    "dateRange": "النطاق الزمني",
+    "allBranches": "كل الفروع",
+    "tabs": {
+      "dashboard": "لوحة الجزيرة",
+      "traffic": "تحليلات الحركة",
+      "conversion": "قمع التحويل",
+      "presence": "حضور الموظفين",
+      "responseTime": "زمن الاستجابة",
+      "demographics": "التركيبة السكانية",
+      "heatmap": "تحليل الخريطة الحرارية",
+      "violations": "المخالفات"
+    },
+    "kpi": {
+      "passers": "إجمالي المارّة",
+      "stoppers": "إجمالي المتوقفين",
+      "buyers": "إجمالي المشترين",
+      "avgResponse": "متوسط زمن الاستجابة",
+      "presence": "نسبة الحضور",
+      "violations": "إجمالي المخالفات"
+    },
+    "traffic": {
+      "title": "الحركة بالساعة ومعدل الجذب",
+      "passers": "المارّة",
+      "stoppers": "المتوقفون",
+      "attractionRate": "معدل الجذب"
+    },
+    "conversion": {
+      "title": "قمع التحويل",
+      "passers": "المارّة",
+      "stoppers": "المتوقفون",
+      "buyers": "المشترون"
+    },
+    "presence": {
+      "title": "الجدول الزمني لحضور الموظفين",
+      "present": "حاضر",
+      "absent": "غائب",
+      "coverage": "التغطية"
+    },
+    "responseTime": {
+      "title": "زمن الاستجابة بالساعة (بالثواني)",
+      "avg": "المتوسط",
+      "min": "الأدنى",
+      "max": "الأقصى"
+    },
+    "demographics": {
+      "gender": "توزيع الجنس",
+      "ageGroups": "الفئات العمرية",
+      "male": "ذكور",
+      "female": "إناث",
+      "visitors": "الزوار"
+    },
+    "heatmap": {
+      "title": "تحليل الخريطة الحرارية",
+      "camera": "الكاميرا",
+      "selectCamera": "اختر الكاميرا",
+      "date": "التاريخ",
+      "hour": "الساعة",
+      "selectPrompt": "يرجى اختيار كاميرا وتاريخ من عوامل التصفية أعلاه",
+      "noData": "لا توجد خريطة حرارية للكاميرا والتاريخ والساعة المحددة.",
+      "stoppers": "المتوقفون",
+      "dwell": "متوسط مدة البقاء",
+      "alt": "خريطة حرارية للمتوقفين"
+    },
+    "violations": {
+      "title": "مخالفات الجزيرة",
+      "type": "المخالفة",
+      "employee": "الموظف",
+      "branch": "الفرع",
+      "detectedAt": "وقت الرصد",
+      "duration": "المدة",
+      "status": "الحالة",
+      "snapshot": "اللقطة",
+      "view": "عرض",
+      "empty": "لا توجد مخالفات مسجلة في الفترة المحددة.",
+      "rowsPerPage": "عدد الصفوف في الصفحة:",
+      "statuses": {
+        "pending": "قيد الانتظار",
+        "resolved": "تم الحل",
+        "ignored": "متجاهَلة"
+      }
+    }
   }
 }

@@ -188,7 +188,10 @@ export async function fetchAvailableServices(): Promise<AvailableService[]> {
 
 export async function addServices(serviceIds: string[]): Promise<boolean> {
   try {
-    await apiFetch(endpoints.subscription.services, {
+    // Parity fix: the OLD system posts to /customer/subscriptions/add-service.
+    // The previous NEW code posted to the services *list* endpoint, which is
+    // not an action route.
+    await apiFetch(endpoints.subscription.addServices, {
       method: "POST",
       body: { service_ids: serviceIds },
     });
