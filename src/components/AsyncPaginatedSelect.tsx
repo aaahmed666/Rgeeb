@@ -8,7 +8,13 @@
 import * as React from "react";
 import { AsyncPaginate } from "react-select-async-paginate";
 import type { LoadOptions } from "react-select-async-paginate";
-import type { GroupBase, StylesConfig, Theme } from "react-select";
+import type {
+  GroupBase,
+  MultiValue,
+  SingleValue,
+  StylesConfig,
+  Theme,
+} from "react-select";
 import { apiFetch } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "@/components/auth-styles";
@@ -68,8 +74,18 @@ export interface AuthPaginatedSelectProps {
   endpoint: string;
   labelKey?: string;
   valueKey?: string;
-  value: string | null | undefined;
-  onChange: (value: string | null) => void;
+  /** Selected value (single-select mode). */
+  value?: string | null | undefined;
+  /** Change handler (single-select mode). */
+  onChange?: (value: string | null) => void;
+  /** Enable multi-selection. Use `values` / `onValuesChange` instead of `value` / `onChange`. */
+  isMulti?: boolean;
+  /** Selected values (multi-select mode). */
+  values?: string[];
+  /** Change handler (multi-select mode). */
+  onValuesChange?: (values: string[]) => void;
+  /** Resolved options for pre-selected values (multi-select mode), so chip labels render before the list loads. */
+  defaultSelectedOptions?: SelectOption[];
   placeholder?: string;
   isClearable?: boolean;
   isDisabled?: boolean;
@@ -90,6 +106,10 @@ export function AuthPaginatedSelect({
   valueKey = "id",
   value,
   onChange,
+  isMulti = false,
+  values,
+  onValuesChange,
+  defaultSelectedOptions,
   placeholder,
   isClearable = true,
   isDisabled = false,
@@ -106,10 +126,20 @@ export function AuthPaginatedSelect({
     React.useState<SelectOption | null>(
       value && defaultOption ? defaultOption : null
     );
+  const [resolvedOptions, setResolvedOptions] = React.useState<SelectOption[]>(
+    defaultSelectedOptions ?? []
+  );
 
   React.useEffect(() => {
     if (!value) setResolvedOption(null);
   }, [value]);
+
+  // Keep multi chips in sync when the parent clears or trims `values`
+  React.useEffect(() => {
+    if (!isMulti) return;
+    const ids = values ?? [];
+    setResolvedOptions((prev) => prev.filter((o) => ids.includes(o.value)));
+  }, [isMulti, values]);
 
   const { t, i18n } = useTranslation();
   const isRtl = checkRtl(i18n.resolvedLanguage ?? i18n.language ?? "en");
@@ -156,11 +186,22 @@ export function AuthPaginatedSelect({
   );
 
   const handleChange = React.useCallback(
-    (opt: SelectOption | null) => {
-      setResolvedOption(opt ?? null);
-      onChange(opt?.value ?? null);
+    (opt: SingleValue<SelectOption> | MultiValue<SelectOption>) => {
+      if (isMulti) {
+        const arr = Array.isArray(opt)
+          ? ([...opt] as SelectOption[])
+          : opt
+            ? [opt as SelectOption]
+            : [];
+        setResolvedOptions(arr);
+        onValuesChange?.(arr.map((o) => o.value));
+      } else {
+        const single = (opt ?? null) as SelectOption | null;
+        setResolvedOption(single);
+        onChange?.(single?.value ?? null);
+      }
     },
-    [onChange]
+    [isMulti, onChange, onValuesChange]
   );
 
   // ── Auth-themed styles ──
@@ -174,12 +215,12 @@ export function AuthPaginatedSelect({
     ? "0 0 0 4px rgba(239,68,68,0.15)"
     : "0 0 0 4px rgba(249,115,22,0.18)";
 
-  const selectStyles: StylesConfig<SelectOption, false> = React.useMemo(
+  const selectStyles: StylesConfig<SelectOption, boolean> = React.useMemo(
     () => ({
       control: (base, state) => ({
         ...base,
         minHeight: height,
-        height: height,
+        height: isMulti ? "auto" : height,
         borderRadius: 12,
         borderColor: state.isFocused ? focusBorderColor : borderColor,
         borderWidth: 2,
@@ -197,9 +238,20 @@ export function AuthPaginatedSelect({
       }),
       valueContainer: (base) => ({
         ...base,
-        padding: isRtl ? "0 16px 0 48px" : "0 48px 0 16px",
+        padding: isMulti
+          ? isRtl
+            ? "4px 12px 4px 40px"
+            : "4px 40px 4px 12px"
+          : isRtl
+            ? "0 16px 0 48px"
+            : "0 48px 0 16px",
+        flexWrap: "wrap",
+        gap: 4,
       }),
-      indicatorsContainer: (base) => ({ ...base, height: height }),
+      indicatorsContainer: (base) => ({
+        ...base,
+        height: isMulti ? "auto" : height,
+      }),
       placeholder: (base) => ({
         ...base,
         color: isDark ? COLORS.textDarkFaint : COLORS.textLightFaint,
@@ -212,6 +264,30 @@ export function AuthPaginatedSelect({
         color: isDark ? COLORS.textDark : COLORS.textLight,
         fontSize: "14.5px",
         fontWeight: 500,
+      }),
+      multiValue: (base) => ({
+        ...base,
+        borderRadius: 8,
+        backgroundColor: isDark
+          ? "rgba(249,115,22,0.18)"
+          : "rgba(249,115,22,0.1)",
+        margin: 0,
+      }),
+      multiValueLabel: (base) => ({
+        ...base,
+        color: isDark ? COLORS.textDark : COLORS.textLight,
+        fontSize: "12.5px",
+        fontWeight: 600,
+        padding: "2px 6px",
+      }),
+      multiValueRemove: (base) => ({
+        ...base,
+        borderRadius: "0 8px 8px 0",
+        color: isDark ? COLORS.textDarkMuted : COLORS.textLightMuted,
+        "&:hover": {
+          backgroundColor: "rgba(239,68,68,0.15)",
+          color: COLORS.red,
+        },
       }),
       menu: (base) => ({
         ...base,
@@ -296,6 +372,7 @@ export function AuthPaginatedSelect({
       isDisabled,
       isRtl,
       height,
+      isMulti,
     ]
   );
 
@@ -330,7 +407,8 @@ export function AuthPaginatedSelect({
   return (
     <AsyncPaginate
       inputId={id}
-      value={resolvedOption}
+      isMulti={isMulti}
+      value={isMulti ? resolvedOptions : resolvedOption}
       onChange={handleChange}
       loadOptions={loadOptions}
       additional={{ page: 1 }}
@@ -338,6 +416,8 @@ export function AuthPaginatedSelect({
       placeholder={placeholder}
       isClearable={isClearable}
       isDisabled={isDisabled}
+      closeMenuOnSelect={!isMulti}
+      hideSelectedOptions={false}
       styles={selectStyles}
       theme={selectTheme}
       menuPortalTarget={

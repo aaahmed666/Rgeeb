@@ -533,9 +533,44 @@ export const tasksService = {
       const r = (raw?.data as Record<string, unknown>) ?? raw;
       return mapTask(r, 0);
     } catch {
-      // Return a minimal stub so UI mutation callbacks still fire
-      return mapTask({ id, status }, 0);
+      // OLD production contract fallback: POST /customer/tasks/status { id, status }.
+      // If this also fails, rethrow — the UI has onError handling and a fake
+      // success stub here would show a false "Status updated" toast.
+      const raw = await api.post<Record<string, unknown>>(
+        endpoints.tasks.legacyStatus,
+        { id, status }
+      );
+      const r = (raw?.data as Record<string, unknown>) ?? raw;
+      return mapTask(r, 0);
     }
+  },
+
+  // ── TASK DETAIL (OLD production parity: assign / comment / logs / file) ──
+
+  /** Assign a task to a user. OLD contract: POST { id, user_id }. */
+  assign: async (id: string, userId: string | number): Promise<void> => {
+    await api.post<unknown>(endpoints.tasks.assign, { id, user_id: userId });
+  },
+
+  /** Add a comment to a task. OLD contract: POST { id, body }. */
+  comment: async (id: string, body: string): Promise<void> => {
+    await api.post<unknown>(endpoints.tasks.comment, { id, body });
+  },
+
+  /** Activity log for a task. OLD contract: GET ?id=&per_page=50. */
+  logs: async (id: string, perPage = 50): Promise<Record<string, unknown>[]> => {
+    const raw = await api.get<unknown>(endpoints.tasks.logs, {
+      query: { id, per_page: perPage },
+    });
+    return unwrapList(raw) as Record<string, unknown>[];
+  },
+
+  /** Upload a file attachment. OLD contract: multipart POST { id, file }. */
+  uploadAttachment: async (id: string, file: File): Promise<void> => {
+    const fd = new FormData();
+    fd.append("id", String(id));
+    fd.append("file", file);
+    await api.post<unknown>(endpoints.tasks.attachment, fd);
   },
 
   // ── DELETE ────────────────────────────────────────────────────────────────

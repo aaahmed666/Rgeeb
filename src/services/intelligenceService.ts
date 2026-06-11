@@ -4,7 +4,8 @@ import { endpoints } from "@/lib/endpoints";
 export interface IntelFilters {
   dateFrom: string;
   dateTo: string;
-  branchId?: string;
+  /** Multiple branch ids — sent to the API as comma-separated `branch_ids` (same contract as the old dashboard). Empty/undefined = all branches. */
+  branchIds?: string[];
 }
 
 // ---------- Public interfaces (used by BrIntelligenceView) ----------
@@ -51,6 +52,8 @@ export interface BranchHealth {
   viol_pct?: number | null;
   uptime_pct?: number;
   trend_series?: number[];
+  service_breakdown?: { service: string; count: number; violations: number }[];
+  recent?: { type: string; detected_at: string }[];
 }
 
 export interface ServiceMatrixCell {
@@ -135,6 +138,13 @@ interface RawBranchHealthItem {
   total_violations: number;
   violation_rate: number;
   daily_trend?: { day: string; total: number }[];
+  service_breakdown?: {
+    service_id: number;
+    service_name: string;
+    count: number;
+    violations: number;
+  }[];
+  recent_detections?: { id: number; type: string; detected_at: string }[];
 }
 
 // rankings returns { by_score, by_detections, by_compliance, by_task_completion, by_response_speed }
@@ -306,6 +316,15 @@ function normalizeBranchHealth(raw: RawBranchHealthItem[]): BranchHealth[] {
         ? Math.round(((r.cameras_online ?? 0) / r.cameras_total) * 100)
         : 0,
       trend_series: (r.daily_trend ?? []).map((d) => d.total),
+      service_breakdown: (r.service_breakdown ?? []).map((s) => ({
+        service: s.service_name,
+        count: Number(s.count ?? 0),
+        violations: Number(s.violations ?? 0),
+      })),
+      recent: (r.recent_detections ?? []).slice(0, 3).map((d) => ({
+        type: d.type,
+        detected_at: d.detected_at,
+      })),
     };
   });
 }
@@ -607,7 +626,8 @@ function q(f: IntelFilters, extra: Record<string, string | number> = {}) {
   return {
     date_from: f.dateFrom,
     date_to: f.dateTo,
-    branch_id: f.branchId,
+    branch_ids:
+      f.branchIds && f.branchIds.length > 0 ? f.branchIds.join(",") : undefined,
     ...extra,
   };
 }
@@ -653,7 +673,15 @@ export const intelligenceService = {
     safe(
       apiFetch<RawHeatmap | { data: RawHeatmap }>(
         endpoints.intelligence.heatmap,
-        { query: q(f, service ? { service } : {}) }
+        {
+          query: q(f, {
+            // The heatmap endpoint accepts a single `branch_id` (old dashboard contract)
+            ...(f.branchIds && f.branchIds.length > 0
+              ? { branch_id: f.branchIds[0] }
+              : {}),
+            ...(service ? { service } : {}),
+          }),
+        }
       ).then((r) =>
         normalizeHeatmap((r as { data: RawHeatmap }).data ?? (r as RawHeatmap))
       ),
@@ -747,8 +775,16 @@ export const intelligenceService = {
   availableServices: () =>
     safe(
       apiFetch<string[] | { data: string[] }>(
-        endpoints.services.list
-      ).then((r) => unwrapArray(r)),
+        endpoints.intelligence.availableServices
+      )
+        .then((r) => unwrapArray(r))
+        // Fallback: general services catalog (returns all subscribed
+        // services, not just those with intelligence data).
+        .catch(() =>
+          apiFetch<string[] | { data: string[] }>(
+            endpoints.services.list
+          ).then((r) => unwrapArray(r))
+        ),
       demoAvailableServices
     ),
 };

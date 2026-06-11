@@ -36,7 +36,8 @@ export interface BrIntelligenceFilters {
   range: RangeKey;
   customFrom: string;
   customTo: string;
-  branchId: string;
+  /** Selected branch ids. Empty array = all branches. */
+  branchIds: string[];
   activeService: string;
   rankTop: 3 | 5 | 10;
 }
@@ -68,15 +69,19 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     () => rangeFor(filters.range, filters.customFrom, filters.customTo).to,
     [filters.range, filters.customFrom, filters.customTo]
   );
-  const branchIdFilter =
-    filters.branchId === "all" ? undefined : filters.branchId;
+  // Stable string key so the array identity doesn't retrigger effects
+  const branchIdsKey = filters.branchIds.join(",");
+  const branchIdsFilter = useMemo(
+    () => (branchIdsKey ? branchIdsKey.split(",") : undefined),
+    [branchIdsKey]
+  );
   const { rankTop, activeService } = filters;
 
   // Main load — does NOT depend on activeService or rankTop so those filters
   // don't trigger a full re-fetch of every endpoint.
   const load = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true }));
-    const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
+    const computedFilters = { dateFrom, dateTo, branchIds: branchIdsFilter };
     const [eff, rnk, hm, hl, mx, ins, an, fc, hr, cp] = await Promise.all([
       intelligenceService.efficiency(computedFilters),
       intelligenceService.rankings(computedFilters, rankTop),
@@ -135,11 +140,11 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       loading: false,
       updatedAt: new Date(),
     }));
-  }, [dateFrom, dateTo, branchIdFilter]); // ← does NOT include rankTop or activeService
+  }, [dateFrom, dateTo, branchIdsFilter]); // ← does NOT include rankTop or activeService
 
   // Isolated re-fetch for heatmap when service filter changes
   const loadHeatmap = useCallback(async () => {
-    const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
+    const computedFilters = { dateFrom, dateTo, branchIds: branchIdsFilter };
     const hm = await intelligenceService.heatmap(
       computedFilters,
       activeService === "All" ? undefined : activeService
@@ -148,18 +153,18 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       ...prev,
       heatmap: hm && typeof hm === "object" && !Array.isArray(hm) ? hm : null,
     }));
-  }, [dateFrom, dateTo, branchIdFilter, activeService]);
+  }, [dateFrom, dateTo, branchIdsFilter, activeService]);
 
   // Isolated re-fetch for rankings when top-N filter changes
   const loadRankings = useCallback(async () => {
-    const computedFilters = { dateFrom, dateTo, branchId: branchIdFilter };
+    const computedFilters = { dateFrom, dateTo, branchIds: branchIdsFilter };
     const rnk = await intelligenceService.rankings(computedFilters, rankTop);
     setState((prev) => ({
       ...prev,
       rankings:
         rnk && typeof rnk === "object" && !Array.isArray(rnk) ? rnk : null,
     }));
-  }, [dateFrom, dateTo, branchIdFilter, rankTop]);
+  }, [dateFrom, dateTo, branchIdsFilter, rankTop]);
 
   useEffect(() => {
     void analyticsService.getBranches().then((branches) => {
@@ -201,7 +206,7 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     void loadRankings();
   }, [loadRankings]);
 
-  return state;
+  return { ...state, reload: load };
 }
 
 export const useBrIntelligenceSummary = (efficiency: EfficiencyRow[]) =>

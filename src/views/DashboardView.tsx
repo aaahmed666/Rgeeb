@@ -267,7 +267,13 @@ export default function DashboardView() {
   const [serviceQuery, setServiceQuery] = React.useState("");
   const [showAllServices, setShowAllServices] = React.useState(false);
 
+  // Monotonic request sequence — guards against out-of-order responses
+  // writing stale data when filters change quickly or the poll overlaps
+  // a slow in-flight request.
+  const loadSeq = React.useRef(0);
+
   const load = React.useCallback(async () => {
+    const seq = ++loadSeq.current;
     setLoading(true);
     setLoadError(null);
     const filters = {
@@ -288,6 +294,7 @@ export default function DashboardView() {
         dashboardService.getDetectionBreakdown(filters),
         dashboardService.getBranches(filters),
       ]);
+      if (seq !== loadSeq.current) return; // a newer load superseded this one
       setSummary(s);
       setServices(ai);
       setTasks(tk);
@@ -298,9 +305,10 @@ export default function DashboardView() {
       setBreakdown(bd);
       setBranches(br);
     } catch (err) {
+      if (seq !== loadSeq.current) return;
       setLoadError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [from, to, branchId, assignedToMe]);
 

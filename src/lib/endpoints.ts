@@ -38,7 +38,9 @@ export const endpoints = {
     countries: "/customer/countries",
     cities: "/customer/cities",
     categories: "/customer/categories",
+    categorySingle: "/customer/categories/single",
     packages: "/customer/packages",
+    packageSingle: "/customer/packages/single",
   },
 
   // ── Notifications ────────────────────────────────────────────────────────────
@@ -160,6 +162,12 @@ export const endpoints = {
     status: "/customer/tasks/update", // Postman: POST /update with { id, status } — no separate status endpoint
     dashboard: "/customer/tasks/dashboard",
     branches: "/customer/branches",
+    // OLD production task-detail contract (not in Postman; kept for parity):
+    assign: "/customer/tasks/assign",          // POST { id, user_id }
+    comment: "/customer/tasks/comment",        // POST { id, body }
+    logs: "/customer/tasks/logs",              // GET  ?id=&per_page=
+    attachment: "/customer/tasks/attachment",  // POST multipart { id, file }
+    legacyStatus: "/customer/tasks/status",    // POST { id, status } — OLD path
   },
 
   // ── My Tasks ─────────────────────────────────────────────────────────────────
@@ -169,6 +177,12 @@ export const endpoints = {
     start: (id: string | number) => `/customer/my-tasks/${id}/start`,
     complete: (id: string | number) => `/customer/my-tasks/${id}/complete`,
     status: (id: string | number) => `/customer/my-tasks/${id}/status`,
+    // Legacy action-style paths — the OLD production frontend's contract
+    // (POST with `{ id }` in the body). Used as final fallback because the
+    // Postman collection documents neither convention for these actions.
+    legacyStart: "/customer/my-tasks/start",
+    legacyComplete: "/customer/my-tasks/complete",
+    legacyComment: "/customer/my-tasks/comment",
   },
 
   // ── Task Analytics ───────────────────────────────────────────────────────────
@@ -199,6 +213,8 @@ export const endpoints = {
     save: "/customer/task-rules/save", // POST — create & update per Postman
     update: (id: string | number) => `/customer/task-rules/${id}`,
     delete: (id: string | number) => `/customer/task-rules/${id}`,
+    legacyDelete: "/customer/task-rules/delete", // OLD production contract (POST { id })
+    dedupStats: "/customer/task-rules/dedup-stats", // deduplication stats (present in OLD)
   },
 
   // ── Escalation ───────────────────────────────────────────────────────────────
@@ -206,6 +222,7 @@ export const endpoints = {
     rules: "/customer/escalation/rules",
     rule: (id: string | number) => `/customer/escalation/rules/${id}`,
     saveRule: "/customer/escalation/save-rule",
+    legacyDeleteRule: "/customer/escalation/delete-rule", // OLD production contract (POST { id })
     log: "/customer/escalation/log",
   },
 
@@ -320,6 +337,10 @@ export const endpoints = {
     trendForecast: "/customer/branch-intelligence/trend-forecast",
     hourlyPeaks: "/customer/branch-intelligence/hourly-peaks",
     periodComparison: "/customer/branch-intelligence/period-comparison",
+    // OLD production source for the heatmap service filter — returns only
+    // services that actually have branch-intelligence data (unlike the
+    // general /customer/services catalog).
+    availableServices: "/customer/branch-intelligence/available-services",
   },
 
   // ── Chat (AI Assistant) ──────────────────────────────────────────────────────

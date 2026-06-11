@@ -43,6 +43,7 @@ import {
   ShieldAlert,
   Building,
   UserCog,
+  User,
   KeyRound,
   BellRing,
   Lock,
@@ -262,6 +263,12 @@ export function AppSidebar() {
       icon: CalendarClock,
       label: t("navigation.eventTimeline"),
       permission: "event-timeline",
+    },
+    {
+      href: "/dashboard/visitor-records",
+      icon: UserCheck,
+      label: t("visitorRecords.title", "Visitor Records"),
+      permission: "visitor-records",
     },
     {
       href: "/dashboard/notifications",
@@ -729,6 +736,11 @@ export function AppSidebar() {
     {
       href: "/dashboard/admin/clients",
       icon: Users,
+      label: t("admin.clients.title", "Clients"),
+    },
+    {
+      href: "/dashboard/admin/users",
+      icon: UserCog,
       label: t("admin.users.title", "Users"),
     },
     {
@@ -1290,6 +1302,30 @@ export function AppSidebar() {
           </div>
         )}
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/dashboard/profile"}
+              tooltip={t("navigation.profile", "Profile")}
+            >
+              <Link href="/dashboard/profile">
+                <User className="h-4 w-4" />
+                <span>{t("navigation.profile", "Profile")}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/dashboard/settings"}
+              tooltip={t("navigation.settings", "Settings")}
+            >
+              <Link href="/dashboard/settings">
+                <Settings className="h-4 w-4" />
+                <span>{t("navigation.settings", "Settings")}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={logout}

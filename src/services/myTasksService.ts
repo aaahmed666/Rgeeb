@@ -141,13 +141,18 @@ export const myTasksService = {
     api
       .post<unknown>(endpoints.myTasks.start(id), {})
       .catch(() => api.patch<unknown>(endpoints.myTasks.status(id), { status: "in_progress" }))
-      .catch(() => null),
+      // Final fallback: the OLD production contract (POST body { id }).
+      .catch(() => api.post<unknown>(endpoints.myTasks.legacyStart, { id })),
 
-  complete: (id: string) =>
+  complete: (id: string, extra: Record<string, unknown> = {}) =>
     api
-      .post<unknown>(endpoints.myTasks.complete(id), {})
-      .catch(() => api.patch<unknown>(endpoints.myTasks.status(id), { status: "completed" }))
-      .catch(() => null),
+      .post<unknown>(endpoints.myTasks.complete(id), extra)
+      .catch(() => api.patch<unknown>(endpoints.myTasks.status(id), { status: "completed", ...extra }))
+      .catch(() => api.post<unknown>(endpoints.myTasks.legacyComplete, { id, ...extra })),
+
+  /** Add a comment to a my-task. OLD production contract: POST { id, body }. */
+  comment: (id: string, body: string) =>
+    api.post<unknown>(endpoints.myTasks.legacyComment, { id, body }),
 
   updateStatus: (id: string, status: string) =>
     api.patch<unknown>(endpoints.myTasks.status(id), { status }).catch(() => null),

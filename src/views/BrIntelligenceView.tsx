@@ -25,6 +25,7 @@ import {
   LineChart,
   Medal,
   Printer,
+  RefreshCw,
   Search,
   Sigma,
   Sparkles,
@@ -100,11 +101,12 @@ export default function BrIntelligenceView() {
   const [range, setRange] = useState<RangeKey>("7");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [branchId, setBranchId] = useState("all");
+  const [branchIds, setBranchIds] = useState<string[]>([]);
   const [activeService, setActiveService] = useState("All");
   const [rankTop, setRankTop] = useState<3 | 5 | 10>(3);
   const [openSection, setOpenSection] = useState<string | null>("efficiency");
   const [printMode, setPrintMode] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const [sectionsWithData, setSectionsWithData] = useState<Set<string>>(
     new Set()
   );
@@ -135,11 +137,11 @@ export default function BrIntelligenceView() {
       range,
       customFrom,
       customTo,
-      branchId,
+      branchIds,
       activeService,
       rankTop,
     }),
-    [range, customFrom, customTo, branchId, activeService, rankTop]
+    [range, customFrom, customTo, branchIds, activeService, rankTop]
   );
 
   const {
@@ -157,7 +159,17 @@ export default function BrIntelligenceView() {
     branches,
     loading,
     updatedAt,
+    reload,
   } = useBrIntelligenceData(filters);
+
+  // Auto-refresh every 60s when enabled (parity with the old dashboard)
+  React.useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      void reload();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, reload]);
 
   const summary = useBrIntelligenceSummary(efficiency);
   const { from, to } = useMemo(
@@ -214,14 +226,16 @@ export default function BrIntelligenceView() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <div className="w-44 shrink-0">
+            {/* Multi-branch filter (parity with old dashboard's multi-select) */}
+            <div className="w-56 shrink-0">
               <AsyncPaginatedSelect
                 endpoint="/customer/branches"
                 labelKey="name"
                 valueKey="id"
                 extraParams={{ active: 1 }}
-                value={branchId === "all" ? null : branchId}
-                onChange={(v) => setBranchId(v ?? "all")}
+                isMulti
+                values={branchIds}
+                onValuesChange={setBranchIds}
                 placeholder={t("common.allBranches", "All Branches")}
                 isClearable
               />
@@ -413,12 +427,34 @@ export default function BrIntelligenceView() {
             >
               <Printer className="h-4 w-4" />
             </button>
+            {/* Auto-refresh toggle (60s) — parity with old dashboard */}
+            <button
+              onClick={() => setAutoRefresh((v) => !v)}
+              title={
+                autoRefresh
+                  ? t("intel.autoRefreshOn", "Auto-refresh ON (60s)")
+                  : t("intel.autoRefreshOff", "Enable auto-refresh")
+              }
+              className={cn(
+                "rounded-md border p-2 transition-colors",
+                autoRefresh
+                  ? "animate-pulse border-emerald-400/60 bg-emerald-500/20 text-emerald-300"
+                  : "border-white/20 bg-white/5 text-white/80 hover:bg-white/10"
+              )}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
           </div>
         </div>
         {updatedAt && (
           <p className="mt-2 text-end text-[11px] text-white/60">
             {t("intel.lastUpdated", "Last updated")}:{" "}
             {updatedAt.toLocaleTimeString()}
+            {autoRefresh && (
+              <span className="ms-1.5 font-semibold text-emerald-400">
+                ● {t("intel.live", "LIVE")}
+              </span>
+            )}
           </p>
         )}
       </div>

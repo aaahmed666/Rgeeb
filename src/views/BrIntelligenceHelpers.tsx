@@ -10,6 +10,9 @@ import {
   Camera,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Search,
   ClipboardCheck,
   Clock,
   Eye,
@@ -30,7 +33,6 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import type {
   HourlyPeak,
@@ -758,9 +760,23 @@ export function InsightIcon({
   return <LineChart className={className} />;
 }
 
+const HEALTH_PER_PAGE = 10;
+
+type HealthSortKey =
+  | "branch"
+  | "cameras_online"
+  | "detections"
+  | "violations"
+  | "viol_pct";
+
 export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(0);
+  const [sortKey, setSortKey] = useState<HealthSortKey>("detections");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [expanded, setExpanded] = useState<string | null>(null);
+
   if (rows.length === 0)
     return (
       <div className="rounded-xl bg-rose-50/40 py-12 text-center text-sm text-muted-foreground">
@@ -768,144 +784,350 @@ export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
       </div>
     );
 
-  const columns: DataTableColumn<BranchHealth & { id: string }>[] = [
-    {
-      key: "branch",
-      header: t("intel.branch", "Branch"),
-      headClassName: "min-w-[130px]",
-      render: (r) => (
-        <span className="flex items-center gap-2 font-medium whitespace-nowrap">
-          <span
-            className={cn(
-              "inline-block h-2 w-2 shrink-0 rounded-full",
-              r.health >= 80
-                ? "bg-emerald-500"
-                : r.health >= 50
-                  ? "bg-amber-500"
-                  : "bg-rose-500"
-            )}
-          />
-          {r.branch}
-        </span>
-      ),
-    },
-    {
-      key: "cameras",
-      header: t("intel.cameras", "Cameras") + " 📷",
-      headClassName: "w-24",
-      render: (r) => {
-        const on = r.cameras_online ?? 0;
-        const tot = r.cameras_total ?? 0;
-        const ok = tot > 0 && on / tot >= 0.5;
-        const up = r.uptime_pct ?? 0;
-        return (
-          <div className="space-y-1">
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-medium",
-                ok
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-rose-100 text-rose-700"
-              )}
-            >
-              {on}/{tot}
-            </span>
-            <div className="flex items-center gap-1">
-              <div className="h-1 w-10 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className={cn(
-                    "h-full rounded-full",
-                    up >= 80
-                      ? "bg-emerald-500"
-                      : up >= 30
-                        ? "bg-amber-500"
-                        : "bg-rose-300"
-                  )}
-                  style={{ width: `${Math.max(2, up)}%` }}
-                />
-              </div>
-              <span className="text-[10px] text-muted-foreground">{up}%</span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: "detections",
-      header: t("intel.detections", "Detections") + " ↓",
-      headClassName: "w-24",
-      render: (r) => (
-        <span className="font-semibold text-sky-600 tabular-nums">
-          {(r.detections ?? 0).toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: "violations",
-      header: t("analytics.violations", "Violations"),
-      headClassName: "w-28",
-      render: (r) => {
-        const vp = r.viol_pct;
-        return (
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "tabular-nums font-semibold",
-                (r.violations ?? 0) > 0 ? "text-rose-600" : "text-slate-400"
-              )}
-            >
-              {(r.violations ?? 0).toLocaleString()}
-            </span>
-            {vp !== null && vp !== undefined && (
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-                  vp > 50
-                    ? "bg-rose-100 text-rose-700"
-                    : vp > 20
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-emerald-100 text-emerald-700"
-                )}
-              >
-                {vp}%
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: "trend",
-      header: t("intel.trend", "Trend"),
-      headClassName: "w-24",
-      render: (r) => (
-        <Sparkline
-          values={r.trend_series ?? []}
-          color="hsl(346 77% 49%)"
-        />
-      ),
-    },
-  ];
+  const handleSort = (key: HealthSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+    setPage(0);
+  };
 
   const filtered = searchValue
     ? rows.filter((r) =>
         (r.branch ?? "").toLowerCase().includes(searchValue.toLowerCase())
       )
     : rows;
-  const data = filtered.map((r) => ({
-    ...r,
-    id: r.branch,
-  })) as (BranchHealth & { id: string })[];
+
+  const sorted = [...filtered].sort((a, b) => {
+    const va = (a as unknown as Record<string, unknown>)[sortKey] ?? 0;
+    const vb = (b as unknown as Record<string, unknown>)[sortKey] ?? 0;
+    if (va === vb) return 0;
+    const cmp = va > vb ? 1 : -1;
+    return sortDir === "desc" ? -cmp : cmp;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / HEALTH_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = sorted.slice(
+    safePage * HEALTH_PER_PAGE,
+    (safePage + 1) * HEALTH_PER_PAGE
+  );
+
+  const SortHead = ({
+    k,
+    children,
+    className,
+  }: {
+    k: HealthSortKey;
+    children?: React.ReactNode;
+    className?: string;
+  }) => (
+    <th
+      onClick={() => handleSort(k)}
+      className={cn(
+        "cursor-pointer select-none whitespace-nowrap px-3 py-2 text-start text-xs font-semibold text-muted-foreground hover:text-foreground",
+        className
+      )}
+    >
+      {children}
+      {sortKey === k && (sortDir === "desc" ? " ↓" : " ↑")}
+    </th>
+  );
 
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      searchValue={searchValue}
-      onSearchChange={setSearchValue}
-      searchPlaceholder={t("intel.searchBranches", "Search branches...")}
-      emptyMessage={t("intel.noResults", "No branches found")}
-    />
+    <div>
+      {/* Search */}
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex max-w-xs flex-1 items-center gap-2 rounded-lg border bg-rose-50/30 px-3 py-1.5">
+          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <input
+            placeholder={t("intel.searchBranches", "Search branches...")}
+            value={searchValue}
+            onChange={(e) => {
+              setSearchValue(e.target.value);
+              setPage(0);
+            }}
+            className="w-full bg-transparent text-sm outline-none"
+          />
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {filtered.length} / {rows.length} {t("intel.branches", "branches")}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full text-sm">
+          <thead className="border-b bg-muted/40">
+            <tr>
+              <th className="w-8" />
+              <SortHead k="branch" className="min-w-[130px]">
+                {t("intel.branch", "Branch")}
+              </SortHead>
+              <SortHead k="cameras_online" className="w-28 text-center">
+                📷 {t("intel.cameras", "Cameras")}
+              </SortHead>
+              <SortHead k="detections" className="w-28 text-center">
+                {t("intel.detections", "Detections")}
+              </SortHead>
+              <SortHead k="violations" className="w-28 text-center">
+                {t("analytics.violations", "Violations")}
+              </SortHead>
+              <SortHead k="viol_pct" className="w-20 text-center">
+                {t("intel.violPct", "Viol %")}
+              </SortHead>
+              <th className="w-24 px-3 py-2 text-start text-xs font-semibold text-muted-foreground">
+                {t("intel.uptime", "Uptime")}
+              </th>
+              <th className="w-28 px-3 py-2 text-start text-xs font-semibold text-muted-foreground">
+                {t("intel.trend", "Trend")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {paged.map((r) => {
+              const isExp = expanded === r.branch;
+              const up = r.uptime_pct ?? 0;
+              const vp = r.viol_pct;
+              return (
+                <React.Fragment key={r.branch}>
+                  <tr
+                    onClick={() => setExpanded(isExp ? null : r.branch)}
+                    className={cn(
+                      "cursor-pointer border-b transition-colors last:border-0 hover:bg-rose-50/40",
+                      isExp && "border-0 bg-rose-50/50"
+                    )}
+                  >
+                    <td className="ps-3">
+                      {isExp ? (
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground rtl:rotate-180" />
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="flex items-center gap-2 font-medium whitespace-nowrap">
+                        <span
+                          className={cn(
+                            "inline-block h-2 w-2 shrink-0 rounded-full",
+                            r.health >= 80
+                              ? "bg-emerald-500"
+                              : r.health >= 50
+                                ? "bg-amber-500"
+                                : "bg-rose-500"
+                          )}
+                        />
+                        {r.branch}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs font-medium",
+                          (r.cameras_total ?? 0) > 0 &&
+                            (r.cameras_online ?? 0) / (r.cameras_total ?? 1) >=
+                              0.5
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-rose-100 text-rose-700"
+                        )}
+                      >
+                        {r.cameras_online ?? 0}/{r.cameras_total ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className="font-semibold text-sky-600 tabular-nums">
+                        {(r.detections ?? 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          (r.violations ?? 0) > 0
+                            ? "text-rose-600"
+                            : "text-slate-400"
+                        )}
+                      >
+                        {(r.violations ?? 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {vp !== null && vp !== undefined && vp > 0 ? (
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                            vp > 20
+                              ? "bg-rose-100 text-rose-700"
+                              : vp > 10
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-emerald-100 text-emerald-700"
+                          )}
+                        >
+                          {vp}%
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1 w-10 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className={cn(
+                              "h-full rounded-full",
+                              up >= 80
+                                ? "bg-emerald-500"
+                                : up >= 30
+                                  ? "bg-amber-500"
+                                  : "bg-rose-300"
+                            )}
+                            style={{ width: `${Math.max(2, up)}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {up}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Sparkline
+                        values={r.trend_series ?? []}
+                        color={
+                          (r.violations ?? 0) > 0
+                            ? "hsl(0 84% 60%)"
+                            : "hsl(346 77% 49%)"
+                        }
+                      />
+                    </td>
+                  </tr>
+                  {/* Expanded drill-down: service breakdown + recent activity */}
+                  {isExp && (
+                    <tr className="border-b bg-rose-50/30">
+                      <td colSpan={8} className="px-6 pb-4 pt-1">
+                        <div className="flex flex-wrap gap-8">
+                          <div className="min-w-[220px]">
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-rose-500">
+                              {t("intel.serviceBreakdown", "Service Breakdown")}
+                            </p>
+                            {(r.service_breakdown ?? []).length > 0 ? (
+                              (r.service_breakdown ?? []).map((s) => {
+                                const maxC = Math.max(
+                                  1,
+                                  ...(r.service_breakdown ?? []).map(
+                                    (x) => x.count
+                                  )
+                                );
+                                return (
+                                  <div
+                                    key={s.service}
+                                    className="mb-1 flex items-center gap-2"
+                                  >
+                                    <span className="w-28 shrink-0 truncate text-xs text-muted-foreground">
+                                      {s.service}
+                                    </span>
+                                    <div className="h-1.5 max-w-[120px] flex-1 overflow-hidden rounded-full bg-indigo-100/60">
+                                      <div
+                                        className={cn(
+                                          "h-full rounded-full transition-all",
+                                          s.violations > 0
+                                            ? "bg-rose-500"
+                                            : "bg-indigo-500"
+                                        )}
+                                        style={{
+                                          width: `${(s.count / maxC) * 100}%`,
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="min-w-[20px] text-[10px] font-bold text-muted-foreground tabular-nums">
+                                      {s.count}
+                                    </span>
+                                    {s.violations > 0 && (
+                                      <span className="rounded-full bg-rose-100 px-1.5 text-[9px] font-semibold text-rose-600">
+                                        {s.violations}⚠
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-xs text-slate-400">—</p>
+                            )}
+                          </div>
+                          <div className="min-w-[180px]">
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-rose-500">
+                              {t("intel.recentActivity", "Recent Activity")}
+                            </p>
+                            {(r.recent ?? []).length > 0 ? (
+                              (r.recent ?? []).map((d, i) => (
+                                <div
+                                  key={i}
+                                  className="mb-1 flex items-center gap-1.5"
+                                >
+                                  <span className="h-1 w-1 rounded-full bg-rose-400" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {d.type}
+                                  </span>
+                                  <span className="ms-auto text-[10px] text-slate-400">
+                                    {new Date(
+                                      d.detected_at
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-400">—</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {paged.length === 0 && (
+              <tr>
+                <td
+                  colSpan={8}
+                  className="px-3 py-8 text-center text-sm text-muted-foreground"
+                >
+                  {t("intel.noResults", "No branches found")}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {t("common.page", "Page")} {safePage + 1} / {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+              className="rounded-md border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={safePage >= totalPages - 1}
+              className="rounded-md border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

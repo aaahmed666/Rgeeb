@@ -104,7 +104,12 @@ export const escalationService = {
     return api.patch(endpoints.escalation.rule(id), { active });
   },
   async deleteRule(id: string) {
-    return api.delete(endpoints.escalation.rule(id));
+    try {
+      return await api.delete(endpoints.escalation.rule(id));
+    } catch {
+      // OLD production contract fallback: POST /customer/escalation/delete-rule { id }
+      return api.post(endpoints.escalation.legacyDeleteRule, { id });
+    }
   },
   async notifications(perPage = 20): Promise<NotificationItem[]> {
     const r = await api.get<unknown>(endpoints.notifications.list, {

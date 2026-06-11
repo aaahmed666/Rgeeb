@@ -37,6 +37,13 @@ export interface AuthUser {
   avatar?: string;
   role: "admin" | "user";
   permissions: string[];
+  /**
+   * True when the backend profile payload actually contained a `roles` or
+   * `permissions` field. Used to distinguish "this account type has no RBAC"
+   * (legacy backend — fail open for compatibility) from "RBAC is enabled but
+   * this user was granted nothing" (fail closed).
+   */
+  rbacProvided: boolean;
 }
 
 interface AuthState {
@@ -119,6 +126,12 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
     roleNamesLower.some((r) => r === "rgeeb admin") ||
     permissions.some((p) => p.startsWith("admin."));
 
+  // RBAC is considered "provided" when the payload explicitly carried a
+  // roles array or a permissions field (even an empty one is an explicit
+  // authorization decision by the backend).
+  const rbacProvided =
+    Array.isArray(raw?.roles) || raw?.permissions !== undefined;
+
   return {
     id: String(raw?.id ?? raw?.uuid ?? crypto.randomUUID()),
     email,
@@ -129,6 +142,7 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
     avatar: raw?.avatar ?? undefined,
     role: isAdminRole ? "admin" : "user",
     permissions,
+    rbacProvided,
   };
 }
 
@@ -296,8 +310,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasPermission: (perm) => {
         if (!user) return false;
         if (user.role === "admin") return true;
-        // Grant full access when permissions not yet loaded from server
-        if (!user.permissions || user.permissions.length === 0) return true;
+        // Legacy compatibility: if the backend never sent RBAC data at all
+        // (no roles array, no permissions field), this account type predates
+        // RBAC — grant access. But if RBAC data WAS provided and the list is
+        // empty, that is an explicit "no permissions" decision — fail CLOSED.
+        if (!user.permissions || user.permissions.length === 0) {
+          // `!== true` (not `=== false`): sessions cached in localStorage
+          // before this field existed have `undefined` — treat them as
+          // legacy until the next profile refresh repopulates the flag.
+          return user.rbacProvided !== true;
+        }
 
         // Normalise: lowercase, treat `-` and `_` as the same separator.
         const norm = (s: string) => s.toLowerCase().replace(/[-_.]/g, "_");
@@ -358,6 +380,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           foodics_dashboard:    ["foodics"],
           // ── Event Timeline / Notifications ──
           event_timeline:       ["alerts", "notifications"],
+          visitor_records:      ["detections", "analytics"],
           notifications:        ["notifications", "notification"],
         };
 

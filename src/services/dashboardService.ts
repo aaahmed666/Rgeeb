@@ -637,10 +637,18 @@ export const dashboardService = {
     const d = await fetchDashboard(f);
     const c = (d?.compliance as Record<string, unknown>) ?? null;
     if (!c) return null;
+    const totalDetections = pickNum(c, "total_detections", "totalDetections");
+    const violations = pickNum(c, "violations");
+    let score = pickNum(c, "score");
+    // Parity with OLD production: when the backend omits `score`, derive it
+    // as 100 - (violations / max(total, 1)) * 100.
+    if (!score && totalDetections > 0) {
+      score = Math.round(100 - (violations / Math.max(totalDetections, 1)) * 100);
+    }
     return {
-      score: pickNum(c, "score"),
-      totalDetections: pickNum(c, "total_detections", "totalDetections"),
-      violations: pickNum(c, "violations"),
+      score,
+      totalDetections,
+      violations,
       clean: pickNum(c, "clean"),
     };
   },

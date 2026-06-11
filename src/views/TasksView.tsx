@@ -34,6 +34,7 @@ import {
   Zap } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import TaskDetailDialog from "@/components/tasks/TaskDetailDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -237,6 +238,7 @@ export default function TasksView() {
   const [priority, setPriority] = React.useState(ALL);
   const [branchId, setBranchId] = React.useState<string | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [detailTask, setDetailTask] = React.useState<TaskItem | null>(null);
   const [view, setView] = React.useState<"table" | "board">("table");
   const [taskOpen, setTaskOpen] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<TaskItem | null>(null);
@@ -505,6 +507,15 @@ export default function TasksView() {
       cellClassName: "text-end w-[80px]",
       render: (task) => (
         <div className="inline-flex items-center justify-end gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label="Details"
+            onClick={() => setDetailTask(task)}
+          >
+            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
           {can.update && (
           <Button
             variant="ghost"
@@ -736,6 +747,12 @@ export default function TasksView() {
           onDelete={(id) => setDeleteId(id)}
         />
       )}
+
+      {/* ── Task Detail (comments / activity / attachments) ── */}
+      <TaskDetailDialog
+        task={detailTask}
+        onOpenChange={(o) => !o && setDetailTask(null)}
+      />
 
       {/* ── Delete Confirmation ── */}
       <AlertDialog
@@ -1141,7 +1158,7 @@ function DashboardBreakdown({ summary }: { summary: TaskSummary }) {
             <BreakdownBar
               key={k}
               label={k}
-              value={v}
+              value={Number(v) || 0}
               total={total}
               tone={
                 k === "completed"

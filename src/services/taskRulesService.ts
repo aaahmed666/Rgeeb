@@ -144,5 +144,19 @@ export async function updateTaskRule(
 }
 
 export async function deleteTaskRule(id: string): Promise<void> {
-  await apiFetch(endpoints.taskRules.delete(id), { method: "POST", body: { id } });
+  try {
+    await apiFetch(endpoints.taskRules.delete(id), { method: "POST", body: { id } });
+  } catch {
+    // OLD production contract fallback: POST /customer/task-rules/delete { id }
+    await apiFetch(endpoints.taskRules.legacyDelete, { method: "POST", body: { id } });
+  }
+}
+
+/** Deduplication statistics — present in OLD production (task rules page). */
+export async function getTaskRuleDedupStats(): Promise<Record<string, unknown> | null> {
+  try {
+    return await apiFetch<Record<string, unknown>>(endpoints.taskRules.dedupStats);
+  } catch {
+    return null;
+  }
 }
