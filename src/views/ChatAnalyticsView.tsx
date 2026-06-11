@@ -16,6 +16,13 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import {
+  barLayout,
+  donutSegments,
+  labelStep,
+  niceTicks,
+  pctOf,
+} from "@/lib/chartMath";
+import {
   chatAnalyticsService,
   type ChatSummary,
   type DistributionSlice,
@@ -35,7 +42,7 @@ const INTENT_COLORS = [
   "#f97316",
   "#a855f7",
 ];
-const LANG_COLORS = ["#1e3a8a", "#22d3ee"];
+const LANG_COLORS = ["#1e3a8a", "#0ea5e9"];
 
 /* ─── Main view ──────────────────────────────────────────────────────────── */
 export default function ChatAnalyticsView() {
@@ -55,7 +62,10 @@ export default function ChatAnalyticsView() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  /* fetch analytics */
+  /* fetch analytics — `t` is read via a ref so a new translation-function
+     identity (e.g. on language change/re-render) never re-triggers fetching */
+  const tRef = React.useRef(t);
+  tRef.current = t;
   const loadData = useCallback(() => {
     let cancelled = false;
     const f = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
@@ -77,12 +87,12 @@ export default function ChatAnalyticsView() {
       setLangs(lg);
       setHourly(hr);
     }).catch((err) => {
-      if (!cancelled) setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
+      if (!cancelled) setLoadError(err instanceof Error ? err.message : tRef.current("errors.somethingWentWrong", "Something went wrong"));
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [dateFrom, dateTo, t]);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     return loadData();
@@ -201,7 +211,10 @@ export default function ChatAnalyticsView() {
           <h3 className="mb-4 text-sm font-semibold text-foreground">
             {t("chatAnalytics.languageDistribution")}
           </h3>
-          <DonutChart slices={coloredLangs} />
+          <DonutChart
+            slices={coloredLangs}
+            totalLabel={t("common.total", "Total")}
+          />
         </Card>
         <Card className="p-5">
           <h3 className="mb-4 text-sm font-semibold text-foreground">
@@ -275,12 +288,13 @@ function AreaChart({ points }: { points: SeriesPoint[] }) {
     PB = 36;
   const innerW = W - PL - PR;
   const innerH = H - PT - PB;
-  const maxVal = Math.max(1, ...points.map((p) => p.value));
+  const dataMax = Math.max(0, ...points.map((p) => p.value));
+  const { ticks, niceMax } = niceTicks(dataMax, 5);
   const step = points.length > 1 ? innerW / (points.length - 1) : 0;
 
   const coords = points.map((p, i): [number, number] => [
-    PL + i * step,
-    PT + (1 - p.value / maxVal) * innerH,
+    points.length > 1 ? PL + i * step : PL + innerW / 2,
+    PT + (1 - p.value / niceMax) * innerH,
   ]);
 
   const linePath = coords
@@ -296,8 +310,6 @@ function AreaChart({ points }: { points: SeriesPoint[] }) {
     linePath +
     ` L ${coords[coords.length - 1][0]} ${H - PB}` +
     ` L ${coords[0][0]} ${H - PB} Z`;
-
-  const yTicks = [0, 0.25, 0.5, 0.75, 1];
 
   return (
     <svg
@@ -326,11 +338,11 @@ function AreaChart({ points }: { points: SeriesPoint[] }) {
         </linearGradient>
       </defs>
 
-      {/* horizontal grid lines + y labels */}
-      {yTicks.map((t) => {
-        const y = PT + (1 - t) * innerH;
+      {/* horizontal grid lines + y labels (integer, no duplicates) */}
+      {ticks.map((tick) => {
+        const y = PT + (1 - tick / niceMax) * innerH;
         return (
-          <g key={t}>
+          <g key={tick}>
             <line
               x1={PL}
               x2={W - PR}
@@ -348,7 +360,7 @@ function AreaChart({ points }: { points: SeriesPoint[] }) {
               fill="currentColor"
               opacity="0.45"
             >
-              {Math.round(maxVal * t)}
+              {tick}
             </text>
           </g>
         );
@@ -446,15 +458,25 @@ function ColumnChart({
     PB = 28,
     PT = 20;
   const innerH = H - PB - PT;
-  const max = Math.max(1, ...points.map((p) => p.value));
-  const slotW = W / points.length;
-  const barW = Math.max(8, slotW * 0.55);
+  const dataMax = Math.max(0, ...points.map((p) => p.value));
+  const { niceMax } = niceTicks(dataMax, 4);
+  const { slotW, barW } = barLayout(points.length, W, {
+    maxBarWidth: dense ? 28 : 48,
+  });
+  const xStep = labelStep(points.length, dense ? 6 : 8);
 
   return (
     <svg
       viewBox={`0 0 ${W} ${H + PB}`}
       className="w-full"
     >
+      <defs>
+        <linearGradient id="colGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#1e3a8a" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#3b5bdb" stopOpacity="0.75" />
+        </linearGradient>
+      </defs>
+
       {/* baseline */}
       <line
         x1="0"
@@ -466,25 +488,35 @@ function ColumnChart({
       />
 
       {points.map((p, i) => {
-        const barH = Math.max(3, (p.value / max) * innerH);
+        const barH = Math.max(3, (p.value / niceMax) * innerH);
         const x = slotW * i + (slotW - barW) / 2;
         const y = PT + innerH - barH;
+        const showXLabel = i % xStep === 0 || points.length <= 8;
         return (
           <g key={i}>
+            {/* slot track (subtle, grounds short bars) */}
+            <rect
+              x={x}
+              y={PT}
+              width={barW}
+              height={innerH}
+              fill="currentColor"
+              opacity="0.035"
+              rx="5"
+            />
             {/* bar */}
             <rect
               x={x}
               y={y}
               width={barW}
               height={barH}
-              fill="#1e3a8a"
-              rx="3"
-              opacity="0.82"
+              fill="url(#colGrad)"
+              rx="5"
             />
             {/* value on top */}
             <text
               x={x + barW / 2}
-              y={y - 5}
+              y={y - 6}
               fontSize={dense ? "10" : "11"}
               textAnchor="middle"
               fill="currentColor"
@@ -493,17 +525,19 @@ function ColumnChart({
             >
               {p.value}
             </text>
-            {/* x-label */}
-            <text
-              x={x + barW / 2}
-              y={H + 18}
-              fontSize={dense ? "9" : "10"}
-              textAnchor="middle"
-              fill="currentColor"
-              opacity="0.5"
-            >
-              {p.label}
-            </text>
+            {/* x-label (skipped when crowded) */}
+            {showXLabel && (
+              <text
+                x={x + barW / 2}
+                y={H + 18}
+                fontSize={dense ? "9" : "10"}
+                textAnchor="middle"
+                fill="currentColor"
+                opacity="0.5"
+              >
+                {p.label}
+              </text>
+            )}
           </g>
         );
       })}
@@ -512,117 +546,107 @@ function ColumnChart({
 }
 
 /* ─── DonutChart ─────────────────────────────────────────────────────────── */
-interface DonutPath {
-  d: string;
-  color: string;
-  pctLabel: string;
-  lx: number;
-  ly: number;
-  label: string;
-  value: number;
-}
-
-function DonutChart({ slices }: { slices: DistributionSlice[] }) {
+function DonutChart({
+  slices,
+  totalLabel = "Total",
+}: {
+  slices: DistributionSlice[];
+  totalLabel?: string;
+}) {
   if (!slices.length) return <EmptyChart />;
 
-  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
-  const R = 70,
-    r = 44,
-    cx = 100,
-    cy = 100;
-  let acc = 0;
-
-  const paths = slices
-    .map((s): DonutPath | null => {
-      const pct = s.value / total;
-      const start = acc * Math.PI * 2;
-      acc += pct;
-      const end = acc * Math.PI * 2;
-      if (end - start < 0.001) return null;
-      const large = end - start > Math.PI ? 1 : 0;
-      const x1 = cx + R * Math.sin(start),
-        y1 = cy - R * Math.cos(start);
-      const x2 = cx + R * Math.sin(end),
-        y2 = cy - R * Math.cos(end);
-      const x3 = cx + r * Math.sin(end),
-        y3 = cy - r * Math.cos(end);
-      const x4 = cx + r * Math.sin(start),
-        y4 = cy - r * Math.cos(start);
-      const mid = (start + end) / 2;
-      const lx = cx + ((R + r) / 2) * Math.sin(mid);
-      const ly = cy - ((R + r) / 2) * Math.cos(mid);
-      return {
-        d: `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${r} ${r} 0 ${large} 0 ${x4} ${y4} Z`,
-        color: s.color ?? "#888",
-        pctLabel: `${(pct * 100).toFixed(1)}%`,
-        lx,
-        ly,
-        label: s.label,
-        value: s.value,
-      };
-    })
-    .filter((p): p is DonutPath => p !== null);
+  const { segments, total } = donutSegments(slices, {
+    outerRadius: 78,
+    innerRadius: 52,
+    labelThreshold: 0.1,
+  });
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-5">
       <svg
         viewBox="0 0 200 200"
-        className="h-44 w-44"
+        className="h-48 w-48"
       >
-        {paths.map((p, i) => (
+        {/* track ring (visible while slices are tiny / single-slice) */}
+        <circle
+          cx="100"
+          cy="100"
+          r="65"
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity="0.06"
+          strokeWidth="26"
+        />
+        {segments.map((p, i) => (
           <g key={i}>
             <path
               d={p.d}
               fill={p.color}
+              stroke="var(--card, #fff)"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
             />
-            <text
-              x={p.lx}
-              y={p.ly}
-              fontSize="10"
-              textAnchor="middle"
-              fill="white"
-              fontWeight="700"
-              dominantBaseline="middle"
-            >
-              {p.pctLabel}
-            </text>
+            {p.showLabel && (
+              <text
+                x={p.lx}
+                y={p.ly}
+                fontSize="10.5"
+                textAnchor="middle"
+                fill="white"
+                fontWeight="700"
+                dominantBaseline="middle"
+              >
+                {p.pctLabel}
+              </text>
+            )}
           </g>
         ))}
         <text
           x="100"
-          y="96"
-          fontSize="18"
+          y="97"
+          fontSize="22"
           textAnchor="middle"
           fill="currentColor"
           fontWeight="700"
+          className="tabular-nums"
         >
           {total}
         </text>
         <text
           x="100"
-          y="112"
+          y="113"
           fontSize="9"
           textAnchor="middle"
           fill="currentColor"
-          opacity="0.45"
+          opacity="0.5"
+          style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
         >
-          total
+          {totalLabel}
         </text>
       </svg>
 
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs">
-        {slices.map((s) => (
-          <span
+      <div className="flex w-full flex-col gap-2 text-xs">
+        {segments.map((s) => (
+          <div
             key={s.label}
-            className="flex items-center gap-1.5"
+            className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-3 py-1.5"
           >
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ background: s.color }}
-            />
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className="font-semibold tabular-nums">{s.value}</span>
-          </span>
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: s.color }}
+              />
+              <span className="truncate font-medium uppercase tracking-wide text-muted-foreground">
+                {s.label}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2 tabular-nums">
+              <span className="font-semibold">{s.value}</span>
+              <span className="w-12 rounded-md bg-muted px-1.5 py-0.5 text-center text-[11px] font-semibold text-muted-foreground">
+                {s.pctLabel}
+              </span>
+            </span>
+          </div>
         ))}
       </div>
     </div>
@@ -637,7 +661,7 @@ function IntentBarList({ slices }: { slices: DistributionSlice[] }) {
   return (
     <div className="space-y-3">
       {slices.slice(0, 10).map((s) => {
-        const pct = Math.round((s.value / total) * 100);
+        const pct = pctOf(s.value, total);
         return (
           <div key={s.label}>
             <div className="mb-1 flex items-center justify-between gap-2 text-xs">
@@ -675,8 +699,12 @@ function IntentBarList({ slices }: { slices: DistributionSlice[] }) {
 /* ─── EmptyChart ─────────────────────────────────────────────────────────── */
 function EmptyChart() {
   return (
-    <div className="flex h-32 items-center justify-center text-sm text-muted-foreground opacity-40">
-      — no data —
+    <div className="flex h-36 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-muted-foreground/20 text-muted-foreground/60">
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M3 3v18h18" strokeLinecap="round" />
+        <path d="M7 14l4-4 3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="text-xs">No data for this period</span>
     </div>
   );
 }

@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "npm run test:jest && npm run test:vitest",
+    "test:jest": "jest",
+    "test:vitest": "vitest run",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage && vitest run --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
