@@ -1123,6 +1123,16 @@
       "close": "Close",
       "back": "Back",
       "confirmDeleteDesc": "Are you sure you want to delete \"{{name}}\"? This cannot be undone."
+    },
+    "settingsPage": {
+      "appNameRequired": "Application name is required",
+      "invalidEmail": "Please enter a valid email address",
+      "placeholder_appName": "Application name",
+      "placeholder_appDesc": "Short description of the application",
+      "placeholder_privacy": "Privacy policy content…",
+      "placeholder_terms": "Terms of service content…",
+      "placeholder_cookies": "Cookie policy content…",
+      "placeholder_emailSig": "Email signature HTML or text…"
     }
   },
   "assistant": {
@@ -2201,7 +2211,19 @@
     "syncFailed": "Sync failed",
     "branchesImported": "Branches imported successfully",
     "importFailed": "Import failed",
-    "disconnectConfirm": "Are you sure you want to disconnect Foodics? This will remove the integration."
+    "disconnectConfirm": "Are you sure you want to disconnect Foodics? This will remove the integration.",
+    "review": "Review",
+    "reviewDrawerAudit": "Review Drawer Audit",
+    "reviewRefund": "Review Refund",
+    "verdict": "Verdict",
+    "verdict_legitimate": "Legitimate",
+    "verdict_fraud": "Fraud",
+    "verdict_inconclusive": "Inconclusive",
+    "reviewNotes": "Notes",
+    "reviewNotesPlaceholder": "Optional notes about this review…",
+    "submitReview": "Submit Review",
+    "reviewSubmitted": "Review submitted",
+    "reviewFailed": "Review failed"
   },
   "paginatedSelect": {
     "loading": "Loading options…",
@@ -2307,7 +2329,8 @@
     "warnings": "Warnings",
     "yesterday": "Yesterday",
     "selectPlaceholder": "Choose a task",
-    "subtitle": "Automatically assign tasks to the best worker at the optimal time"
+    "subtitle": "Automatically assign tasks to the best worker at the optimal time",
+    "noWorkerId": "No worker selected"
   },
   "taskAnalytics": {
     "title": "Task Analytics",

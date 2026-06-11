@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Loader2, ChevronLeft, ChevronRight, CreditCard,
-  AlertTriangle, AlertOctagon, Percent, Link2Off, Flag } from "lucide-react";
+  AlertTriangle, AlertOctagon, Percent, Link2Off, Flag,
+  ClipboardCheck, CircleCheck, ShieldX, HelpCircle } from "lucide-react";
+import { toast } from "sonner";
 import {
   foodicsService, FoodicsDrawerAudit, FoodicsDrawerStats, PatternFlag } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +26,13 @@ const SEVERITY_COLORS: Record<string, string> = {
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
+
+// Ported from legacy production system (drawer.tsx VERDICT_OPTIONS)
+const VERDICT_OPTIONS = [
+  { value: "legitimate", label: "Legitimate", icon: CircleCheck, cls: "border-emerald-500 text-emerald-600 data-[active=true]:bg-emerald-500 data-[active=true]:text-white" },
+  { value: "fraud", label: "Fraud", icon: ShieldX, cls: "border-rose-500 text-rose-600 data-[active=true]:bg-rose-500 data-[active=true]:text-white" },
+  { value: "inconclusive", label: "Inconclusive", icon: HelpCircle, cls: "border-amber-500 text-amber-600 data-[active=true]:bg-amber-500 data-[active=true]:text-white" },
+] as const;
 
 export default function FoodicsDrawerAuditPage() {
   const { hasPermission } = useAuth();
@@ -45,6 +54,34 @@ export default function FoodicsDrawerAuditPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+
+  // ── Manager review (ported from legacy system) ──
+  const [reviewTarget, setReviewTarget] = useState<FoodicsDrawerAudit | null>(null);
+  const [verdict, setVerdict] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const openReview = (row: FoodicsDrawerAudit) => {
+    setReviewTarget(row);
+    setVerdict(row.verdict && row.verdict !== "pending" ? row.verdict : "");
+    setNotes("");
+  };
+
+  const submitReview = async () => {
+    if (!reviewTarget || !verdict) return;
+    setSubmitting(true);
+    try {
+      await foodicsService.reviewDrawerAudit(reviewTarget.id, { verdict, notes });
+      toast.success(t("foodics.reviewSubmitted", "Review submitted"));
+      setReviewTarget(null);
+      fetchAuditsRef.current?.();
+    } catch {
+      toast.error(t("foodics.reviewFailed", "Review failed"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const fetchAuditsRef = React.useRef<(() => void) | null>(null);
 
   const fetchAudits = useCallback(async () => {
     setLoading(true);
@@ -74,6 +111,7 @@ export default function FoodicsDrawerAuditPage() {
   }, []);
 
   useEffect(() => {
+    fetchAuditsRef.current = fetchAudits;
     fetchAudits();
   }, [fetchAudits]);
 
@@ -170,15 +208,16 @@ export default function FoodicsDrawerAuditPage() {
                       <th className="text-left py-3 px-2">Patterns</th>
                       <th className="text-left py-3 px-2">{t("foodics.date")}</th>
                       <th className="text-left py-3 px-2">Verdict</th>
+                      <th className="text-left py-3 px-2">{t("common.actions", "Actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={8} className="text-center py-12">
+                      <tr><td colSpan={9} className="text-center py-12">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                       </td></tr>
                     ) : audits.length === 0 ? (
-                      <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
+                      <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">
                         {t("foodics.noCashDrawer")}
                       </td></tr>
                     ) : (
@@ -199,6 +238,16 @@ export default function FoodicsDrawerAuditPage() {
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
                               STATUS_COLORS[a.verdict] ?? "bg-gray-100 text-gray-600"
                             }`}>{a.verdict}</span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <button
+                              onClick={() => openReview(a)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition"
+                              title={t("foodics.review", "Review")}
+                            >
+                              <ClipboardCheck className="w-3.5 h-3.5" />
+                              {t("foodics.review", "Review")}
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -246,6 +295,63 @@ export default function FoodicsDrawerAuditPage() {
           )}
         </div>
       </div>
+
+      {/* Manager review dialog (ported from legacy production system) */}
+      {reviewTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !submitting && setReviewTarget(null)}>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <h3 className="text-lg font-semibold text-card-foreground">{t("foodics.reviewDrawerAudit", "Review Drawer Audit")}</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                #{reviewTarget.id} · {reviewTarget.person ?? "—"} · {reviewTarget.date}
+              </p>
+              <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                STATUS_COLORS[reviewTarget.status] ?? "bg-gray-100 text-gray-600"
+              }`}>{reviewTarget.status}</span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-card-foreground mb-2">{t("foodics.verdict", "Verdict")}</p>
+              <div className="flex gap-2">
+                {VERDICT_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.value}
+                      data-active={verdict === opt.value}
+                      onClick={() => setVerdict(opt.value)}
+                      className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition ${opt.cls}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {t(`foodics.verdict_${opt.value}`, opt.label)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-card-foreground mb-2">{t("foodics.reviewNotes", "Notes")}</p>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none"
+                placeholder={t("foodics.reviewNotesPlaceholder", "Optional notes about this review…")}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setReviewTarget(null)} disabled={submitting}
+                className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition">
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button onClick={submitReview} disabled={!verdict || submitting}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2">
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {t("foodics.submitReview", "Submit Review")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

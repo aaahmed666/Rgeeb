@@ -393,6 +393,11 @@ export const endpoints = {
     // Cash Drawer
     drawerAudits: "/customer/foodics/drawer-audits",
     drawerOperationsSync: "/customer/foodics/drawer-operations/sync",
+    // Manager review actions (ported from legacy system — see old store/apps/foodics)
+    drawerAuditReview: (id: string | number) =>
+      `/customer/foodics/drawer-audits/${id}/review`,
+    refundReview: (id: string | number) =>
+      `/customer/foodics/refund-verifications/${id}/review`,
 
     // Prep Time
     prepTime: "/customer/foodics/prep-time",

@@ -1,14 +1,22 @@
 "use client";
 import { useTranslation } from "react-i18next";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Loader2, ChevronLeft, ChevronRight, Receipt, AlertTriangle,
-  AlertOctagon, Percent } from "lucide-react";
+  AlertOctagon, Percent, ClipboardCheck, CircleCheck, ShieldX, HelpCircle } from "lucide-react";
+import { toast } from "sonner";
 import { foodicsService, FoodicsRefundVerification, FoodicsRefundStats } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
+
+// Ported from legacy production system (refunds.tsx VERDICT_OPTIONS)
+const VERDICT_OPTIONS = [
+  { value: "legitimate", label: "Legitimate", icon: CircleCheck, cls: "border-emerald-500 text-emerald-600 data-[active=true]:bg-emerald-500 data-[active=true]:text-white" },
+  { value: "fraud", label: "Fraud", icon: ShieldX, cls: "border-rose-500 text-rose-600 data-[active=true]:bg-rose-500 data-[active=true]:text-white" },
+  { value: "inconclusive", label: "Inconclusive", icon: HelpCircle, cls: "border-amber-500 text-amber-600 data-[active=true]:bg-amber-500 data-[active=true]:text-white" },
+] as const;
 
 const VERDICT_COLORS: Record<string, string> = {
   clear: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -41,6 +49,35 @@ export default function FoodicsRefundVerificationPage() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
 
+  // ── Manager review (ported from legacy system) ──
+  const [reviewTarget, setReviewTarget] = useState<FoodicsRefundVerification | null>(null);
+  const [verdict, setVerdict] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const fetchRefundsRef = useRef<(() => void) | null>(null);
+
+  const openReview = (row: FoodicsRefundVerification) => {
+    setReviewTarget(row);
+    setVerdict(row.verdict && !["pending", "clear"].includes(row.verdict) ? row.verdict : "");
+    setNotes("");
+  };
+
+  const submitReview = async () => {
+    if (!reviewTarget || !verdict) return;
+    const reviewId = reviewTarget.id ?? reviewTarget.order_ref;
+    setSubmitting(true);
+    try {
+      await foodicsService.reviewRefund(reviewId, { verdict, notes });
+      toast.success(t("foodics.reviewSubmitted", "Review submitted"));
+      setReviewTarget(null);
+      fetchRefundsRef.current?.();
+    } catch {
+      toast.error(t("foodics.reviewFailed", "Review failed"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const fetchRefunds = useCallback(async () => {
     setLoading(true);
     try {
@@ -68,6 +105,7 @@ export default function FoodicsRefundVerificationPage() {
   }, []);
 
   useEffect(() => {
+    fetchRefundsRef.current = fetchRefunds;
     fetchRefunds();
   }, [fetchRefunds]);
 
@@ -145,15 +183,16 @@ export default function FoodicsRefundVerificationPage() {
                 <th className="text-left py-3 px-2">{t("admin.subscriptions.user")}</th>
                 <th className="text-right py-3 px-2">Conf.</th>
                 <th className="text-left py-3 px-2">{t("common.status")}</th>
+                <th className="text-left py-3 px-2">{t("common.actions", "Actions")}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center py-12">
+                <tr><td colSpan={9} className="text-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                 </td></tr>
               ) : refunds.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
+                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">
                   {t("foodics.noRefunds")}
                 </td></tr>
               ) : (
@@ -175,6 +214,16 @@ export default function FoodicsRefundVerificationPage() {
                         VERDICT_COLORS[r.verdict] ?? "bg-gray-100 text-gray-600"
                       }`}>{r.verdict}</span>
                     </td>
+                    <td className="py-3 px-2">
+                      <button
+                        onClick={() => openReview(r)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition"
+                        title={t("foodics.review", "Review")}
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        {t("foodics.review", "Review")}
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -193,6 +242,63 @@ export default function FoodicsRefundVerificationPage() {
           </div>
         </div>
       </div>
+
+      {/* Manager review dialog (ported from legacy production system) */}
+      {reviewTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !submitting && setReviewTarget(null)}>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <h3 className="text-lg font-semibold text-card-foreground">{t("foodics.reviewRefund", "Review Refund")}</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {reviewTarget.order_ref} · SAR {reviewTarget.amount.toFixed(2)} · {reviewTarget.refunded_at}
+              </p>
+              <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                AI_STATUS_COLORS[reviewTarget.ai_status] ?? "bg-gray-100 text-gray-600"
+              }`}>{reviewTarget.ai_status}</span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-card-foreground mb-2">{t("foodics.verdict", "Verdict")}</p>
+              <div className="flex gap-2">
+                {VERDICT_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.value}
+                      data-active={verdict === opt.value}
+                      onClick={() => setVerdict(opt.value)}
+                      className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition ${opt.cls}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {t(`foodics.verdict_${opt.value}`, opt.label)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-card-foreground mb-2">{t("foodics.reviewNotes", "Notes")}</p>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none"
+                placeholder={t("foodics.reviewNotesPlaceholder", "Optional notes about this review…")}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setReviewTarget(null)} disabled={submitting}
+                className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition">
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button onClick={submitReview} disabled={!verdict || submitting}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 inline-flex items-center gap-2">
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {t("foodics.submitReview", "Submit Review")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

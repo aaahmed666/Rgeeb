@@ -35,8 +35,14 @@ export default function AttendanceView() {
   const [dateTo, setDateTo] = React.useState("");
 
   const dashQ = useQuery({
-    queryKey: ["attendance", "dashboard"],
-    queryFn: () => fetchAttendanceDashboard(),
+    queryKey: ["attendance", "dashboard", { dateFrom, dateTo }],
+    queryFn: () =>
+      fetchAttendanceDashboard({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+      }),
+    // Legacy system auto-refreshed the dashboard every 30s (AttendanceDashboardPage)
+    refetchInterval: 30_000,
   });
   const listQ = useQuery({
     queryKey: ["attendance", "list", { dateFrom, dateTo }],
@@ -45,6 +51,7 @@ export default function AttendanceView() {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       }),
+    refetchInterval: 30_000,
   });
 
   const records = listQ.data ?? [];

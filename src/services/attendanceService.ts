@@ -70,6 +70,8 @@ export async function fetchAttendances(
 export async function fetchAttendanceDashboard(params?: {
   branch_id?: string;
   date?: string;
+  date_from?: string;
+  date_to?: string;
 }): Promise<AttendanceDashboard> {
   const raw = await api.get<unknown>(endpoints.attendance.dashboard, {
     query: params as Record<string, string | undefined>,

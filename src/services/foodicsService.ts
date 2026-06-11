@@ -54,6 +54,8 @@ export interface FoodicsOrdersResponse {
 }
 
 export interface FoodicsRefundVerification {
+  /** Present in the legacy production API — required for the manager review action */
+  id?: number | string;
   order_ref: string;
   amount: number;
   type: string;
@@ -305,6 +307,21 @@ export const foodicsService = {
         data: FoodicsRefundsResponse;
       }>(endpoints.foodics.refunds, { query: params as never })
       .then((r) => r.data),
+  /**
+   * Manager review of a refund verification (verdict: legitimate | fraud | inconclusive).
+   * Primary path matches the legacy production system; falls back to the
+   * new-style `/refunds/{id}/review` path if the backend was renamed.
+   */
+  reviewRefund: async (
+    id: string | number,
+    body: { verdict: string; notes: string },
+  ) => {
+    try {
+      return await api.post(endpoints.foodics.refundReview(id), body);
+    } catch {
+      return api.post(`${endpoints.foodics.refunds}/${id}/review`, body);
+    }
+  },
 
   // Cash Drawer Audit
   getDrawerAudits: (params?: FoodicsDateBranchFilter) =>
@@ -315,6 +332,20 @@ export const foodicsService = {
       .then((r) => r.data),
   syncDrawerOperations: () =>
     api.post(endpoints.foodics.drawerOperationsSync),
+  /**
+   * Manager review of a drawer audit (verdict: legitimate | fraud | inconclusive).
+   * Primary path matches the legacy production system.
+   */
+  reviewDrawerAudit: async (
+    id: string | number,
+    body: { verdict: string; notes: string },
+  ) => {
+    try {
+      return await api.post(endpoints.foodics.drawerAuditReview(id), body);
+    } catch {
+      return api.post(`${endpoints.foodics.drawerAudits}/${id}/review`, body);
+    }
+  },
 
   // Prep Time Intelligence
   getPrepTime: (params?: FoodicsDateBranchFilter) =>

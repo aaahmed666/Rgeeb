@@ -350,13 +350,20 @@ export function triggerDownload(url: string, filename?: string): void {
 
 export async function downloadReport(id: string | number): Promise<void> {
   const token = getAuthToken();
-  const url = `${API_BASE_URL}${endpoints.reportCenter.download(String(id))}`;
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/octet-stream, application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  const headers = {
+    Accept: "application/octet-stream, application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  // Primary: RESTful path; Fallback: legacy production endpoint
+  // GET /customer/reports/download?id={id} (see old ReportCenterPage.tsx)
+  let res = await fetch(`${API_BASE_URL}${endpoints.reportCenter.download(String(id))}`, { headers });
+  if (!res.ok) {
+    res = await fetch(
+      `${API_BASE_URL}/customer/reports/download?id=${encodeURIComponent(String(id))}`,
+      { headers },
+    );
+  }
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
   const ct = res.headers.get("content-type") ?? "";
   if (ct.includes("application/json")) {

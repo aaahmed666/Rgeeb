@@ -1158,7 +1158,17 @@
     "settings_privacy": "سياسة الخصوصية",
     "settings_terms": "شروط الخدمة",
     "settings_cookies": "سياسة ملفات تعريف الارتباط",
-    "subscriptions_empty": "لا توجد اشتراكات"
+    "subscriptions_empty": "لا توجد اشتراكات",
+    "settingsPage": {
+      "appNameRequired": "اسم التطبيق مطلوب",
+      "invalidEmail": "يرجى إدخال بريد إلكتروني صالح",
+      "placeholder_appName": "اسم التطبيق",
+      "placeholder_appDesc": "وصف موجز للتطبيق",
+      "placeholder_privacy": "محتوى سياسة الخصوصية…",
+      "placeholder_terms": "محتوى شروط الخدمة…",
+      "placeholder_cookies": "محتوى سياسة ملفات تعريف الارتباط…",
+      "placeholder_emailSig": "توقيع البريد الإلكتروني…"
+    }
   },
   "assistant": {
     "title": "المساعد الذكي",
@@ -2201,7 +2211,19 @@
     "syncFailed": "فشلت المزامنة",
     "branchesImported": "تم استيراد الفروع بنجاح",
     "importFailed": "فشل الاستيراد",
-    "disconnectConfirm": "هل أنت متأكد من فصل فودكس؟ سيؤدي ذلك إلى إزالة التكامل."
+    "disconnectConfirm": "هل أنت متأكد من فصل فودكس؟ سيؤدي ذلك إلى إزالة التكامل.",
+    "review": "مراجعة",
+    "reviewDrawerAudit": "مراجعة تدقيق الدرج",
+    "reviewRefund": "مراجعة الاسترداد",
+    "verdict": "القرار",
+    "verdict_legitimate": "مشروع",
+    "verdict_fraud": "احتيال",
+    "verdict_inconclusive": "غير حاسم",
+    "reviewNotes": "ملاحظات",
+    "reviewNotesPlaceholder": "ملاحظات اختيارية حول هذه المراجعة…",
+    "submitReview": "إرسال المراجعة",
+    "reviewSubmitted": "تم إرسال المراجعة",
+    "reviewFailed": "فشلت المراجعة"
   },
   "paginatedSelect": {
     "loading": "جارٍ تحميل الخيارات…",
@@ -2388,7 +2410,8 @@
     "due": "الموعد",
     "noFactors": "لا توجد عوامل إضافية.",
     "selectPlaceholder": "اختر مهمة",
-    "subtitle": "تعيين المهام تلقائياً للموظف الأنسب في الوقت المثالي"
+    "subtitle": "تعيين المهام تلقائياً للموظف الأنسب في الوقت المثالي",
+    "noWorkerId": "لم يتم اختيار عامل"
   },
   "security": {
     "confirm": "تأكيد",
