@@ -33,8 +33,13 @@ describe('API Token Management', () => {
   });
 
   describe('setAuthToken', () => {
-    it('should store token in localStorage', () => {
+    it('should store token in sessionStorage by default (remember=false)', () => {
       setAuthToken('new-token');
+      expect(window.sessionStorage.setItem).toHaveBeenCalledWith('app.auth.token', 'new-token');
+    });
+
+    it('should store token in localStorage when remember=true', () => {
+      setAuthToken('new-token', true);
       expect(window.localStorage.setItem).toHaveBeenCalledWith('app.auth.token', 'new-token');
     });
 
@@ -46,9 +51,11 @@ describe('API Token Management', () => {
 
   describe('clearAuthAndRedirect', () => {
     it('should clear auth state and redirect to login', () => {
+      const originalLocation = window.location;
       const replaceSpy = vi.fn();
       Object.defineProperty(window, 'location', {
-        value: { replace: replaceSpy },
+        // Keep origin/href etc. so later tests can still build URLs.
+        value: { ...originalLocation, replace: replaceSpy },
         writable: true,
       });
 

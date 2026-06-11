@@ -1,18 +1,15 @@
 /**
  * reportsService unit tests
- * Tests all 6 report tabs: API merge with demo, fallback on error
+ * The corrected service: returns normalized payloads from the API, defaults
+ * missing arrays to [], returns null for empty payloads, and PROPAGATES
+ * errors (no demo fallback) so the Reports Overview error banner works.
  */
 
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
 jest.mock("@/lib/endpoints", () => ({
   endpoints: {
     reports: {
-      customers:  "/customer/reports/customers",
-      suppliers:  "/customer/reports/suppliers",
-      sales:      "/customer/reports/sales",
-      purchases:  "/customer/reports/purchases",
-      inventory:  "/customer/reports/inventory",
-      financials: "/customer/reports/financials",
+      statistics: "/customer/reports/statistics",
     },
   },
 }));
@@ -27,8 +24,6 @@ const FILTERS = { dateFrom: "2026-05-01", dateTo: "2026-05-31" };
 
 beforeEach(() => jest.clearAllMocks());
 
-// ─── Shared shape tests ────────────────────────────────────────────────────────
-
 const ALL_TABS: ReportTab[] = ["customers","suppliers","sales","purchases","inventory","financials"];
 
 for (const tab of ALL_TABS) {
@@ -41,83 +36,44 @@ for (const tab of ALL_TABS) {
       };
       mockFetch.mockResolvedValueOnce(API_RESPONSE);
       const data = await fetchReport(tab, FILTERS);
-      expect(data.metrics.length).toBe(1);
-      expect(data.columns.length).toBe(2);
-      expect(data.rows.length).toBe(1);
+      expect(data).not.toBeNull();
+      expect(data!.metrics.length).toBe(1);
+      expect(data!.columns.length).toBe(2);
+      expect(data!.rows.length).toBe(1);
     });
 
-    test("merges with demo when API returns partial data (missing rows)", async () => {
+    test("defaults missing arrays to [] when API returns partial data", async () => {
       mockFetch.mockResolvedValueOnce({
         metrics: [{ label: "Custom", value: "999" }],
-        // columns and rows missing → should fall back to demo values
+        // columns and rows missing → default to empty arrays, no demo merge
       });
       const data = await fetchReport(tab, FILTERS);
-      expect(data.metrics[0].label).toBe("Custom");  // API metric used
-      expect(data.columns.length).toBeGreaterThan(0); // demo columns
-      expect(data.rows.length).toBeGreaterThan(0);    // demo rows
+      expect(data).not.toBeNull();
+      expect(data!.metrics[0].label).toBe("Custom");
+      expect(data!.columns).toEqual([]);
+      expect(data!.rows).toEqual([]);
     });
 
-    test("returns full demo data on network error", async () => {
+    test("returns null when payload has neither metrics nor rows", async () => {
+      mockFetch.mockResolvedValueOnce({});
+      const data = await fetchReport(tab, FILTERS);
+      expect(data).toBeNull();
+    });
+
+    test("propagates network errors to the caller", async () => {
       mockFetch.mockRejectedValueOnce(new Error("timeout"));
-      const data = await fetchReport(tab, FILTERS);
-      expect(data.metrics.length).toBeGreaterThan(0);
-      expect(data.columns.length).toBeGreaterThan(0);
-      expect(data.rows.length).toBeGreaterThan(0);
+      await expect(fetchReport(tab, FILTERS)).rejects.toThrow("timeout");
     });
 
-    test("metrics have required fields", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("fail"));
-      const data = await fetchReport(tab, FILTERS);
-      for (const m of data.metrics) {
-        expect(m).toHaveProperty("label");
-        expect(m).toHaveProperty("value");
-      }
-    });
-
-    test("columns have key and label", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("fail"));
-      const data = await fetchReport(tab, FILTERS);
-      for (const c of data.columns) {
-        expect(c).toHaveProperty("key");
-        expect(c).toHaveProperty("label");
-      }
+    test("sends correct query params for the tab", async () => {
+      mockFetch.mockResolvedValueOnce({ metrics: [], rows: [{ a: 1 }] });
+      await fetchReport(tab, FILTERS);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/customer/reports/statistics",
+        expect.objectContaining({
+          query: { date_from: FILTERS.dateFrom, date_to: FILTERS.dateTo, type: tab },
+        })
+      );
     });
   });
 }
-
-// ─── Demo data completeness ────────────────────────────────────────────────────
-
-describe("reportsService demo data completeness", () => {
-  test("each tab has at least 4 metrics in demo", async () => {
-    for (const tab of ALL_TABS) {
-      mockFetch.mockRejectedValueOnce(new Error("fail"));
-      const data = await fetchReport(tab, FILTERS);
-      expect(data.metrics.length).toBeGreaterThanOrEqual(4);
-    }
-  });
-
-  test("each tab has at least 2 rows in demo", async () => {
-    for (const tab of ALL_TABS) {
-      mockFetch.mockRejectedValueOnce(new Error("fail"));
-      const data = await fetchReport(tab, FILTERS);
-      expect(data.rows.length).toBeGreaterThanOrEqual(2);
-    }
-  });
-
-  test("financials tab demo has Revenue, Expenses, Profit metrics", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("fail"));
-    const data = await fetchReport("financials", FILTERS);
-    const labels = data.metrics.map(m => m.label);
-    expect(labels).toContain("Revenue");
-    expect(labels).toContain("Expenses");
-    expect(labels).toContain("Profit");
-  });
-
-  test("customers tab demo has Revenue metric with trend", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("fail"));
-    const data = await fetchReport("customers", FILTERS);
-    const revenue = data.metrics.find(m => m.label === "Revenue");
-    expect(revenue).toBeDefined();
-    expect(revenue?.trend).toBeGreaterThan(0);
-  });
-});

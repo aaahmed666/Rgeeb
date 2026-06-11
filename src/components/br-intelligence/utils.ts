@@ -2,6 +2,8 @@
  * Utility functions for BR Intelligence view.
  */
 
+import { toLocalISODate, todayLocalISO } from "@/lib/utils";
+
 export type RangeKey = "7" | "14" | "30" | "custom";
 
 export function rangeFor(
@@ -9,7 +11,7 @@ export function rangeFor(
   customFrom?: string,
   customTo?: string
 ): { from: string; to: string } {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
   if (k === "custom" && customFrom && customTo) {
     // Cap the end date to today to prevent fetching future data
     const cappedTo = customTo > today ? today : customTo;
@@ -21,8 +23,8 @@ export function rangeFor(
   const from = new Date();
   from.setDate(from.getDate() - (Number(k) - 1));
   return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
+    from: toLocalISODate(from),
+    to: toLocalISODate(to),
   };
 }
 

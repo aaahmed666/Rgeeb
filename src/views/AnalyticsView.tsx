@@ -17,7 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { cn, toLocalISODate } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
@@ -37,8 +37,8 @@ function rangeFor(key: RangeKey) {
   const from = new Date();
   from.setDate(from.getDate() - (Number(key) - 1));
   return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
+    from: toLocalISODate(from),
+    to: toLocalISODate(to),
   };
 }
 
@@ -60,13 +60,13 @@ export default function AnalyticsView() {
   // Derive from/to: custom picker takes priority over preset buttons
   const from = useMemo(() => {
     if (range === "custom" && dateRange?.[0])
-      return dateRange[0].toISOString().slice(0, 10);
+      return toLocalISODate(dateRange[0]);
     return rangeFor(range === "custom" ? "7" : range).from;
   }, [range, dateRange]);
 
   const to = useMemo(() => {
     if (range === "custom" && dateRange?.[1])
-      return dateRange[1].toISOString().slice(0, 10);
+      return toLocalISODate(dateRange[1]);
     return rangeFor(range === "custom" ? "7" : range).to;
   }, [range, dateRange]);
 
@@ -220,16 +220,26 @@ export default function AnalyticsView() {
         <KpiCard
           label={t("analytics.complianceScore", "Compliance Score")}
           value={
-            loading ? null : `${(summary?.compliance_score ?? 0).toFixed(1)}%`
+            loading
+              ? null
+              : (summary?.total_detections ?? 0) === 0
+                ? "—"
+                : `${(summary?.compliance_score ?? 0).toFixed(1)}%`
           }
           hint={
-            (summary?.compliance_score ?? 0) >= 80
-              ? t("analytics.excellent", "Excellent")
-              : t("analytics.needsImprovement", "Needs Improvement")
+            (summary?.total_detections ?? 0) === 0
+              ? t("analytics.noData", "No data for this period")
+              : (summary?.compliance_score ?? 0) >= 80
+                ? t("analytics.excellent", "Excellent")
+                : t("analytics.needsImprovement", "Needs Improvement")
           }
           icon={<CheckCircle2 className="h-5 w-5" />}
           tint="bg-emerald-500/10 text-emerald-600"
-          valueClass="text-emerald-600"
+          valueClass={
+            (summary?.total_detections ?? 0) === 0
+              ? "text-muted-foreground"
+              : "text-emerald-600"
+          }
         />
         <KpiCard
           label={t("analytics.activeCameras", "Active Cameras")}
@@ -576,7 +586,7 @@ function KpiCard({
                   trend >= 0 ? "text-emerald-600" : "text-rose-600"
                 )}
               >
-                ↗ {trend >= 0 ? "+" : ""}
+                {trend >= 0 ? "↗ +" : "↘ "}
                 {trend}% {trendLabel}
               </p>
             )}

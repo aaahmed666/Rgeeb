@@ -12,11 +12,15 @@ vi.mock('@/services/authService', () => ({
   logoutRequest: vi.fn(),
 }));
 
-// Mock the API utilities
+// Mock the API utilities (must cover everything src/lib/auth.tsx imports)
 vi.mock('@/lib/api', () => ({
   setAuthToken: vi.fn(),
   getAuthToken: vi.fn(() => null),
   clearAuthAndRedirect: vi.fn(),
+  setAuthRole: vi.fn(),
+  getAuthRole: vi.fn(() => null),
+  setStoredUser: vi.fn(),
+  getStoredUser: vi.fn(() => null),
 }));
 
 describe('Auth Context and Hooks', () => {

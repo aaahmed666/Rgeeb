@@ -2,8 +2,11 @@
  * dashboardService unit tests
  * Tests every method with:
  *  - real API response shape
- *  - missing/null fields (fallback path)
+ *  - missing/null fields (honest empty values — no fabricated demo data)
  *  - error case (network failure)
+ *
+ * The in-flight cache is invalidated before every test so results never
+ * leak between tests.
  */
 
 jest.mock("@/lib/api", () => ({
@@ -12,16 +15,19 @@ jest.mock("@/lib/api", () => ({
 jest.mock("@/lib/endpoints", () => ({
   endpoints: {
     dashboard: { overview: "/customer/dashboard" },
-    customer: {
-      notificationsUnread: "/customer/notifications/unread-count",
-      notifications: "/customer/notifications",
-      profile: "/customer/profile",
+    notifications: {
+      unreadCount: "/customer/notifications/unread-count",
+      list: "/customer/notifications",
     },
+    auth: { profile: "/customer/profile" },
   },
 }));
 
 import { api } from "@/lib/api";
-import { dashboardService } from "@/services/dashboardService";
+import {
+  dashboardService,
+  invalidateDashboardCache,
+} from "@/services/dashboardService";
 
 const mockGet = api.get as jest.Mock;
 
@@ -55,16 +61,9 @@ const FULL_PAYLOAD = {
   },
 };
 
-// Unique date counter to bust the in-flight cache between tests
-let testDateOffset = 0;
-
-function freshFilters() {
-  testDateOffset++;
-  return { from: `2024-${String(testDateOffset % 12 + 1).padStart(2,"0")}-01`, to: `2024-${String(testDateOffset % 12 + 1).padStart(2,"0")}-28` };
-}
-
 beforeEach(() => {
   jest.clearAllMocks();
+  invalidateDashboardCache(); // never reuse a cached payload across tests
   mockGet.mockResolvedValue(FULL_PAYLOAD);
 });
 
@@ -72,61 +71,53 @@ beforeEach(() => {
 
 describe("dashboardService.getSummary", () => {
   test("returns mapped cameras and service counts from real payload", async () => {
-    const result = await dashboardService.getSummary({ from: "2024-01-01", to: "2024-01-31" });
+    const result = await dashboardService.getSummary();
     expect(result.cameras.online).toBe(3);
     expect(result.cameras.total).toBe(4);
     expect(result.aiServicesActive).toBeGreaterThan(0);
     expect(result.branches.length).toBeGreaterThan(0);
+    expect(result.branches[0]).toEqual({ id: "b1", name: "Main Branch" });
   });
 
-  test("returns fallback when API fails", async () => {
-    mockGet.mockRejectedValueOnce(new Error("Network error"));
+  test("returns honest zeros (no fabricated 4/4 cameras) on network error", async () => {
+    mockGet.mockRejectedValueOnce(new Error("timeout"));
     const result = await dashboardService.getSummary();
-    expect(result.cameras.online).toBeGreaterThanOrEqual(0);
-    expect(result.branches).toBeDefined();
+    expect(result.cameras).toEqual({ online: 0, total: 0 });
+    expect(result.aiServicesActive).toBe(0);
+    expect(result.detections).toBe(0);
+    expect(result.branches).toEqual([]);
   });
 
-  test("handles empty payload gracefully", async () => {
-    mockGet.mockResolvedValueOnce({});
+  test("returns empty branches (no fake Main/Second) when payload has none", async () => {
+    mockGet.mockResolvedValueOnce({ data: { cameras: { online: 1, total: 2 } } });
     const result = await dashboardService.getSummary();
-    expect(result).toBeDefined();
-    expect(result.cameras).toBeDefined();
+    expect(result.cameras.online).toBe(1);
+    expect(result.branches).toEqual([]);
   });
 });
 
 // ─── listAIServices ────────────────────────────────────────────────────────────
 
 describe("dashboardService.listAIServices", () => {
-  test("maps active_services from API with correct fields", async () => {
-    const services = await dashboardService.listAIServices(freshFilters());
-    expect(services.length).toBeGreaterThan(0);
-    const helmet = services.find(s => s.name.toLowerCase().includes("helmet"));
-    expect(helmet).toBeDefined();
+  test("maps active_services with status and category", async () => {
+    const services = await dashboardService.listAIServices();
+    expect(services.length).toBe(2);
+    const helmet = services.find((s) => s.key === "helmet");
     expect(helmet?.status).toBe("active");
-    // detections value depends on cache state — verify it's a number when present
-    if (helmet?.detections !== undefined) {
-      expect(typeof helmet.detections).toBe("number");
-    }
-  });
-
-  test("maps inactive status correctly", async () => {
-    const services = await dashboardService.listAIServices(freshFilters());
-    const traffic = services.find(s => s.name.toLowerCase().includes("traffic"));
+    const traffic = services.find((s) => s.name.toLowerCase().includes("traffic"));
     expect(traffic?.status).toBe("inactive");
   });
 
-  test("returns demo data when API returns empty services", async () => {
+  test("returns [] (no demo catalog) when API returns empty services", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const services = await dashboardService.listAIServices();
-    expect(services.length).toBeGreaterThan(5); // demo has 29 services
-    expect(services[0]).toHaveProperty("key");
-    expect(services[0]).toHaveProperty("category");
+    expect(services).toEqual([]);
   });
 
-  test("returns demo data on network error", async () => {
+  test("returns [] on network error", async () => {
     mockGet.mockRejectedValueOnce(new Error("timeout"));
     const services = await dashboardService.listAIServices();
-    expect(services.length).toBeGreaterThan(0);
+    expect(services).toEqual([]);
   });
 
   test("each service has required shape", async () => {
@@ -147,13 +138,12 @@ describe("dashboardService.listAIServices", () => {
 
 describe("dashboardService.getTaskSummary", () => {
   test("maps task fields correctly", async () => {
-    const tasks = await dashboardService.getTaskSummary(freshFilters());
-    // Values depend on cache state — verify structure
-    expect(typeof tasks.total).toBe("number");
-    expect(typeof tasks.open).toBe("number");
-    expect(typeof tasks.inProgress).toBe("number");
-    expect(typeof tasks.overdue).toBe("number");
-    expect(typeof tasks.completionRate).toBe("number");
+    const tasks = await dashboardService.getTaskSummary();
+    expect(tasks.total).toBe(30);
+    expect(tasks.open).toBe(10);
+    expect(tasks.inProgress).toBe(8);
+    expect(tasks.overdue).toBe(3);
+    expect(tasks.completionRate).toBe(72);
   });
 
   test("returns zeros when tasks key missing", async () => {
@@ -174,23 +164,18 @@ describe("dashboardService.getTaskSummary", () => {
 
 describe("dashboardService.getVisitorFlow", () => {
   test("maps visitor flow array from API", async () => {
-    const flow = await dashboardService.getVisitorFlow(freshFilters());
-    expect(flow.length).toBeGreaterThan(0);
-    expect(flow[0]).toHaveProperty("hour");
-    expect(flow[0]).toHaveProperty("in");
-    expect(flow[0]).toHaveProperty("out");
-    // Values depend on cache state
-    expect(typeof flow[0].in).toBe("number");
+    const flow = await dashboardService.getVisitorFlow();
+    expect(flow.length).toBe(2);
+    expect(flow[0]).toEqual({ hour: "08", in: 50, out: 40 });
   });
 
-  test("returns 24-hour demo data when API empty", async () => {
+  test("returns [] (no fabricated 24-hour series) when API empty", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const flow = await dashboardService.getVisitorFlow();
-    expect(flow.length).toBe(24);
+    expect(flow).toEqual([]);
   });
 
   test("all flow points have valid numbers", async () => {
-    mockGet.mockResolvedValueOnce({ data: {} });
     const flow = await dashboardService.getVisitorFlow();
     for (const p of flow) {
       expect(typeof p.in).toBe("number");
@@ -204,20 +189,19 @@ describe("dashboardService.getVisitorFlow", () => {
 
 describe("dashboardService.getLiveActivity", () => {
   test("maps live activity from API", async () => {
-    const activity = await dashboardService.getLiveActivity(freshFilters());
-    expect(activity.length).toBeGreaterThan(0);
+    const activity = await dashboardService.getLiveActivity();
+    expect(activity.length).toBe(1);
     const a = activity[0];
-    // Values may come from cache or fresh — verify shape
-    expect(a.id).toBeDefined();
-    expect(a.type).toBeDefined();
-    expect(["info","warning","critical"]).toContain(a.severity);
-    expect(a.branch).toBeDefined();
+    expect(a.id).toBe("a1");
+    expect(a.type).toBe("PPE Violation");
+    expect(["info", "warning", "critical"]).toContain(a.severity);
+    expect(a.branch).toBe("Main");
   });
 
-  test("returns demo data when API empty", async () => {
+  test("returns [] (no demo feed) when API empty", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const activity = await dashboardService.getLiveActivity();
-    expect(activity.length).toBeGreaterThan(0);
+    expect(activity).toEqual([]);
   });
 
   test("all activity items have required fields", async () => {
@@ -231,7 +215,6 @@ describe("dashboardService.getLiveActivity", () => {
   });
 
   test("infers severity from event type when not provided", async () => {
-    const filters = freshFilters();
     mockGet.mockResolvedValueOnce({
       data: {
         live_activity: [
@@ -241,21 +224,13 @@ describe("dashboardService.getLiveActivity", () => {
         ],
       },
     });
-    const activity = await dashboardService.getLiveActivity(filters);
-    const violation = activity.find(a => a.id === "x1");
-    const fire = activity.find(a => a.id === "x2");
-    const crossing = activity.find(a => a.id === "x3");
-    // If fresh data from mock: severity is inferred
-    // If from cache: demo data is returned (different shape)
-    if (violation && fire && crossing) {
-      // Fresh data from specific mock
-      expect(["warning","info"]).toContain(violation.severity);
-      expect(["warning","critical"]).toContain(fire.severity);
-      expect(["info","warning","critical"]).toContain(crossing.severity);
-    } else {
-      // Demo data from cache — just verify all have severity
-      activity.forEach(a => expect(["info","warning","critical"]).toContain(a.severity));
-    }
+    const activity = await dashboardService.getLiveActivity();
+    const violation = activity.find((a) => a.id === "x1");
+    const fire = activity.find((a) => a.id === "x2");
+    const crossing = activity.find((a) => a.id === "x3");
+    expect(violation?.severity).toBe("warning");
+    expect(fire?.severity).toBe("critical");
+    expect(crossing?.severity).toBe("info");
   });
 });
 
@@ -263,20 +238,19 @@ describe("dashboardService.getLiveActivity", () => {
 
 describe("dashboardService.getAttendance", () => {
   test("maps attendance data from API", async () => {
-    const att = await dashboardService.getAttendance(freshFilters());
-    // Values depend on cache — verify structure
-    expect(typeof att.total).toBe("number");
-    expect(typeof att.checkedIn).toBe("number");
-    expect(typeof att.present).toBe("number");
-    expect(typeof att.checkedOut).toBe("number");
-    expect(typeof att.absent).toBe("number");
+    const att = await dashboardService.getAttendance();
+    expect(att).not.toBeNull();
+    expect(att!.total).toBe(50);
+    expect(att!.checkedIn).toBe(40);
+    expect(att!.present).toBe(35);
+    expect(att!.checkedOut).toBe(5);
+    expect(att!.absent).toBe(10);
   });
 
-  test("returns demo data when attendance key missing", async () => {
+  test("returns null (no demo data) when attendance key missing", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const att = await dashboardService.getAttendance();
-    expect(att).toBeDefined();
-    expect(att.total).toBeGreaterThanOrEqual(0);
+    expect(att).toBeNull();
   });
 });
 
@@ -285,21 +259,32 @@ describe("dashboardService.getAttendance", () => {
 describe("dashboardService.getCompliance", () => {
   test("maps compliance score from API", async () => {
     const c = await dashboardService.getCompliance();
-    expect(c.score).toBeGreaterThanOrEqual(0);
-    expect(c.totalDetections).toBeGreaterThanOrEqual(0);
-    expect(c.violations).toBeGreaterThanOrEqual(0);
-    expect(c.clean).toBeGreaterThanOrEqual(0);
+    expect(c).not.toBeNull();
+    expect(c!.score).toBe(85);
+    expect(c!.totalDetections).toBe(1200);
+    expect(c!.violations).toBe(180);
+    expect(c!.clean).toBe(1020);
   });
 
-  test("score + violations + clean coherence", async () => {
+  test("violations + clean equals totalDetections in payload", async () => {
     const c = await dashboardService.getCompliance();
-    expect(c.violations + c.clean).toBe(c.totalDetections);
+    expect(c).not.toBeNull();
+    expect(c!.violations + c!.clean).toBe(c!.totalDetections);
   });
 
-  test("returns demo compliance when key missing", async () => {
+  test("derives score when backend omits it", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: { compliance: { total_detections: 1000, violations: 100 } },
+    });
+    const c = await dashboardService.getCompliance();
+    expect(c).not.toBeNull();
+    expect(c!.score).toBe(90); // 100 - (100/1000)*100
+  });
+
+  test("returns null (no demo score) when key missing", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const c = await dashboardService.getCompliance();
-    expect(c.score).toBeGreaterThan(0);
+    expect(c).toBeNull();
   });
 });
 
@@ -308,20 +293,20 @@ describe("dashboardService.getCompliance", () => {
 describe("dashboardService.getDetectionBreakdown", () => {
   test("maps breakdown array from API", async () => {
     const bd = await dashboardService.getDetectionBreakdown();
-    expect(bd.length).toBeGreaterThan(0);
-    expect(bd[0]).toHaveProperty("key");
-    expect(bd[0]).toHaveProperty("label");
-    expect(bd[0]).toHaveProperty("count");
-    expect(bd[0]).toHaveProperty("percent");
-    expect(bd[0]).toHaveProperty("color");
+    expect(bd.length).toBe(1);
+    expect(bd[0]).toEqual({
+      key: "helmet",
+      label: "Helmet",
+      count: 100,
+      percent: 50,
+      color: "#6366f1",
+    });
   });
 
-  test("returns demo breakdown when API empty", async () => {
+  test("returns [] (no demo breakdown) when API empty", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const bd = await dashboardService.getDetectionBreakdown();
-    expect(bd.length).toBeGreaterThan(0);
-    const total = bd.reduce((s, b) => s + b.percent, 0);
-    expect(total).toBeGreaterThan(0);
+    expect(bd).toEqual([]);
   });
 });
 
@@ -330,18 +315,17 @@ describe("dashboardService.getDetectionBreakdown", () => {
 describe("dashboardService.getBranches", () => {
   test("maps branches from API", async () => {
     const branches = await dashboardService.getBranches();
-    expect(branches.length).toBeGreaterThan(0);
-    // Branch IDs vary by cache state — just verify shape
-    expect(branches[0].id).toBeDefined();
-    expect(branches[0].name).toBeTruthy();
-    expect(typeof branches[0].camerasOnline).toBe("number");
-    expect(typeof branches[0].camerasTotal).toBe("number");
+    expect(branches.length).toBe(1);
+    expect(branches[0].id).toBe("b1");
+    expect(branches[0].name).toBe("Main Branch");
+    expect(branches[0].camerasOnline).toBe(3);
+    expect(branches[0].camerasTotal).toBe(4);
   });
 
-  test("returns demo branches when API empty", async () => {
+  test("returns [] (no demo branches) when API empty", async () => {
     mockGet.mockResolvedValueOnce({ data: {} });
     const branches = await dashboardService.getBranches();
-    expect(branches.length).toBeGreaterThan(0);
+    expect(branches).toEqual([]);
   });
 
   test("all branches have required shape", async () => {
@@ -361,19 +345,15 @@ describe("dashboardService.getBranches", () => {
 
 describe("dashboardService.getUnreadNotifications", () => {
   test("returns count from { count } shape", async () => {
-    // getUnreadNotifications calls api.get directly, not fetchDashboard
-    // Use a fresh mock for this direct call
     mockGet.mockResolvedValue({ count: 7 });
     const count = await dashboardService.getUnreadNotifications();
-    expect(typeof count).toBe("number");
-    expect(count).toBeGreaterThanOrEqual(0);
+    expect(count).toBe(7);
   });
 
   test("returns count from { data: { count } } shape", async () => {
     mockGet.mockResolvedValue({ data: { count: 3 } });
     const count = await dashboardService.getUnreadNotifications();
-    expect(typeof count).toBe("number");
-    expect(count).toBeGreaterThanOrEqual(0);
+    expect(count).toBe(3);
   });
 
   test("returns 0 on API failure", async () => {
@@ -392,22 +372,30 @@ describe("dashboardService.getUnreadNotifications", () => {
 // ─── concurrent requests deduplication ────────────────────────────────────────
 
 describe("dashboardService in-flight deduplication", () => {
-  test("multiple parallel calls result in only ONE API request", async () => {
-    mockGet.mockResolvedValue(FULL_PAYLOAD);
-    const [s1, s2, s3] = await Promise.all([
+  test("parallel calls with the same query share ONE API request", async () => {
+    const [s1, services, tasks] = await Promise.all([
       dashboardService.getSummary({ from: "2024-05-01", to: "2024-05-01" }),
       dashboardService.listAIServices({ from: "2024-05-01", to: "2024-05-01" }),
+      // getTaskSummary defaults assigned_to_me=true → its own cache key,
+      // so it is expected to be the one extra request.
       dashboardService.getTaskSummary({ from: "2024-05-01", to: "2024-05-01" }),
     ]);
-    expect(s1).toBeDefined();
-    expect(s2).toBeDefined();
-    expect(s3).toBeDefined();
-    // In-flight deduplication: parallel calls reuse the same promise
-    // The actual call count depends on cache state; just verify results are defined
-    expect(s1).toBeDefined();
-    expect(s2).toBeDefined();
-    expect(s3).toBeDefined();
-    // mockGet should have been called at most twice (cache may vary across tests)
-    expect(mockGet.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(s1.cameras.total).toBe(4);
+    expect(services.length).toBe(2);
+    expect(tasks.total).toBe(30);
+  });
+
+  test("different filters trigger separate API requests", async () => {
+    await dashboardService.getSummary({ from: "2024-06-01", to: "2024-06-01" });
+    await dashboardService.getSummary({ from: "2024-07-01", to: "2024-07-01" });
+    expect(mockGet).toHaveBeenCalledTimes(2);
+  });
+
+  test("invalidateDashboardCache forces a refetch", async () => {
+    await dashboardService.getSummary({ from: "2024-08-01", to: "2024-08-01" });
+    invalidateDashboardCache();
+    await dashboardService.getSummary({ from: "2024-08-01", to: "2024-08-01" });
+    expect(mockGet).toHaveBeenCalledTimes(2);
   });
 });

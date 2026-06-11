@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toLocalISODate } from "@/lib/utils";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import {
@@ -232,13 +233,13 @@ export default function DashboardView() {
 
   // useMemo so todayStr is computed once per mount, not on every render
   const today = React.useMemo(() => new Date(), []);
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalISODate(today);
   const [dateRange, setDateRange] = React.useState<DateRange | null>([
     today,
     today,
   ]);
-  const from = dateRange?.[0]?.toISOString().slice(0, 10) ?? todayStr;
-  const to = dateRange?.[1]?.toISOString().slice(0, 10) ?? todayStr;
+  const from = (dateRange?.[0] ? toLocalISODate(dateRange[0]) : undefined) ?? todayStr;
+  const to = (dateRange?.[1] ? toLocalISODate(dateRange[1]) : undefined) ?? todayStr;
   const [branchId, setBranchId] = React.useState<string>("all");
 
   const [summary, setSummary] = React.useState<DashboardSummary | null>(null);
@@ -320,7 +321,7 @@ export default function DashboardView() {
   // to keep detections, attendance, and live activity up to date.
   // This mirrors the old project's 60s main poll + 15s pulse poll.
   React.useEffect(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = toLocalISODate(new Date());
     const isLive = from === todayStr && to === todayStr;
     if (!isLive) return; // only poll in live mode
 
@@ -369,7 +370,17 @@ export default function DashboardView() {
   const visitorOut = flow.reduce((acc, p) => acc + p.out, 0);
   const maxFlow = Math.max(1, ...flow.map((p) => p.in));
 
-  // Read guard handled via auth aliases — isAdmin bypasses all
+  // Read guard — same pattern as the other views (isAdmin is granted all
+  // permissions inside hasPermission itself).
+  if (!hasPermission("dashboard")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -393,12 +404,16 @@ export default function DashboardView() {
         <div className="absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
         <div className="relative grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl select-none" role="img" aria-hidden="true">👋</span>
-              <h1 className="text-lg font-bold sm:text-xl">
-                {t("dashboard.welcome", { name: displayName })}
-              </h1>
-            </div>
+            <h1 className="text-lg font-bold sm:text-xl">
+              <span
+                className="me-3 inline-block align-middle text-3xl select-none"
+                role="img"
+                aria-hidden="true"
+              >
+                👋
+              </span>
+              {t("dashboard.welcome", { name: displayName })}
+            </h1>
             <p className="text-sm opacity-90">
               {t("dashboard.realtimeOverview")}
             </p>
@@ -628,13 +643,12 @@ export default function DashboardView() {
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant={assignedToMe ? "default" : "outline"}
                 className="gap-1.5"
-                asChild
+                aria-pressed={assignedToMe}
+                onClick={() => setAssignedToMe((v) => !v)}
               >
-                <Link href="/dashboard/my-tasks">
-                  <UserCheck className="h-4 w-4" /> {t("dashboard.myTasks")}
-                </Link>
+                <UserCheck className="h-4 w-4" /> {t("dashboard.myTasks")}
               </Button>
             </div>
           </div>

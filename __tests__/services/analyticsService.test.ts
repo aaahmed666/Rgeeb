@@ -74,11 +74,11 @@ describe("analyticsService.getSummary", () => {
     expect(s.total_detections).toBe(29705);
   });
 
-  test("returns demo data on network error", async () => {
+  test("propagates network errors (no demo fallback)", async () => {
     mockFetch.mockRejectedValue(new Error("timeout"));
-    const s = await analyticsService.getSummary({ dateFrom: "2026-05-01", dateTo: "2026-05-31" });
-    expect(s.total_detections).toBeGreaterThan(0);
-    expect(s).toHaveProperty("compliance_score");
+    await expect(
+      analyticsService.getSummary({ dateFrom: "2026-05-01", dateTo: "2026-05-31" })
+    ).rejects.toThrow("timeout");
   });
 
   test("all required fields are present", async () => {
@@ -107,14 +107,11 @@ describe("analyticsService.getTrends", () => {
     expect(typeof trends[0].violations).toBe("number");
   });
 
-  test("returns demo trends on error", async () => {
+  test("propagates errors (no demo fallback)", async () => {
     mockFetch.mockRejectedValue(new Error("fail"));
-    const trends = await analyticsService.getTrends({ dateFrom: "2026-05-01", dateTo: "2026-05-31" });
-    expect(trends.length).toBeGreaterThan(0);
-    for (const p of trends) {
-      expect(typeof p.detections).toBe("number");
-      expect(typeof p.violations).toBe("number");
-    }
+    await expect(
+      analyticsService.getTrends({ dateFrom: "2026-05-01", dateTo: "2026-05-31" })
+    ).rejects.toThrow("fail");
   });
 });
 
@@ -146,10 +143,11 @@ describe("analyticsService.getByService", () => {
     for (const s of services) expect(s.color).toBeTruthy();
   });
 
-  test("returns demo services on error", async () => {
+  test("propagates errors (no demo fallback)", async () => {
     mockFetch.mockRejectedValue(new Error("fail"));
-    const services = await analyticsService.getByService({ dateFrom: "2026-05-01", dateTo: "2026-05-31" });
-    expect(services.length).toBeGreaterThan(0);
+    await expect(
+      analyticsService.getByService({ dateFrom: "2026-05-01", dateTo: "2026-05-31" })
+    ).rejects.toThrow("fail");
   });
 });
 
@@ -185,10 +183,11 @@ describe("analyticsService.getByCamera", () => {
     }
   });
 
-  test("returns demo on error", async () => {
+  test("propagates errors (no demo fallback)", async () => {
     mockFetch.mockRejectedValue(new Error("fail"));
-    const cameras = await analyticsService.getByCamera({ dateFrom: "2026-05-01", dateTo: "2026-05-31" });
-    expect(cameras.length).toBeGreaterThan(0);
+    await expect(
+      analyticsService.getByCamera({ dateFrom: "2026-05-01", dateTo: "2026-05-31" })
+    ).rejects.toThrow("fail");
   });
 });
 
@@ -210,10 +209,11 @@ describe("analyticsService.getByBranch", () => {
     for (const b of branches) expect(typeof b.violations).toBe("number");
   });
 
-  test("returns demo on error", async () => {
+  test("propagates errors (no demo fallback)", async () => {
     mockFetch.mockRejectedValue(new Error("fail"));
-    const branches = await analyticsService.getByBranch({ dateFrom: "2026-05-01", dateTo: "2026-05-31" });
-    expect(branches.length).toBeGreaterThan(0);
+    await expect(
+      analyticsService.getByBranch({ dateFrom: "2026-05-01", dateTo: "2026-05-31" })
+    ).rejects.toThrow("fail");
   });
 });
 
@@ -227,13 +227,8 @@ describe("analyticsService.getBranches", () => {
     expect(branches[0].id).toBe("1");
   });
 
-  test("returns demo branch list on error", async () => {
+  test("propagates errors (no demo fallback)", async () => {
     mockFetch.mockRejectedValue(new Error("fail"));
-    const branches = await analyticsService.getBranches();
-    expect(branches.length).toBeGreaterThan(0);
-    for (const b of branches) {
-      expect(b).toHaveProperty("id");
-      expect(b).toHaveProperty("name");
-    }
+    await expect(analyticsService.getBranches()).rejects.toThrow("fail");
   });
 });

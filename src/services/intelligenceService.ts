@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { toLocalISODate } from "@/lib/utils";
 import { endpoints } from "@/lib/endpoints";
 
 export interface IntelFilters {
@@ -452,7 +453,7 @@ function shiftDate(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
   if (Number.isNaN(d.getTime())) return iso;
   d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+  return toLocalISODate(d);
 }
 
 function normalizeComparison(
@@ -556,7 +557,7 @@ const demoHeatmap: HeatmapPayload = (() => {
   const dates = Array.from({ length: 8 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (7 - i));
-    return d.toISOString().slice(0, 10);
+    return toLocalISODate(d);
   });
   const cells: HeatmapPayload["cells"] = [];
   for (const date of dates)

@@ -21,12 +21,20 @@ import "@testing-library/jest-dom";
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) => {
-      if (key === "dashboard.welcome" && opts?.name) return `Hello, ${opts.name}!`;
+    t: (key: string, opts?: Record<string, unknown> | string) => {
+      if (key === "dashboard.welcome" && typeof opts === "object" && opts?.name)
+        return `Hello, ${opts.name}!`;
+      // i18next default-value forms: t(key, "Default") / t(key, { defaultValue })
+      if (typeof opts === "string") return opts;
+      if (typeof opts === "object" && typeof opts?.defaultValue === "string")
+        return opts.defaultValue as string;
       return key;
     },
     i18n: { resolvedLanguage: "en", language: "en" },
   }),
+  // @/lib/i18n (pulled in via AsyncPaginatedSelect) calls
+  // i18n.use(initReactI18next) at module load — provide a valid plugin stub.
+  initReactI18next: { type: "3rdParty", init: jest.fn() },
 }));
 
 jest.mock("@/lib/auth", () => ({
@@ -38,6 +46,7 @@ jest.mock("@/lib/auth", () => ({
 }));
 
 jest.mock("@/services/dashboardService", () => ({
+  invalidateDashboardCache: jest.fn(),
   dashboardService: {
     getSummary: jest.fn().mockResolvedValue({
       cameras: { online: 3, total: 4 },
@@ -156,8 +165,8 @@ describe("DashboardView — Permission Guard", () => {
       user: { name: "Guest" },
     });
     await renderDashboard();
-    expect(screen.getByText(/errors.unauthorized/i)).toBeInTheDocument();
-    expect(screen.queryByText(/dashboard.welcome/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Hello, /i)).not.toBeInTheDocument();
   });
 
   test("renders full dashboard when permission granted", async () => {
@@ -270,7 +279,8 @@ describe("DashboardView — Initial Render", () => {
       expect(dashboardService.getDetectionBreakdown).toHaveBeenCalled();
       expect(dashboardService.getBranches).toHaveBeenCalled();
       expect(dashboardService.getUnreadNotifications).toHaveBeenCalled();
-      expect(dashboardService.getProfile).toHaveBeenCalled();
+      // getProfile intentionally NOT expected: the display name comes from
+      // useAuth(), so the view does not duplicate a profile request.
     });
   });
 });
@@ -364,7 +374,7 @@ describe("DashboardView — Task Intelligence", () => {
   test("shows task counts after load", async () => {
     await renderDashboard();
     await waitFor(() => {
-      expect(screen.getByText("30")).toBeInTheDocument(); // total badge
+      expect(screen.getByText(/30\s+dashboard\.total/)).toBeInTheDocument(); // total badge
     });
   });
 

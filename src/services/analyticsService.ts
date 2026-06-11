@@ -167,114 +167,10 @@ function unwrapArray<T>(r: T[] | { data: T[] }): T[] {
   return Array.isArray(r) ? r : ((r as { data: T[] }).data ?? []);
 }
 
-// ---------- Demo data ----------
-const demoSummary: AnalyticsSummary = {
-  total_detections: 29705,
-  violations: 5861,
-  compliance_score: 80.3,
-  active_cameras: 4,
-  total_cameras: 4,
-  active_services: 29,
-  trend_pct: 3.6,
-};
-
-const demoTrends: TrendPoint[] = Array.from({ length: 8 }).map((_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - (7 - i));
-  return {
-    date: d.toISOString().slice(5, 10),
-    detections: 2000 + Math.round(Math.random() * 2500),
-    violations: 200 + Math.round(Math.random() * 700),
-  };
-});
-
-const demoServices: ServiceBreakdown[] = [
-  {
-    name: "Customer Traffic",
-    count: 22498,
-    percent: 76,
-    color: SERVICE_COLORS[0],
-  },
-  {
-    name: "Kitchen PPE",
-    count: 5855,
-    percent: 20,
-    violations: 5855,
-    color: SERVICE_COLORS[1],
-  },
-  {
-    name: "Waiting Customer",
-    count: 1346,
-    percent: 5,
-    color: SERVICE_COLORS[2],
-  },
-  {
-    name: "Clean Tables",
-    count: 6,
-    percent: 0,
-    violations: 6,
-    color: SERVICE_COLORS[3],
-  },
-];
-
-const demoCameras: CameraRow[] = [
-  {
-    camera: "Gate",
-    branch: "Second Branch",
-    total: 22498,
-    violations: 0,
-    rate: 0,
-  },
-  {
-    camera: "PPE",
-    branch: "Main Branch",
-    total: 5855,
-    violations: 5855,
-    rate: 100,
-  },
-  {
-    camera: "Waiting",
-    branch: "Main Branch",
-    total: 1346,
-    violations: 0,
-    rate: 0,
-  },
-  {
-    camera: "Camera 1",
-    branch: "Main Branch",
-    total: 6,
-    violations: 6,
-    rate: 100,
-  },
-];
-
-const demoBranchRows: BranchRow[] = [
-  {
-    branch: "Second Branch",
-    detections: 22498,
-    violations: 0,
-    violation_rate: 0,
-  },
-  {
-    branch: "Main Branch",
-    detections: 7207,
-    violations: 5861,
-    violation_rate: 81,
-  },
-];
-
-const demoBranchList: Branch[] = [
-  { id: "1", name: "Main Branch" },
-  { id: "2", name: "Second Branch" },
-];
-
-async function safe<T>(p: Promise<T>, fb: T): Promise<T> {
-  try {
-    return await p;
-  } catch {
-    return fb;
-  }
-}
+// Demo/fabricated fallbacks removed: failed requests must surface as
+// errors (handled by the view's error/empty states) instead of silently
+// rendering fake numbers (29,705 detections / 80.3% compliance / random
+// trends) that do not match the user's real data.
 
 function q(filters: AnalyticsFilters) {
   return {
@@ -286,66 +182,48 @@ function q(filters: AnalyticsFilters) {
 
 export const analyticsService = {
   getSummary: (f: AnalyticsFilters) =>
-    safe(
-      apiFetch<RawSummary | { data: RawSummary }>(endpoints.analytics.summary, {
-        query: q(f),
-      }).then((r) =>
-        normalizeSummary((r as { data: RawSummary }).data ?? (r as RawSummary))
-      ),
-      demoSummary
+    apiFetch<RawSummary | { data: RawSummary }>(endpoints.analytics.summary, {
+      query: q(f),
+    }).then((r) =>
+      normalizeSummary((r as { data: RawSummary }).data ?? (r as RawSummary)),
     ),
 
   getTrends: (f: AnalyticsFilters) =>
-    safe(
-      apiFetch<RawTrendPoint[] | { data: RawTrendPoint[] }>(
-        endpoints.analytics.trends,
-        { query: q(f) }
-      ).then((r) => normalizeTrends(unwrapArray(r))),
-      demoTrends
-    ),
+    apiFetch<RawTrendPoint[] | { data: RawTrendPoint[] }>(
+      endpoints.analytics.trends,
+      { query: q(f) },
+    ).then((r) => normalizeTrends(unwrapArray(r))),
 
   getByService: (f: AnalyticsFilters) =>
-    safe(
-      apiFetch<RawServiceRow[] | { data: RawServiceRow[] }>(
-        endpoints.analytics.byService,
-        { query: q(f) }
-      ).then((r) => normalizeServices(unwrapArray(r))),
-      demoServices
-    ),
+    apiFetch<RawServiceRow[] | { data: RawServiceRow[] }>(
+      endpoints.analytics.byService,
+      { query: q(f) },
+    ).then((r) => normalizeServices(unwrapArray(r))),
 
   getByCamera: (f: AnalyticsFilters) =>
-    safe(
-      apiFetch<RawCameraRow[] | { data: RawCameraRow[] }>(
-        endpoints.analytics.byCamera,
-        { query: q(f) }
-      ).then((r) => normalizeCameras(unwrapArray(r))),
-      demoCameras
-    ),
+    apiFetch<RawCameraRow[] | { data: RawCameraRow[] }>(
+      endpoints.analytics.byCamera,
+      { query: q(f) },
+    ).then((r) => normalizeCameras(unwrapArray(r))),
 
   getByBranch: (f: AnalyticsFilters) =>
-    safe(
-      apiFetch<RawBranchRow[] | { data: RawBranchRow[] }>(
-        endpoints.analytics.byBranch,
-        { query: q(f) }
-      ).then((r) => normalizeBranches(unwrapArray(r))),
-      demoBranchRows
-    ),
+    apiFetch<RawBranchRow[] | { data: RawBranchRow[] }>(
+      endpoints.analytics.byBranch,
+      { query: q(f) },
+    ).then((r) => normalizeBranches(unwrapArray(r))),
 
   getBranches: (params?: {
     page?: number;
     per_page?: number;
     keyword?: string;
   }) =>
-    safe(
-      apiFetch<Branch[] | { data: Branch[] }>(endpoints.analytics.branches, {
-        query: params?.page
-          ? {
-              page: params.page,
-              per_page: params.per_page ?? 20,
-              ...(params.keyword ? { keyword: params.keyword } : {}),
-            }
-          : { all: 1 },
-      }).then((r) => unwrapArray(r)),
-      demoBranchList
-    ),
+    apiFetch<Branch[] | { data: Branch[] }>(endpoints.analytics.branches, {
+      query: params?.page
+        ? {
+            page: params.page,
+            per_page: params.per_page ?? 20,
+            ...(params.keyword ? { keyword: params.keyword } : {}),
+          }
+        : { all: 1 },
+    }).then((r) => unwrapArray(r)),
 };

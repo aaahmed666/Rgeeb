@@ -8,6 +8,7 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
+import { toLocalISODate } from "@/lib/utils";
 
 export interface DashboardSummary {
   cameras: { online: number; total: number };
@@ -97,205 +98,6 @@ async function safe<T>(p: Promise<T>, fallback: T): Promise<T> {
     return fallback;
   }
 }
-
-/* ------------------------- demo fallbacks ------------------------- */
-
-const DEMO_AI_SERVICES: AIServiceItem[] = [
-  ["age_gender", "Age Gender Analytics", "analytics"],
-  ["attendance", "Attendance", "operations"],
-  ["behavior", "Behavior Analysis", "monitoring"],
-  ["cash_register", "Cash Register Monitoring", "operations"],
-  ["clean_tables", "Clean Tables", "operations"],
-  ["cup_counting", "Cup Counting", "analytics"],
-  ["customer_traffic", "Customer Traffic", "analytics"],
-  ["delivery_tracking", "Delivery Tracking", "operations"],
-  ["drive_thru", "Drive Thru Monitoring", "operations"],
-  ["face_detection", "Face Detection", "safety"],
-  ["fire_detection", "Fire Detection", "safety"],
-  ["smoke_detection", "Smoke Detection", "safety"],
-  ["gate_monitoring", "Gate Monitoring", "monitoring"],
-  ["helmet", "Helmet Detection", "safety"],
-  ["kitchen_ppe", "Kitchen PPE", "safety"],
-  ["license_plate", "License Plate Recognition", "monitoring"],
-  ["mask", "Mask Detection", "safety"],
-  ["motion", "Motion Detection", "monitoring"],
-  ["object", "Object Detection", "monitoring"],
-  ["overcrowd", "Overcrowd Violation", "safety"],
-  ["people_counting", "People Counting", "analytics"],
-  ["person", "Person Detection", "monitoring"],
-  ["queue", "Queue Management", "operations"],
-  ["receipt", "Receipt Detection", "operations"],
-  ["restricted", "Restricted Area", "safety"],
-  ["sandwich", "Sandwich Counting", "analytics"],
-  ["smoking", "Smoking Detection", "safety"],
-  ["spill", "Spill Detection", "safety"],
-  ["vehicle", "Vehicle Tracking", "monitoring"],
-  ["waiting", "Waiting Customer", "analytics"],
-].map(([key, name, category], i) => ({
-  id: String(i + 1),
-  key: key as string,
-  name: name as string,
-  category: category as AIServiceItem["category"],
-  status: "active",
-  detections:
-    key === "customer_traffic"
-      ? 2802
-      : key === "kitchen_ppe"
-        ? 927
-        : key === "waiting"
-          ? 160
-          : key === "clean_tables"
-            ? 1
-            : 0,
-}));
-
-const DEMO_VISITOR_FLOW: VisitorFlowPoint[] = Array.from(
-  { length: 24 },
-  (_, h) => ({
-    hour: `${h}`.padStart(2, "0"),
-    in: [
-      131, 132, 95, 30, 55, 35, 22, 11, 13, 19, 31, 25, 33, 27, 15, 30, 36, 26,
-      48, 55, 98, 65, 141, 160,
-    ][h],
-    out: Math.max(
-      5,
-      Math.round(
-        [
-          131, 132, 95, 30, 55, 35, 22, 11, 13, 19, 31, 25, 33, 27, 15, 30, 36,
-          26, 48, 55, 98, 65, 141, 160,
-        ][h] * 0.85
-      )
-    ),
-  })
-);
-
-const DEMO_LIVE_ACTIVITY: LiveActivity[] = [
-  {
-    id: "1",
-    type: "crossing_out",
-    branch: "Second Branch",
-    source: "Gate",
-    agoSeconds: 11,
-    severity: "info",
-    timestamp: "23:48",
-  },
-  {
-    id: "2",
-    type: "PPE Violation",
-    branch: "Main Branch",
-    source: "PPE",
-    agoSeconds: 31,
-    severity: "warning",
-    timestamp: "23:48",
-  },
-  {
-    id: "3",
-    type: "crossing_out",
-    branch: "Second Branch",
-    source: "Gate",
-    agoSeconds: 32,
-    severity: "info",
-    timestamp: "23:48",
-  },
-  {
-    id: "4",
-    type: "crossing_out",
-    branch: "Second Branch",
-    source: "Gate",
-    agoSeconds: 36,
-    severity: "info",
-    timestamp: "23:48",
-  },
-  {
-    id: "5",
-    type: "PPE Violation",
-    branch: "Main Branch",
-    source: "PPE",
-    agoSeconds: 41,
-    severity: "warning",
-    timestamp: "23:48",
-  },
-  {
-    id: "6",
-    type: "PPE Violation",
-    branch: "Main Branch",
-    source: "PPE",
-    agoSeconds: 49,
-    severity: "critical",
-    timestamp: "23:48",
-  },
-  {
-    id: "7",
-    type: "crossing_in",
-    branch: "Second Branch",
-    source: "Gate",
-    agoSeconds: 58,
-    severity: "info",
-    timestamp: "23:48",
-  },
-];
-
-const DEMO_ATTENDANCE: AttendanceData = {
-  total: 5,
-  checkedIn: 0,
-  present: 0,
-  checkedOut: 0,
-  absent: 5,
-};
-const DEMO_COMPLIANCE: ComplianceData = {
-  score: 76,
-  totalDetections: 3890,
-  violations: 927,
-  clean: 2963,
-};
-const DEMO_BREAKDOWN: DetectionBreakdownItem[] = [
-  {
-    key: "customer_traffic",
-    label: "Customer Traffic",
-    count: 2802,
-    percent: 72,
-    color: "#6366f1",
-  },
-  {
-    key: "kitchen_ppe",
-    label: "Kitchen PPE",
-    count: 927,
-    percent: 24,
-    color: "#22c55e",
-  },
-  {
-    key: "waiting",
-    label: "Waiting Customer",
-    count: 160,
-    percent: 4,
-    color: "#f59e0b",
-  },
-  {
-    key: "clean_tables",
-    label: "Clean Tables",
-    count: 1,
-    percent: 0,
-    color: "#ef4444",
-  },
-];
-const DEMO_BRANCHES: BranchSummary[] = [
-  {
-    id: "main",
-    name: "Main Branch",
-    camerasOnline: 0,
-    camerasTotal: 3,
-    detections: 3,
-    grade: "F",
-  },
-  {
-    id: "second",
-    name: "Second Branch",
-    camerasOnline: 0,
-    camerasTotal: 1,
-    detections: 7,
-    grade: "F",
-  },
-];
 
 /* -------------------------
  * Maps a raw service name → canonical key used by SERVICE_ICON_MAP / SERVICE_KEY_MAP
@@ -390,7 +192,7 @@ function pickArr(
 }
 
 function buildDashboardQuery(f: DashboardFilters & { assignedToMe?: boolean }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalISODate(new Date());
   return {
     date_from: f.from ?? today,
     date_to: f.to ?? today,
@@ -449,17 +251,16 @@ export function invalidateDashboardCache(
 
 export const dashboardService = {
   getSummary: async (f: DashboardFilters = {}): Promise<DashboardSummary> => {
-    const fallback: DashboardSummary = {
-      cameras: { online: 4, total: 4 },
-      aiServicesActive: 29,
-      detections: 3890,
-      branches: [
-        { id: "main", name: "Main Branch" },
-        { id: "second", name: "Second Branch" },
-      ],
+    // No fabricated fallback: a failed/empty payload returns honest zeros so
+    // the UI never claims 4/4 cameras or fake branches that don't exist.
+    const empty: DashboardSummary = {
+      cameras: { online: 0, total: 0 },
+      aiServicesActive: 0,
+      detections: 0,
+      branches: [],
     };
     const d = await fetchDashboard(f);
-    if (!d) return fallback;
+    if (!d) return empty;
     const cameras = (d.cameras ?? {}) as Record<string, unknown>;
     const branchesRaw = pickArr(d ?? undefined, "branches");
     return {
@@ -483,15 +284,13 @@ export const dashboardService = {
         "detections_count",
         "total_detections"
       ),
-      branches: branchesRaw.length
-        ? branchesRaw.map((b) => {
-            const o = (b ?? {}) as Record<string, unknown>;
-            return {
-              id: String(o.id ?? o.uuid ?? ""),
-              name: String(o.name ?? o.name_en ?? o.name_ar ?? "—"),
-            };
-          })
-        : fallback.branches,
+      branches: branchesRaw.map((b) => {
+        const o = (b ?? {}) as Record<string, unknown>;
+        return {
+          id: String(o.id ?? o.uuid ?? ""),
+          name: String(o.name ?? o.name_en ?? o.name_ar ?? "—"),
+        };
+      }),
     };
   },
 

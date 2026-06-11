@@ -28,13 +28,21 @@ export default defineConfig({
         statements: 70,
       },
     },
-    include: ['**/*.{test,spec}.{ts,tsx,js,jsx}'],
+    // Only the Vitest-based suites — the rest of __tests__ runs under Jest.
+    include: [
+      '__tests__/lib/api.test.ts',
+      '__tests__/lib/auth.test.tsx',
+      '__tests__/lib/error-handling.test.ts',
+      '__tests__/services/chat-settings.test.ts',
+      '__tests__/services/notification-settings.test.ts',
+      '__tests__/integration/auth-flow.integration.test.tsx',
+    ],
     exclude: ['node_modules', 'dist', '.next'],
     testTimeout: 10000,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });

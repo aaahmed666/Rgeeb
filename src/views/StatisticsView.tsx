@@ -22,7 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
-import { cn } from "@/lib/utils";
+import { cn, toLocalISODate } from "@/lib/utils";
 import {
   fetchReport,
   type ReportPayload,
@@ -32,7 +32,7 @@ import {
 type Preset = "7d" | "30d" | "month" | "year";
 
 function toISO(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return toLocalISODate(d);
 }
 
 function rangeFor(preset: Preset): [Date, Date] {

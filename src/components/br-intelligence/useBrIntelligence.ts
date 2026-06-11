@@ -77,17 +77,26 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
   );
   const { rankTop, activeService } = filters;
 
+  // Refs so `load` always reads the *current* filter values, even though they
+  // are intentionally excluded from its dependency array (changing them must
+  // not trigger a full re-fetch — they have their own partial loaders below).
+  const rankTopRef = React.useRef(rankTop);
+  rankTopRef.current = rankTop;
+  const activeServiceRef = React.useRef(activeService);
+  activeServiceRef.current = activeService;
+
   // Main load — does NOT depend on activeService or rankTop so those filters
   // don't trigger a full re-fetch of every endpoint.
   const load = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true }));
     const computedFilters = { dateFrom, dateTo, branchIds: branchIdsFilter };
+    const currentService = activeServiceRef.current;
     const [eff, rnk, hm, hl, mx, ins, an, fc, hr, cp] = await Promise.all([
       intelligenceService.efficiency(computedFilters),
-      intelligenceService.rankings(computedFilters, rankTop),
+      intelligenceService.rankings(computedFilters, rankTopRef.current),
       intelligenceService.heatmap(
         computedFilters,
-        activeService === "All" ? undefined : activeService
+        currentService === "All" ? undefined : currentService
       ),
       intelligenceService.branchHealth(computedFilters),
       intelligenceService.serviceMatrix(computedFilters),
@@ -98,35 +107,14 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       intelligenceService.comparison(computedFilters),
     ]);
 
-    // Use rankings by_score as efficiency data when efficiency-index returns empty
-    const scoreToStatus = (
-      s: number
-    ): EfficiencyRow["status"] =>
-      s >= 80 ? "Outstanding" : s >= 60 ? "On Target" : s >= 40 ? "Needs Attention" : "Critical";
-
-    const effData =
-      Array.isArray(eff) && eff.length > 0
-        ? eff
-        : (rnk?.by_score ?? []).map((r, i) => {
-            const score = typeof r.value === "number" ? r.value : Number(r.value);
-            return {
-              branch: r.branch,
-              score,
-              compliance: 0,
-              detections: 0,
-              violations: 0,
-              violation_rate: 0,
-              tasks_done: 0,
-              tasks_total: 0,
-              task_rate: 0,
-              trend: 0,
-              status: scoreToStatus(score),
-              _rank: i,
-            };
-          });
     setState((prev) => ({
       ...prev,
-      efficiency: effData,
+      // Efficiency must come from the efficiency-index endpoint only.
+      // (Previously this fabricated rows from the Top-N rankings payload with
+      // all-zero metrics, which corrupted the Efficiency Index table, the
+      // Avg/Outstanding/Critical KPIs, and made the Store Rankings Top-N
+      // filter appear to affect the wrong section.)
+      efficiency: Array.isArray(eff) ? eff : [],
       rankings:
         rnk && typeof rnk === "object" && !Array.isArray(rnk) ? rnk : null,
       heatmap: hm && typeof hm === "object" && !Array.isArray(hm) ? hm : null,

@@ -36,20 +36,18 @@ export async function fetchReport(
   tab: ReportTab,
   filters: ReportFilters,
 ): Promise<ReportPayload | null> {
-  try {
-    const data = await apiFetch<Partial<ReportPayload>>(
-      endpoints.reports.statistics,
-      { query: { date_from: filters.dateFrom, date_to: filters.dateTo, type: tab } },
-    );
-    if (data && (data.metrics || data.rows)) {
-      return {
-        metrics: data.metrics ?? [],
-        columns: data.columns ?? [],
-        rows:    data.rows    ?? [],
-      };
-    }
-    return null;
-  } catch {
-    return null;
+  // NOTE: errors intentionally propagate to the caller so the page can show
+  // its error banner + Retry action instead of silently rendering empty state.
+  const data = await apiFetch<Partial<ReportPayload>>(
+    endpoints.reports.statistics,
+    { query: { date_from: filters.dateFrom, date_to: filters.dateTo, type: tab } },
+  );
+  if (data && (data.metrics || data.rows)) {
+    return {
+      metrics: data.metrics ?? [],
+      columns: data.columns ?? [],
+      rows:    data.rows    ?? [],
+    };
   }
+  return null;
 }

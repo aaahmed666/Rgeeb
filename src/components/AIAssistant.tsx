@@ -500,8 +500,11 @@ export function AIAssistant() {
           const greeting = prev.find((m) => m.id === "greeting");
           return [...(greeting ? [greeting] : []), ...historical];
         });
-        const last = res.data[res.data.length - 1];
-        if (last?.conversation_id) setConversationId(last.conversation_id);
+        const last = res.data[res.data.length - 1] as
+          | (ChatMessage & { session_id?: string })
+          | undefined;
+        const sid = last?.conversation_id ?? last?.session_id;
+        if (sid) setConversationId(sid);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -644,7 +647,7 @@ export function AIAssistant() {
           "border border-primary/20 bg-background",
           "ring-1 ring-primary/10",
           open && !minimized
-            ? "h-[540px] opacity-100 translate-y-0"
+            ? "h-[min(540px,calc(100dvh-8rem))] opacity-100 translate-y-0"
             : open && minimized
               ? "h-14 opacity-100 translate-y-0"
               : "pointer-events-none h-0 opacity-0 translate-y-4"

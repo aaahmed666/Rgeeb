@@ -3,6 +3,7 @@
 import { DateRangePicker } from "rsuite";
 import type { DateRange } from "rsuite/DateRangePicker";
 import { useTranslation } from "react-i18next";
+import { clampToToday, toLocalISODate } from "@/lib/utils";
 
 type RangePreset = {
   label: string;
@@ -84,13 +85,16 @@ const SharedDateRangePicker = ({
         : null;
 
   const handleChange = (range: DateRange | null) => {
+    // Clamp any future selection back to today before propagating.
+    const clamped: DateRange | null = range
+      ? [clampToToday(range[0]), clampToToday(range[1])]
+      : null;
     if (onChange) {
-      onChange(range);
+      onChange(clamped);
     }
     if (onFromChange || onToChange) {
-      const fmt = (d: Date) => d.toISOString().slice(0, 10);
-      onFromChange?.(range ? fmt(range[0]) : "");
-      onToChange?.(range ? fmt(range[1]) : "");
+      onFromChange?.(clamped ? toLocalISODate(clamped[0]) : "");
+      onToChange?.(clamped ? toLocalISODate(clamped[1]) : "");
     }
   };
 

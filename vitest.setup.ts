@@ -66,6 +66,18 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+// Mock sessionStorage (token lives here when "remember me" is off)
+const sessionStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+
+Object.defineProperty(window, 'sessionStorage', {
+  value: sessionStorageMock,
+});
+
 // Suppress console errors during tests (optional)
 const originalError = console.error;
 beforeEach(() => {

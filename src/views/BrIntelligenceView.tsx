@@ -52,7 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { cn, toLocalISODate } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { getAuthToken } from "@/lib/api";
 import {
@@ -266,15 +266,23 @@ export default function BrIntelligenceView() {
             {/* Custom date range picker */}
             <div className="min-w-0 flex-1 sm:max-w-xs">
               <SharedDateRangePicker
-                from={customFrom}
-                to={customTo}
-                onFromChange={(val) => {
-                  setCustomFrom(val);
-                  if (val && customTo) setRange("custom");
-                }}
-                onToChange={(val) => {
-                  setCustomTo(val);
-                  if (customFrom && val) setRange("custom");
+                value={
+                  customFrom && customTo
+                    ? [new Date(customFrom), new Date(customTo)]
+                    : null
+                }
+                onChange={(rangeVal) => {
+                  // Single callback receives the full [from, to] pair, so we
+                  // never compare against the other half from stale state.
+                  if (rangeVal) {
+                    setCustomFrom(toLocalISODate(rangeVal[0]));
+                    setCustomTo(toLocalISODate(rangeVal[1]));
+                    setRange("custom");
+                  } else {
+                    setCustomFrom("");
+                    setCustomTo("");
+                    setRange("7");
+                  }
                 }}
               />
             </div>
