@@ -257,7 +257,8 @@
     "status_present": "Present",
     "status_late": "Late",
     "status_absent": "Absent",
-    "status_leave": "On Leave"
+    "status_leave": "On Leave",
+    "exportFailed": "Export failed. Please try again."
   },
   "intel": {
     "title": "Br Intelligence",
@@ -363,7 +364,12 @@
     "noPeriodData": "No comparison data available",
     "currentPeriod": "Current Period",
     "previousPeriod": "Previous Period",
-    "vs": "vs"
+    "vs": "vs",
+    "autoRefreshOn": "Auto-refresh ON (60s)",
+    "autoRefreshOff": "Enable auto-refresh",
+    "live": "LIVE",
+    "recentActivity": "Recent Activity",
+    "serviceBreakdown": "Service Breakdown"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -562,7 +568,9 @@
     "serviceNotFound": "Service not found",
     "noLiveEvents": "No live event data — assign a camera to this service to see real-time detections.",
     "fireDetection": "Fire Detection",
-    "smokeDetection": "Smoke Detection"
+    "smokeDetection": "Smoke Detection",
+    "noLiveData": "Live statistics are not available for this service. Assign an API ID to enable real-time monitoring.",
+    "noLiveMetrics": "Live metrics not available — assign an API ID to enable monitoring."
   },
   "monitoring": {
     "title": "Monitoring",
@@ -727,7 +735,17 @@
     "deleteSuccess": "Task deleted",
     "statusUpdated": "Status updated",
     "createSuccess": "Task created",
-    "updateSuccess": "Task updated"
+    "updateSuccess": "Task updated",
+    "commentAdded": "Comment added",
+    "attachmentUploaded": "Attachment uploaded",
+    "comments": "Comments",
+    "activityLog": "Activity",
+    "attachments": "Files",
+    "commentPlaceholder": "Write a comment…",
+    "addComment": "Add Comment",
+    "noActivity": "No activity recorded for this task yet",
+    "logEntry": "Activity entry",
+    "uploadAttachmentHint": "Click to upload a file attachment"
   },
   "settings": {
     "title": "Settings",
@@ -943,16 +961,7 @@
       "modelUpdatedSuccess": "Model updated successfully",
       "totalModels": "Total Models"
     },
-    "settings": {
-      "appNameRequired": "App name is required",
-      "invalidEmail": "Invalid email format",
-      "placeholder_appName": "My App",
-      "placeholder_appDesc": "Short description of the application",
-      "placeholder_privacy": "Privacy policy content…",
-      "placeholder_terms": "Terms of service content…",
-      "placeholder_cookies": "Cookie policy content…",
-      "placeholder_emailSig": "Email signature HTML or text…"
-    },
+    "settings": "Settings",
     "subscriptions": {
       "title": "Subscriptions",
       "subtitle": "Manage client subscriptions",
@@ -982,7 +991,8 @@
       "subscriptionCancelledSuccess": "Subscription cancelled successfully",
       "subscriptionUpdatedSuccess": "Subscription updated successfully",
       "transactionId": "Transaction ID",
-      "createdAt": "Created At"
+      "createdAt": "Created At",
+      "searchPlaceholder": "Search subscriptions…"
     },
     "users": {
       "title": "Users",
@@ -1548,7 +1558,8 @@
     "linkFailed": "Failed to link account. Please check your credentials.",
     "secureDesc": "Your credentials are encrypted and securely stored. We never share your information with third parties.",
     "flowDiagramTitle": "Registration → Fatoorah flow diagram",
-    "flowDiagramDesc": "Click any step to ask the AI assistant about that part of the code."
+    "flowDiagramDesc": "Click any step to ask the AI assistant about that part of the code.",
+    "confirmUnlinkDesc": "Are you sure you want to unlink your Fatoorah account? This cannot be undone."
   },
   "auth": {
     "brand": {
@@ -1666,7 +1677,8 @@
       "strengthFair": "Fair",
       "strengthGood": "Good",
       "strengthStrong": "Strong",
-      "stepLabel": "Step"
+      "stepLabel": "Step",
+      "otpSendFailed": "We couldn't send the verification code. You can resend it on the verification step."
     },
     "forgotPassword": {
       "title": "Forgot Password?",
@@ -1733,7 +1745,8 @@
       "backToLogin": "Back to sign in",
       "invalidCode": "Please enter a valid 6-digit code",
       "wrongCode": "Invalid or expired code. Please try again.",
-      "success": "Verified! Redirecting..."
+      "success": "Verified! Redirecting...",
+      "expired": "Code expired — please request a new one."
     },
     "shared": {
       "emailError": "Please enter a valid email address",
@@ -2099,7 +2112,8 @@
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Failed to delete. Please try again.",
     "nameEnRequired": "English name is required",
-    "countryRequired": "Country is required"
+    "countryRequired": "Country is required",
+    "deleteConfirmDesc": "Are you sure you want to delete this zone? This cannot be undone."
   },
   "foodics": {
     "connect": "Connect to Foodics",
@@ -2184,7 +2198,8 @@
     "drawerSynced": "Drawer operations synced",
     "syncFailed": "Sync failed",
     "branchesImported": "Branches imported successfully",
-    "importFailed": "Import failed"
+    "importFailed": "Import failed",
+    "disconnectConfirm": "Are you sure you want to disconnect Foodics? This will remove the integration."
   },
   "paginatedSelect": {
     "loading": "Loading options…",

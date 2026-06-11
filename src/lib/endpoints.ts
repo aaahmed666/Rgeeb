@@ -22,6 +22,12 @@ export const endpoints = {
     //   Step 2 → OTP page
     //   Step 3 → resetPassword POST /customer/profile/update { password }
     sendOtp: "/customer/email/send-otp",
+    // ⚠️ AUDIT RISK: /customer/profile/update is an *authenticated* endpoint.
+    // In the forgot-password flow the user has no session, so this call is
+    // expected to fail with 401 unless the backend accepts otp_code+email as
+    // an auth substitute on this route. Confirm with backend; if a dedicated
+    // unauthenticated reset endpoint exists (e.g. /customer/password/reset),
+    // point this here instead.
     resetPassword: "/customer/profile/update", // step-3 of forgot-password
 
     // Face login

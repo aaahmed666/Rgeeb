@@ -138,8 +138,17 @@ function FaceLoginDialogBody({ onClose }: { onClose: () => void }) {
 
       toast.success(t("auth.faceLogin.success", "Welcome back"));
       onClose();
-      // Role determined from response — not from stale context closure
-      router.push(resolvedAdmin ? "/dashboard/admin" : "/dashboard");
+      if (resolvedAdmin) {
+        // Admin: the in-memory auth context cannot be refreshed via
+        // /customer/profile (customer-only endpoint), so a client-side
+        // router.push would land on the admin dashboard with a stale,
+        // unauthenticated context. A full navigation re-mounts
+        // AuthProvider, which hydrates from the storage we just wrote.
+        window.location.assign("/dashboard/admin");
+      } else {
+        // Regular user: context was refreshed via refreshProfile() above.
+        router.push("/dashboard");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("auth.faceLogin.failed", "Face login failed"));
     } finally {

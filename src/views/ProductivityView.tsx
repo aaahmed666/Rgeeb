@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { getAuthToken } from "@/lib/api";
 import {
   BarChart3,
@@ -198,6 +199,10 @@ export default function ProductivityView() {
                 URL.revokeObjectURL(url);
               } catch (e) {
                 console.error("Export failed:", e);
+                // Surface the failure — a silent no-op looks like a dead button.
+                toast.error(
+                  t("productivity.exportFailed", "Export failed. Please try again.")
+                );
               }
             }}
             title={t("productivity.excel", "Excel")}

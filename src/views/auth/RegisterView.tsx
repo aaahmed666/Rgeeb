@@ -215,7 +215,14 @@ export default function RegisterView() {
       try {
         await sendOtpRequest(basic.email);
       } catch {
-        /* continue even if OTP send fails — user can resend */
+        // Continue to the next step (the user can resend from there), but
+        // tell them the first send failed instead of failing silently.
+        toast.error(
+          t(
+            "auth.register.otpSendFailed",
+            "We couldn't send the verification code. You can resend it on the verification step."
+          )
+        );
       } finally {
         setSendingOtp(false);
       }
@@ -284,10 +291,10 @@ export default function RegisterView() {
             typeof paymentWindow.closed === "undefined"
           ) {
             toast.error(
-              t(
+              `${t(
                 "auth.register.popupBlocked",
-                "Popup blocked! Please allow popups or visit: " + payment_link
-              )
+                "Popup blocked! Please allow popups or visit:"
+              )} ${payment_link}`
             );
           } else {
             toast.success(

@@ -20,6 +20,7 @@ import {
   Building2,
   IdCard,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -186,6 +187,17 @@ export default function EmployeesView() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Permission read guard
+  if (!can.read) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

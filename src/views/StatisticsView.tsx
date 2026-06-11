@@ -127,6 +127,17 @@ export default function StatisticsView() {
 
   // Read guard handled via auth aliases — isAdmin bypasses all
 
+  // Permission read guard
+  if (!hasPermission("statistics")) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Page header */}

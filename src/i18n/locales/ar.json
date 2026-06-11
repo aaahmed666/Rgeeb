@@ -257,7 +257,8 @@
     "status_present": "حاضر",
     "status_late": "متأخر",
     "status_absent": "غائب",
-    "status_leave": "إجازة"
+    "status_leave": "إجازة",
+    "exportFailed": "فشل التصدير. يرجى المحاولة مرة أخرى."
   },
   "intel": {
     "title": "ذكاء الفروع",
@@ -363,7 +364,12 @@
     "noPeriodData": "لا توجد بيانات للمقارنة",
     "currentPeriod": "الفترة الحالية",
     "previousPeriod": "الفترة السابقة",
-    "vs": "مقابل"
+    "vs": "مقابل",
+    "autoRefreshOn": "التحديث التلقائي مفعّل (60 ثانية)",
+    "autoRefreshOff": "تفعيل التحديث التلقائي",
+    "live": "مباشر",
+    "recentActivity": "النشاط الأخير",
+    "serviceBreakdown": "توزيع الخدمات"
   },
   "dashboard": {
     "title": "اللوحة الرئيسية",
@@ -562,7 +568,9 @@
     "serviceNotFound": "الخدمة غير موجودة",
     "noLiveEvents": "لا توجد بيانات أحداث حية — قم بتعيين كاميرا لهذه الخدمة لرؤية الاكتشافات في الوقت الفعلي.",
     "fireDetection": "كشف الحريق",
-    "smokeDetection": "كشف الدخان"
+    "smokeDetection": "كشف الدخان",
+    "noLiveData": "الإحصائيات المباشرة غير متاحة لهذه الخدمة. قم بتعيين معرّف API لتفعيل المراقبة الفورية.",
+    "noLiveMetrics": "المقاييس المباشرة غير متاحة — قم بتعيين معرّف API لتفعيل المراقبة."
   },
   "monitoring": {
     "title": "المراقبة",
@@ -727,7 +735,17 @@
     "deleteSuccess": "تم حذف المهمة",
     "statusUpdated": "تم تحديث الحالة",
     "createSuccess": "تم إنشاء المهمة",
-    "updateSuccess": "تم تحديث المهمة"
+    "updateSuccess": "تم تحديث المهمة",
+    "commentAdded": "تمت إضافة التعليق",
+    "attachmentUploaded": "تم رفع المرفق",
+    "comments": "التعليقات",
+    "activityLog": "النشاط",
+    "attachments": "الملفات",
+    "commentPlaceholder": "اكتب تعليقًا…",
+    "addComment": "إضافة تعليق",
+    "noActivity": "لا يوجد نشاط مسجل لهذه المهمة بعد",
+    "logEntry": "سجل نشاط",
+    "uploadAttachmentHint": "انقر لرفع ملف مرفق"
   },
   "settings": {
     "title": "الإعدادات",
@@ -845,7 +863,8 @@
     "linkFailed": "فشل في ربط الحساب. يرجى التحقق من بيانات الاعتماد.",
     "secureDesc": "بياناتك مشفرة ومحمية. لن نشارك معلوماتك مع أطراف ثالثة.",
     "flowDiagramTitle": "مخطط تدفق التسجيل والفاتورة",
-    "flowDiagramDesc": "انقر على أي خطوة لسؤال المساعد الذكي عن هذا الجزء من الكود."
+    "flowDiagramDesc": "انقر على أي خطوة لسؤال المساعد الذكي عن هذا الجزء من الكود.",
+    "confirmUnlinkDesc": "هل أنت متأكد من إلغاء ربط حساب فاتورة؟ لا يمكن التراجع عن هذا الإجراء."
   },
   "admin": {
     "dashboard": {
@@ -1033,7 +1052,8 @@
       "subscriptionCancelledSuccess": "تم إلغاء الاشتراك بنجاح",
       "subscriptionUpdatedSuccess": "تم تحديث الاشتراك بنجاح",
       "transactionId": "معرف العملية",
-      "createdAt": "تاريخ الإنشاء"
+      "createdAt": "تاريخ الإنشاء",
+      "searchPlaceholder": "ابحث في الاشتراكات…"
     },
     "reports": {
       "title": "التقارير",
@@ -1072,16 +1092,7 @@
     },
     "title": "لوحة الإدارة",
     "description": "عمليات حساسة مقيدة للمديرين فقط",
-    "settings": {
-      "appNameRequired": "اسم التطبيق مطلوب",
-      "invalidEmail": "صيغة البريد غير صحيحة",
-      "placeholder_appName": "تطبيقي",
-      "placeholder_appDesc": "وصف مختصر للتطبيق",
-      "placeholder_privacy": "محتوى سياسة الخصوصية…",
-      "placeholder_terms": "محتوى شروط الخدمة…",
-      "placeholder_cookies": "محتوى سياسة ملفات تعريف الارتباط…",
-      "placeholder_emailSig": "توقيع البريد الإلكتروني…"
-    },
+    "settings": "الإعدادات",
     "roles": "الأدوار والصلاحيات",
     "audit": "سجل المراجعة",
     "noAccess": "ليس لديك صلاحية لعرض هذه الصفحة",
@@ -1666,7 +1677,8 @@
       "strengthFair": "متوسطة",
       "strengthGood": "جيدة",
       "strengthStrong": "قوية",
-      "stepLabel": "الخطوة"
+      "stepLabel": "الخطوة",
+      "otpSendFailed": "تعذر إرسال رمز التحقق. يمكنك إعادة الإرسال في خطوة التحقق."
     },
     "forgotPassword": {
       "title": "نسيت كلمة المرور؟",
@@ -1733,7 +1745,8 @@
       "backToLogin": "العودة لتسجيل الدخول",
       "invalidCode": "يرجى إدخال رمز صحيح مكون من 6 أرقام",
       "wrongCode": "الرمز غير صحيح أو منتهي الصلاحية. حاول مرة أخرى.",
-      "success": "تم التحقق! جارٍ التحويل..."
+      "success": "تم التحقق! جارٍ التحويل...",
+      "expired": "انتهت صلاحية الرمز — يرجى طلب رمز جديد."
     },
     "shared": {
       "emailError": "يرجى إدخال بريد إلكتروني صحيح",
@@ -2099,7 +2112,8 @@
     "deleteSuccess": "تم الحذف بنجاح",
     "deleteFailed": "فشل الحذف. الرجاء المحاولة مرة أخرى.",
     "nameEnRequired": "الاسم الإنجليزي مطلوب",
-    "countryRequired": "الدولة مطلوبة"
+    "countryRequired": "الدولة مطلوبة",
+    "deleteConfirmDesc": "هل أنت متأكد من حذف هذه المنطقة؟ لا يمكن التراجع عن هذا الإجراء."
   },
   "foodics": {
     "connect": "ربط بـ Foodics",
@@ -2184,7 +2198,8 @@
     "drawerSynced": "تمت مزامنة عمليات الدرج",
     "syncFailed": "فشلت المزامنة",
     "branchesImported": "تم استيراد الفروع بنجاح",
-    "importFailed": "فشل الاستيراد"
+    "importFailed": "فشل الاستيراد",
+    "disconnectConfirm": "هل أنت متأكد من فصل فودكس؟ سيؤدي ذلك إلى إزالة التكامل."
   },
   "paginatedSelect": {
     "loading": "جارٍ تحميل الخيارات…",

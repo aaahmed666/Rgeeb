@@ -170,37 +170,30 @@ export default function OtpView() {
     }
   }, [email, resendCountdown, showToast, t]);
 
-  const handleVerify = useCallback(async () => {
+  const handleVerify = useCallback(() => {
     if (code.length !== 6) {
       setCodeError(t("auth.otp.invalidCode"));
       return;
     }
-    setLoading(true);
-    setCodeError("");
-    try {
-      /**
-       * FIX: OtpView is used in the forgot-password flow (not 2FA).
-       * The correct behaviour after the user enters the OTP code is:
-       *   → redirect to /reset-password?email=...&token=<code>
-       * The backend will validate the OTP on the reset-password call.
-       *
-       * Previously this was incorrectly calling endpoints.security.twoFactorVerify
-       * which is the 2FA endpoint (/customer/2fa/verify) — completely wrong context.
-       */
-      showToast(t("auth.otp.success"), true);
-      setTimeout(() => {
-        router.push(
-          `/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(code)}`
-        );
-      }, 600);
-    } catch (err) {
-      setCodeError(
-        err instanceof Error ? err.message : t("auth.otp.wrongCode")
-      );
-    } finally {
-      setLoading(false);
+    // Enforce the on-screen expiry: an expired code must be re-requested,
+    // not forwarded to reset-password where it would fail confusingly.
+    if (expiry <= 0) {
+      setCodeError(t("auth.otp.expired", "Code expired \u2014 please request a new one."));
+      return;
     }
-  }, [code, email, t, showToast, router]);
+    setCodeError("");
+    /**
+     * OtpView is used in the forgot-password flow (not 2FA). The backend has
+     * no standalone verify endpoint, so the code is validated server-side on
+     * the reset-password submission. We therefore do NOT claim "verified"
+     * here \u2014 we only forward the code:
+     *   \u2192 /reset-password?email=...&token=<code>
+     */
+    setLoading(true);
+    router.push(
+      `/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(code)}`
+    );
+  }, [code, email, expiry, t, router]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
