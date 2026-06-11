@@ -332,7 +332,7 @@
     "insight_Task Performance": "أداء المهام",
     "insight_Response Time": "وقت الاستجابة",
     "noHourlyData": "لا توجد بيانات ساعية متاحة",
-    "noMatrixData": "لا توجد بيانات مصفوفة الخدمات",
+    "noMatrixData": "لا توجد بيانات للمصفوفة",
     "status_Outstanding": "متميز",
     "status_On Target": "في المسار",
     "status_Needs Attention": "يحتاج اهتمام",
@@ -352,7 +352,18 @@
     "forecastRequirement": "يتطلب يومين على الأقل من بيانات الكشف للتحليل",
     "noAnomaliesDesc": "جميع الفروع تعمل ضمن المعايير الطبيعية",
     "zScoreThreshold": "عتبة Z-score: 2.0",
-    "branchesMonitored": "فروع تحت المراقبة"
+    "branchesMonitored": "فروع تحت المراقبة",
+    "minDataRequired": "يتطلب 3 أيام من البيانات كحد أدنى",
+    "insufficientData": "بيانات غير كافية",
+    "radarSelectPrompt": "اختر فرعين على الأقل لعرض المخطط الراداري",
+    "comparisonSelectPrompt": "اختر فرعين أعلاه لمقارنة أدائهما",
+    "selectBranchA": "اختر الفرع أ",
+    "selectBranchB": "اختر الفرع ب",
+    "max": "بحد أقصى",
+    "noPeriodData": "لا توجد بيانات للمقارنة",
+    "currentPeriod": "الفترة الحالية",
+    "previousPeriod": "الفترة السابقة",
+    "vs": "مقابل"
   },
   "dashboard": {
     "title": "اللوحة الرئيسية",

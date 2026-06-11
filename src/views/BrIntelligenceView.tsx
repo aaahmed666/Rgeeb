@@ -91,6 +91,7 @@ import {
   Sparkline,
   ServiceBranchMatrix,
   ForecastSection,
+  PeriodComparisonSection,
 } from "@/views/BrIntelligenceHelpers";
 
 export default function BrIntelligenceView() {
@@ -107,6 +108,7 @@ export default function BrIntelligenceView() {
   const [openSection, setOpenSection] = useState<string | null>("efficiency");
   const [printMode, setPrintMode] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [radarCount, setRadarCount] = useState(0);
   const [sectionsWithData, setSectionsWithData] = useState<Set<string>>(
     new Set()
   );
@@ -313,7 +315,7 @@ export default function BrIntelligenceView() {
                   rankings: (rankings?.by_score?.length ?? 0) > 0,
                   heatmap: (heatmap?.cells?.length ?? 0) > 0,
                   hourly: (hourly?.length ?? 0) > 0,
-                  period: comparison.length > 0,
+                  period: (comparison?.metrics?.length ?? 0) > 0,
                   insights: insights.length > 0,
                   health: health.length > 0,
                   matrix: matrix.length > 0,
@@ -748,9 +750,10 @@ export default function BrIntelligenceView() {
         meta={
           <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">
             {t("intel.peak", "Peak")}:{" "}
-            {heatmap?.cells?.length
-              ? (heatmap.cells.length > 0 ? Math.max(...heatmap.cells.map((c) => c.value)) : 0)
-              : 0}{" "}
+            {(heatmap?.cells ?? []).reduce(
+              (m, c) => Math.max(m, Number(c.value) || 0),
+              0
+            )}{" "}
             {t("intel.detections", "detections")}
           </span>
         }
@@ -809,11 +812,11 @@ export default function BrIntelligenceView() {
         setOpenSection={setOpenSection}
         meta={
           <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
-            {efficiency.length} {t("intel.selected", "selected")}
+            {radarCount} {t("intel.selected", "selected")}
           </span>
         }
       >
-        <RadarSection rows={efficiency} />
+        <RadarSection rows={efficiency} onSelectionCount={setRadarCount} />
       </Section>
 
       {/* Hourly Peak Analysis */}
@@ -849,46 +852,16 @@ export default function BrIntelligenceView() {
         openSection={openSection}
         setOpenSection={setOpenSection}
         meta={
-          comparison.length > 0 ? (
+          (comparison?.metrics?.length ?? 0) > 0 ? (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
-              {comparison[0]?.delta_pct >= 0 ? "+" : ""}
-              {comparison[0]?.delta_pct}% {t("intel.vsPrevious", "vs previous")}
+              {(comparison?.metrics[0]?.delta_pct ?? 0) >= 0 ? "+" : ""}
+              {comparison?.metrics[0]?.delta_pct ?? 0}%{" "}
+              {t("intel.vsPrevious", "vs previous")}
             </span>
           ) : undefined
         }
       >
-        {comparison.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">—</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {comparison.map((c) => (
-              <div
-                key={c.metric}
-                className="rounded-xl border p-4"
-              >
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t(`intel.metric_${c.metric.toLowerCase()}`, c.metric)}
-                </p>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="rounded-lg bg-sky-50 p-2">
-                    <p className="text-[10px] text-muted-foreground">{t("intel.current", "Current")}</p>
-                    <p className="text-lg font-bold text-sky-700 tabular-nums">{c.current.toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2">
-                    <p className="text-[10px] text-muted-foreground">{t("intel.previous", "Previous")}</p>
-                    <p className="text-lg font-bold text-slate-600 tabular-nums">{c.previous.toLocaleString()}</p>
-                  </div>
-                  <div className={cn("rounded-lg p-2", c.delta_pct >= 0 ? "bg-emerald-50" : "bg-rose-50")}>
-                    <p className="text-[10px] text-muted-foreground">{t("intel.change", "Change")}</p>
-                    <p className={cn("text-lg font-bold tabular-nums", c.delta_pct >= 0 ? "text-emerald-700" : "text-rose-700")}>
-                      {c.delta_pct >= 0 ? "+" : ""}{c.delta_pct}%
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <PeriodComparisonSection data={comparison} />
       </Section>
 
       {/* AI Insights */}
@@ -987,8 +960,18 @@ export default function BrIntelligenceView() {
         title={t("intel.trendForecast", "Trend Forecast")}
         openSection={openSection}
         setOpenSection={setOpenSection}
-        meta={
-          forecast && (
+        meta={(() => {
+          const actualCount = (forecast?.points ?? []).filter(
+            (p) => p.actual !== undefined
+          ).length;
+          if (!forecast || actualCount < 2) {
+            return (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+                — {t("intel.insufficientData", "Insufficient Data")}
+              </span>
+            );
+          }
+          return (
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -1007,8 +990,8 @@ export default function BrIntelligenceView() {
               {t(`intel.direction_${forecast.direction}`, forecast.direction)}{" "}
               (R²: {forecast.r2})
             </span>
-          )
-        }
+          );
+        })()}
       >
         <ForecastSection forecast={forecast} />
       </Section>
@@ -1044,6 +1027,10 @@ export default function BrIntelligenceView() {
               <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
                 <TrendingUp className="h-3 w-3" />
                 {t("intel.zScoreThreshold", "Z-score threshold: 2.0")}
+              </span>
+              <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
+                <Info className="h-3 w-3" />
+                {t("intel.minDataRequired", "Min 3 days data required")}
               </span>
               <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
                 <Brain className="h-3 w-3" />

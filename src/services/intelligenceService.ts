@@ -110,6 +110,19 @@ export interface PeriodComparison {
   delta_pct: number;
 }
 
+export interface PeriodDailyPoint {
+  date: string;
+  value: number;
+}
+
+export interface PeriodComparisonPayload {
+  metrics: PeriodComparison[];
+  currentRange: { from: string; to: string };
+  previousRange: { from: string; to: string };
+  dailyCurrent: PeriodDailyPoint[];
+  dailyPrevious: PeriodDailyPoint[];
+}
+
 // ---------- Raw API shapes ----------
 
 interface RawEfficiencyBranch {
@@ -212,10 +225,17 @@ interface RawHourlyItem {
   violations: number;
 }
 
-// period-comparison returns { current: { total, violations, daily }, previous: { total, violations }, change_pct }
+// period-comparison returns { current: { total, violations, daily }, previous: { total, violations, daily? }, change_pct }
+interface RawPeriodDaily {
+  date?: string;
+  day?: string;
+  total?: number;
+  value?: number;
+  count?: number;
+}
 interface RawPeriodComparison {
-  current: { total: number; violations: number };
-  previous: { total: number; violations: number };
+  current: { total: number; violations: number; daily?: RawPeriodDaily[] };
+  previous: { total: number; violations: number; daily?: RawPeriodDaily[] };
   change_pct: number;
 }
 
@@ -239,19 +259,24 @@ function classificationToStatus(c: string): EfficiencyRow["status"] {
 }
 
 function normalizeEfficiency(raw: RawEfficiencyBranch[]): EfficiencyRow[] {
-  return raw.map((r) => ({
-    branch: r.name ?? "",
-    score: Number(r.composite_score ?? 0),
-    compliance: Number(r.compliance_score ?? 0),
-    detections: Number(r.total_detections ?? 0),
-    violations: Number(r.violation_count ?? 0),
-    violation_rate: Number(r.violation_rate ?? 0),
-    tasks_done: Number(r.completed_tasks ?? 0),
-    tasks_total: Number(r.total_tasks ?? 0),
-    task_rate: Number(r.task_completion_rate ?? 0),
-    trend: Number(r.trend_pct ?? 0),
-    status: classificationToStatus(r.classification),
-  }));
+  return raw.map((r) => {
+    const tasksTotal = Number(r.total_tasks ?? 0);
+    return {
+      branch: r.name ?? "",
+      score: Number(r.composite_score ?? 0),
+      compliance: Number(r.compliance_score ?? 0),
+      detections: Number(r.total_detections ?? 0),
+      violations: Number(r.violation_count ?? 0),
+      violation_rate: Number(r.violation_rate ?? 0),
+      tasks_done: Number(r.completed_tasks ?? 0),
+      tasks_total: tasksTotal,
+      // A branch with zero tasks must not be reported as 100% completion —
+      // that made comparisons/radar claim a "win" on a metric with no data.
+      task_rate: tasksTotal > 0 ? Number(r.task_completion_rate ?? 0) : 0,
+      trend: Number(r.trend_pct ?? 0),
+      status: classificationToStatus(r.classification),
+    };
+  });
 }
 
 function normalizeRankings(raw: RawRankings): Rankings {
@@ -416,8 +441,25 @@ function normalizeHourly(raw: RawHourlyItem[]): HourlyPeak[] {
   }));
 }
 
-function normalizeComparison(raw: RawPeriodComparison): PeriodComparison[] {
-  return [
+function normalizeDaily(raw?: RawPeriodDaily[]): PeriodDailyPoint[] {
+  return (raw ?? []).map((d) => ({
+    date: String(d.date ?? d.day ?? ""),
+    value: Number(d.total ?? d.value ?? d.count ?? 0),
+  }));
+}
+
+function shiftDate(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  if (Number.isNaN(d.getTime())) return iso;
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function normalizeComparison(
+  raw: RawPeriodComparison,
+  f: IntelFilters
+): PeriodComparisonPayload {
+  const metrics: PeriodComparison[] = [
     {
       metric: "Detections",
       current: Number(raw.current?.total ?? 0),
@@ -438,6 +480,26 @@ function normalizeComparison(raw: RawPeriodComparison): PeriodComparison[] {
         : 0,
     },
   ];
+  // Previous period = same length immediately before the current range
+  const days =
+    Math.max(
+      1,
+      Math.round(
+        (new Date(f.dateTo + "T00:00:00Z").getTime() -
+          new Date(f.dateFrom + "T00:00:00Z").getTime()) /
+          86_400_000
+      ) + 1
+    ) || 1;
+  return {
+    metrics,
+    currentRange: { from: f.dateFrom, to: f.dateTo },
+    previousRange: {
+      from: shiftDate(f.dateFrom, -days),
+      to: shiftDate(f.dateFrom, -1),
+    },
+    dailyCurrent: normalizeDaily(raw.current?.daily),
+    dailyPrevious: normalizeDaily(raw.previous?.daily),
+  };
 }
 
 // ---------- Demo data ----------
@@ -452,7 +514,7 @@ const demoEfficiency: EfficiencyRow[] = [
     violation_rate: 0,
     tasks_done: 0,
     tasks_total: 0,
-    task_rate: 100,
+    task_rate: 0,
     trend: 13.1,
     status: "Outstanding",
   },
@@ -485,7 +547,7 @@ const demoRankings: Rankings = {
     { branch: "Main Branch", value: "19%" },
   ],
   by_tasks: [
-    { branch: "Second Branch", value: "100%" },
+    { branch: "Second Branch", value: "0%" },
     { branch: "Main Branch", value: "0%" },
   ],
 };
@@ -599,10 +661,16 @@ const demoHourly: HourlyPeak[] = Array.from({ length: 24 }).map((_, h) => ({
   violations: 30 + Math.round(Math.random() * 80),
 }));
 
-const demoComparison: PeriodComparison[] = [
-  { metric: "Detections", current: 27538, previous: 22650, delta_pct: 21.5 },
-  { metric: "Violations", current: 5514, previous: 3850, delta_pct: 43.2 },
-];
+const demoComparison: PeriodComparisonPayload = {
+  metrics: [
+    { metric: "Detections", current: 27538, previous: 22650, delta_pct: 21.5 },
+    { metric: "Violations", current: 5514, previous: 3850, delta_pct: 43.2 },
+  ],
+  currentRange: { from: "", to: "" },
+  previousRange: { from: "", to: "" },
+  dailyCurrent: [],
+  dailyPrevious: [],
+};
 
 const demoAvailableServices = [
   "All",
@@ -766,10 +834,11 @@ export const intelligenceService = {
       ).then((r) =>
         normalizeComparison(
           (r as { data: RawPeriodComparison }).data ??
-            (r as RawPeriodComparison)
+            (r as RawPeriodComparison),
+          f
         )
       ),
-      [] as PeriodComparison[]
+      null as PeriodComparisonPayload | null
     ),
 
   availableServices: () =>

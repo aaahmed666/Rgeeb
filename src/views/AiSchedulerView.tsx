@@ -160,12 +160,24 @@ export default function AiSchedulerView() {
 
       {rec && <RecommendationView rec={rec} />}
 
+      {rec && !rec.worker.id && (
+        <div className="mx-auto flex max-w-xl items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {t(
+              "scheduler.noWorkerId",
+              "The AI recommendation did not include a worker to assign. The schedule cannot be applied — try \u201CFind Best Match\u201D again or pick a different task."
+            )}
+          </span>
+        </div>
+      )}
+
       {rec && (
         <div className="flex justify-center">
           <Button
             size="lg"
             className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 px-8 text-white shadow-lg hover:opacity-95"
-            disabled={applyMutation.isPending}
+            disabled={applyMutation.isPending || !rec.worker.id}
             onClick={() => applyMutation.mutate()}
           >
             {applyMutation.isPending ? (

@@ -41,6 +41,14 @@ function pickStr(...vals: unknown[]): string | undefined {
   for (const v of vals) if (typeof v === "string" && v) return v;
   return undefined;
 }
+/** Accepts string or numeric ids and returns them as a non-empty string. */
+function pickId(...vals: unknown[]): string {
+  for (const v of vals) {
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  }
+  return "";
+}
 function pickNum(...vals: unknown[]): number {
   for (const v of vals) {
     const n = Number(v);
@@ -131,6 +139,10 @@ export async function fetchAutoSchedule(
     string,
     unknown
   >;
+  // Some API versions nest the actual user/worker record one level deeper
+  // (e.g. { worker: { score, breakdown, worker: { id, name } } } or
+  //  { worker: { worker_id, worker_name, score, ... } }).
+  const wInner = (w.worker ?? w.user ?? {}) as Record<string, unknown>;
   const s = (data.schedule ?? data.recommended_schedule ?? {}) as Record<
     string,
     unknown
@@ -176,9 +188,28 @@ export async function fetchAutoSchedule(
       priority: pickStr(t.priority),
     },
     worker: {
-      id: String(w.id ?? ""),
-      name: pickStr(w.name, w.full_name, w.username) ?? "—",
-      avatar: pickStr(w.avatar, w.avatar_url),
+      id: pickId(
+        w.id,
+        w.worker_id,
+        w.user_id,
+        w.assigned_to,
+        wInner.id,
+        wInner.worker_id,
+        wInner.user_id,
+        data.worker_id,
+        data.assigned_to
+      ),
+      name:
+        pickStr(
+          w.name,
+          w.full_name,
+          w.username,
+          w.worker_name,
+          wInner.name,
+          wInner.full_name,
+          wInner.username
+        ) ?? "—",
+      avatar: pickStr(w.avatar, w.avatar_url, wInner.avatar, wInner.avatar_url),
       score: scoreVal,
       activeTasks: pickNum(w.active_tasks, w.activeTasks),
       workload: {
@@ -227,6 +258,11 @@ export async function applyAutoSchedule(
   taskId: string,
   payload: { worker_id: string; scheduled_at: string; due_at: string }
 ): Promise<void> {
+  if (!payload.worker_id || !payload.worker_id.trim()) {
+    throw new Error(
+      "No worker was returned by the AI recommendation — cannot apply schedule. Please run \u201CFind Best Match\u201D again."
+    );
+  }
   await apiFetch(endpoints.smartScheduler.applySchedule, {
     method: "POST",
     body: {

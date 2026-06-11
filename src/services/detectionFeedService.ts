@@ -75,7 +75,11 @@ export const detectionFeedService = {
             per_page: perPage,
             branch_id: f.branchId,
             camera_id: f.cameraId,
-            service: f.service,
+            // The filter UI provides the service *id* (AsyncPaginatedSelect
+            // with valueKey="id"); the API contract expects `service_id`,
+            // not `service` — sending the wrong key made the backend ignore
+            // the filter and return unfiltered data.
+            service_id: f.service,
             date_from: f.from,
             date_to: f.to,
           },

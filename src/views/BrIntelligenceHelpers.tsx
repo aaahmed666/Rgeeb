@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -42,6 +42,7 @@ import type {
   AiInsight,
   BranchHealth,
   ServiceMatrixCell,
+  PeriodComparisonPayload,
 } from "@/services/intelligenceService";
 import { useTranslation } from "react-i18next";
 
@@ -351,7 +352,7 @@ export function Heatmap({ data }: { data: HeatmapPayload | null }) {
   const dates = data?.dates ?? [];
   if (!cells.length || !dates.length) {
     return (
-      <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
+      <div className="py-12 text-center text-sm text-muted-foreground">
         {t("intel.noHeatmapData", "No heatmap data available")}
       </div>
     );
@@ -428,11 +429,11 @@ export function HourlyChart({ data }: { data: HourlyPeak[] }) {
   const { t } = useTranslation();
   if (data.length === 0)
     return (
-      <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
-        {t("intel.noHourlyData", "No hourly data available for this period")}
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noHourlyData", "No hourly data available")}
       </div>
     );
-  const max = Math.max(...data.map((d) => d.detections));
+  const max = Math.max(1, ...data.map((d) => d.detections));
   const peakHour = data.reduce(
     (m, c) => (c.detections > m.detections ? c : m),
     data[0]
@@ -492,52 +493,222 @@ export function HourlyChart({ data }: { data: HourlyPeak[] }) {
   );
 }
 
-export function RadarSection({ rows }: { rows: EfficiencyRow[] }) {
+const RADAR_COLORS = [
+  "#8b5cf6", // violet
+  "#0ea5e9", // sky
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#f43f5e", // rose
+];
+const RADAR_MAX_SELECTED = 5;
+
+export function RadarSection({
+  rows,
+  onSelectionCount,
+}: {
+  rows: EfficiencyRow[];
+  onSelectionCount?: (n: number) => void;
+}) {
   const { t } = useTranslation();
+  const [selected, setSelected] = useState<string[]>([]);
+
+  // Drop selections that no longer exist after a data refresh
+  const valid = useMemo(
+    () => selected.filter((b) => rows.some((r) => r.branch === b)),
+    [selected, rows]
+  );
+  useEffect(() => {
+    onSelectionCount?.(valid.length);
+  }, [valid.length, onSelectionCount]);
+
   if (rows.length === 0) return <Skeleton className="h-40 w-full" />;
+
+  const toggle = (branch: string) => {
+    setSelected((prev) => {
+      if (prev.includes(branch)) return prev.filter((b) => b !== branch);
+      if (prev.length >= RADAR_MAX_SELECTED) return prev;
+      return [...prev, branch];
+    });
+  };
+
   const metrics = [
-    { key: "compliance", label: "intel.compliance" },
-    { key: "score", label: "intel.score" },
-    { key: "task_rate", label: "intel.tasks" },
-    { key: "violation_rate", label: "analytics.violations" },
-    { key: "detections", label: "intel.detections" },
+    { key: "compliance", label: t("intel.compliance", "Compliance") },
+    { key: "score", label: t("intel.score", "Score") },
+    { key: "task_rate", label: t("intel.tasks", "Tasks") },
+    { key: "violations", label: t("analytics.violations", "Violations") },
+    { key: "detections", label: t("intel.detections", "Detections") },
   ] as const;
+
   const maxDet = Math.max(1, ...rows.map((r) => r.detections));
+  // Normalize every axis to 0–100 where bigger = better
+  const axisValue = (r: EfficiencyRow, key: (typeof metrics)[number]["key"]) => {
+    let v: number;
+    if (key === "detections") v = (r.detections / maxDet) * 100;
+    else if (key === "violations") v = 100 - (r.violation_rate ?? 0);
+    else v = (r as unknown as Record<string, number>)[key] ?? 0;
+    return Math.max(0, Math.min(100, v));
+  };
+
+  const selectedRows = valid
+    .map((b) => rows.find((r) => r.branch === b))
+    .filter((r): r is EfficiencyRow => Boolean(r));
+
+  // Radar geometry
+  const SIZE = 320;
+  const C = SIZE / 2;
+  const R = SIZE / 2 - 48;
+  const n = metrics.length;
+  const angleAt = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
+  const pointAt = (i: number, frac: number) => ({
+    x: C + Math.cos(angleAt(i)) * R * frac,
+    y: C + Math.sin(angleAt(i)) * R * frac,
+  });
+  const polygonFor = (r: EfficiencyRow) =>
+    metrics
+      .map((m, i) => {
+        const p = pointAt(i, axisValue(r, m.key) / 100);
+        return `${p.x},${p.y}`;
+      })
+      .join(" ");
+
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-      {rows.map((r) => (
-        <div
-          key={r.branch}
-          className="rounded-lg border p-3"
-        >
-          <p className="mb-2 font-semibold">{r.branch}</p>
-          <div className="space-y-2">
-            {metrics.map((m) => {
-              const raw =
-                m.key === "detections"
-                  ? (r.detections / maxDet) * 100
-                  : (r as unknown as Record<string, number>)[m.key];
-              const v = Math.max(0, Math.min(100, raw));
+    <div className="space-y-4">
+      {/* Branch chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {rows.map((r) => {
+          const active = valid.includes(r.branch);
+          const disabled = !active && valid.length >= RADAR_MAX_SELECTED;
+          return (
+            <button
+              key={r.branch}
+              onClick={() => toggle(r.branch)}
+              disabled={disabled}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition",
+                active
+                  ? "border-violet-300 bg-violet-50 text-violet-700"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50",
+                disabled && "cursor-not-allowed opacity-40"
+              )}
+            >
+              {r.branch}
+            </button>
+          );
+        })}
+        <span className="ms-1 text-[11px] text-muted-foreground">
+          ({t("intel.max", "max")} {RADAR_MAX_SELECTED})
+        </span>
+      </div>
+
+      {selectedRows.length < 2 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-10 w-10 text-slate-300"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M12 3l8.5 6.2-3.2 10H6.7L3.5 9.2 12 3z" />
+            <path d="M12 3v16.2M3.5 9.2l17 0M6.7 19.2L20.5 9.2M17.3 19.2L3.5 9.2" opacity="0.4" />
+          </svg>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "intel.radarSelectPrompt",
+              "Select at least 2 branches to see the radar chart"
+            )}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3">
+          <svg
+            viewBox={`0 0 ${SIZE} ${SIZE}`}
+            className="h-80 w-full max-w-md"
+          >
+            {/* Grid rings */}
+            {[0.25, 0.5, 0.75, 1].map((frac) => (
+              <polygon
+                key={frac}
+                points={metrics
+                  .map((_, i) => {
+                    const p = pointAt(i, frac);
+                    return `${p.x},${p.y}`;
+                  })
+                  .join(" ")}
+                fill="none"
+                className="stroke-slate-200"
+              />
+            ))}
+            {/* Axes + labels */}
+            {metrics.map((m, i) => {
+              const tip = pointAt(i, 1);
+              const lbl = pointAt(i, 1.18);
               return (
-                <div key={m.key}>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {t(m.label, m.label.split(".").pop() ?? m.label)}
-                    </span>
-                    <span className="tabular-nums">{Math.round(v)}</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-violet-500"
-                      style={{ width: `${v}%` }}
-                    />
-                  </div>
-                </div>
+                <g key={m.key}>
+                  <line
+                    x1={C}
+                    y1={C}
+                    x2={tip.x}
+                    y2={tip.y}
+                    className="stroke-slate-200"
+                  />
+                  <text
+                    x={lbl.x}
+                    y={lbl.y}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="fill-slate-500 text-[10px] font-medium"
+                  >
+                    {m.label}
+                  </text>
+                </g>
               );
             })}
+            {/* Branch polygons */}
+            {selectedRows.map((r, idx) => {
+              const color = RADAR_COLORS[idx % RADAR_COLORS.length];
+              return (
+                <g key={r.branch}>
+                  <polygon
+                    points={polygonFor(r)}
+                    fill={color}
+                    fillOpacity="0.12"
+                    stroke={color}
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                  {metrics.map((m, i) => {
+                    const p = pointAt(i, axisValue(r, m.key) / 100);
+                    return (
+                      <circle
+                        key={m.key}
+                        cx={p.x}
+                        cy={p.y}
+                        r="3"
+                        fill={color}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </svg>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
+            {selectedRows.map((r, idx) => (
+              <span
+                key={r.branch}
+                className="flex items-center gap-1.5"
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: RADAR_COLORS[idx % RADAR_COLORS.length] }}
+                />
+                {r.branch}
+              </span>
+            ))}
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -551,14 +722,9 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
 
   if (rows.length === 0) return <Skeleton className="h-40 w-full" />;
 
-  // Resolve the actual branch objects; fall back to positional defaults only
-  // when no explicit selection has been made yet (empty string).
-  const resolvedA = selectedA || rows[0]?.branch || "";
-  const resolvedB = selectedB || rows[1]?.branch || rows[0]?.branch || "";
-
-  const branchA = rows.find((r) => r.branch === resolvedA) ?? rows[0];
-  const branchB =
-    rows.find((r) => r.branch === resolvedB) ?? rows[1] ?? rows[0];
+  const branchA = rows.find((r) => r.branch === selectedA);
+  const branchB = rows.find((r) => r.branch === selectedB);
+  const bothSelected = Boolean(branchA && branchB);
 
   const metrics: {
     key: "score" | "compliance" | "violation_rate" | "task_rate";
@@ -585,10 +751,13 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-indigo-500" />
           <select
-            value={resolvedA}
+            value={selectedA}
             onChange={(e) => setSelectedA(e.target.value)}
             className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
           >
+            <option value="">
+              {t("intel.selectBranchA", "Select Branch A")}
+            </option>
             {rows.map((r) => (
               <option
                 key={r.branch}
@@ -603,10 +772,13 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-teal-500" />
           <select
-            value={resolvedB}
+            value={selectedB}
             onChange={(e) => setSelectedB(e.target.value)}
             className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
           >
+            <option value="">
+              {t("intel.selectBranchB", "Select Branch B")}
+            </option>
             {rows.map((r) => (
               <option
                 key={r.branch}
@@ -619,6 +791,17 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
         </div>
       </div>
 
+      {!bothSelected ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+          <TrendingUp className="h-9 w-9 text-slate-300" />
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "intel.comparisonSelectPrompt",
+              "Select two branches above to compare their performance"
+            )}
+          </p>
+        </div>
+      ) : (
       <div className="space-y-4">
         {metrics.map((m) => {
           const valA =
@@ -654,7 +837,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
                         : "bg-teal-100 text-teal-700"
                     )}
                   >
-                    {winner === "A" ? branchA.branch : branchB.branch}{" "}
+                    {winner === "A" ? branchA?.branch : branchB?.branch}{" "}
                     {t("intel.wins", "wins")}
                   </span>
                 )}
@@ -662,7 +845,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="w-28 truncate text-xs text-slate-600">
-                    {branchA.branch}
+                    {branchA?.branch}
                   </span>
                   <div className="flex-1">
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -681,7 +864,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-28 truncate text-xs text-slate-600">
-                    {branchB.branch}
+                    {branchB?.branch}
                   </span>
                   <div className="flex-1">
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -703,6 +886,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -1179,8 +1363,8 @@ export function ServiceBranchMatrix({ cells }: { cells: ServiceMatrixCell[] }) {
   const { t } = useTranslation();
   if (cells.length === 0)
     return (
-      <div className="rounded-xl bg-orange-50/40 py-12 text-center text-sm text-muted-foreground">
-        {t("intel.noMatrixData", "No service matrix data available")}
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noMatrixData", "No matrix data available")}
       </div>
     );
   const branches = Array.from(new Set(cells.map((c) => c.branch)));
@@ -1325,7 +1509,13 @@ export function ForecastSection({
   forecast: TrendForecast | null;
 }) {
   const { t } = useTranslation();
-  if (!forecast || forecast.points.length === 0) {
+  const actualCount = (forecast?.points ?? []).filter(
+    (p) => p.actual !== undefined
+  ).length;
+  // The regression needs at least 2 days of real history — showing the stat
+  // pills with "stable (R²: 0)" and an empty chart on insufficient data was
+  // misleading (matches the production reference behavior).
+  if (!forecast || actualCount < 2) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
@@ -1344,7 +1534,6 @@ export function ForecastSection({
       </div>
     );
   }
-  if (!forecast) return <Skeleton className="h-56 w-full" />;
   const dirColor =
     forecast.direction === "falling"
       ? "text-rose-600"
@@ -1607,6 +1796,214 @@ export function ForecastChartV2({ forecast }: { forecast: TrendForecast }) {
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-4 rounded-sm bg-indigo-200/60" />
           {t("intel.confidence95", "95% Confidence")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Period-over-Period (reference layout) ---------------- */
+
+export function PeriodComparisonSection({
+  data,
+}: {
+  data: PeriodComparisonPayload | null;
+}) {
+  const { t } = useTranslation();
+  const detections = data?.metrics.find((m) => m.metric === "Detections");
+  const violations = data?.metrics.find((m) => m.metric === "Violations");
+
+  if (!data || !detections) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        {t("intel.noPeriodData", "No comparison data available")}
+      </div>
+    );
+  }
+
+  const fmtRange = (r: { from: string; to: string }) =>
+    r.from && r.to ? `${r.from} - ${r.to}` : "";
+
+  const deltaPositive = detections.delta_pct >= 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards — Current / Previous / Change */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border p-4 text-center">
+          <p className="text-2xl font-bold text-indigo-600 tabular-nums">
+            {detections.current.toLocaleString()}
+          </p>
+          <p className="mt-1 text-sm font-medium text-slate-600">
+            {t("intel.currentPeriod", "Current Period")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+            {fmtRange(data.currentRange)}
+          </p>
+        </div>
+        <div className="rounded-xl border p-4 text-center">
+          <p className="text-2xl font-bold text-slate-500 tabular-nums">
+            {detections.previous.toLocaleString()}
+          </p>
+          <p className="mt-1 text-sm font-medium text-slate-600">
+            {t("intel.previousPeriod", "Previous Period")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+            {fmtRange(data.previousRange)}
+          </p>
+        </div>
+        <div className="rounded-xl border p-4 text-center">
+          <p
+            className={cn(
+              "text-2xl font-bold tabular-nums",
+              deltaPositive ? "text-emerald-600" : "text-rose-600"
+            )}
+          >
+            {deltaPositive ? "+" : ""}
+            {detections.delta_pct}%
+          </p>
+          <p className="mt-1 text-sm font-medium text-slate-600">
+            {t("intel.change", "Change")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+            {detections.current.toLocaleString()}{" "}
+            {t("intel.detections", "detections")}
+          </p>
+        </div>
+      </div>
+
+      {/* Violations strip (kept from previous layout so the data isn't lost) */}
+      {violations && (
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-slate-600">
+            {t("intel.metric_violations", "Violations")}:
+          </span>
+          <span className="tabular-nums">
+            {violations.current.toLocaleString()}
+          </span>
+          <span>{t("intel.vs", "vs")}</span>
+          <span className="tabular-nums">
+            {violations.previous.toLocaleString()}
+          </span>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 font-semibold tabular-nums",
+              violations.delta_pct > 0
+                ? "bg-rose-50 text-rose-600"
+                : "bg-emerald-50 text-emerald-600"
+            )}
+          >
+            {violations.delta_pct >= 0 ? "+" : ""}
+            {violations.delta_pct}%
+          </span>
+        </div>
+      )}
+
+      <PeriodDailyChart data={data} />
+    </div>
+  );
+}
+
+function PeriodDailyChart({ data }: { data: PeriodComparisonPayload }) {
+  const { t } = useTranslation();
+  const cur = data.dailyCurrent;
+  const prev = data.dailyPrevious;
+  const n = Math.max(cur.length, prev.length);
+
+  const W = 800;
+  const H = 220;
+  const padL = 44;
+  const padR = 12;
+  const padT = 10;
+  const padB = 26;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const max = Math.max(
+    1,
+    ...cur.map((p) => p.value),
+    ...prev.map((p) => p.value)
+  );
+  const xAt = (i: number) => padL + (i / Math.max(1, n - 1)) * innerW;
+  const yAt = (v: number) => padT + innerH - (v / max) * innerH;
+  const pathFor = (pts: { value: number }[]) =>
+    pts
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(p.value)}`)
+      .join(" ");
+  const ticks = [0, 0.5, 1].map((f) => Math.round(max * f));
+  const xLabelIdx = cur
+    .map((_, i) => i)
+    .filter((i) => i % Math.max(1, Math.ceil(cur.length / 8)) === 0);
+
+  return (
+    <div className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-52 w-full">
+        {ticks.map((tv, i) => (
+          <g key={i}>
+            <line
+              x1={padL}
+              x2={W - padR}
+              y1={yAt(tv)}
+              y2={yAt(tv)}
+              className="stroke-slate-100"
+            />
+            <text
+              x={padL - 6}
+              y={yAt(tv) + 4}
+              textAnchor="end"
+              className="fill-slate-400 text-[10px]"
+            >
+              {tv.toLocaleString()}
+            </text>
+          </g>
+        ))}
+        {prev.length > 1 && (
+          <path
+            d={pathFor(prev)}
+            fill="none"
+            stroke="#94a3b8"
+            strokeWidth="2"
+            strokeDasharray="5 4"
+            strokeLinecap="round"
+          />
+        )}
+        {cur.length > 1 && (
+          <path
+            d={pathFor(cur)}
+            fill="none"
+            stroke="hsl(243 75% 59%)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+        )}
+        {cur.map((p, i) => (
+          <circle
+            key={i}
+            cx={xAt(i)}
+            cy={yAt(p.value)}
+            r="2.5"
+            fill="hsl(243 75% 59%)"
+          />
+        ))}
+        {xLabelIdx.map((i) => (
+          <text
+            key={i}
+            x={xAt(i)}
+            y={H - 8}
+            textAnchor="middle"
+            className="fill-slate-500 text-[10px]"
+          >
+            {(cur[i]?.date ?? "").slice(5)}
+          </text>
+        ))}
+      </svg>
+      <div className="mt-1 flex items-center justify-center gap-5 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-0.5 w-5 bg-indigo-500" />
+          {t("intel.currentPeriod", "Current Period")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-0.5 w-5 border-t-2 border-dashed border-slate-400" />
+          {t("intel.previousPeriod", "Previous Period")}
         </span>
       </div>
     </div>

@@ -8,7 +8,7 @@ import {
   type EfficiencyRow,
   type HeatmapPayload,
   type HourlyPeak,
-  type PeriodComparison,
+  type PeriodComparisonPayload,
   type Rankings,
   type ServiceMatrixCell,
   type TrendForecast,
@@ -25,7 +25,7 @@ export interface BrIntelligenceState {
   anomalies: Anomaly[];
   forecast: TrendForecast | null;
   hourly: HourlyPeak[];
-  comparison: PeriodComparison[];
+  comparison: PeriodComparisonPayload | null;
   services: string[];
   branches: Branch[];
   loading: boolean;
@@ -53,7 +53,7 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
     anomalies: [],
     forecast: null,
     hourly: [],
-    comparison: [],
+    comparison: null,
     services: ["All"],
     branches: [],
     loading: true,
@@ -136,7 +136,7 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       anomalies: Array.isArray(an) ? an : [],
       forecast: fc && typeof fc === "object" && !Array.isArray(fc) ? fc : null,
       hourly: Array.isArray(hr) ? hr : [],
-      comparison: Array.isArray(cp) ? cp : [],
+      comparison: cp && typeof cp === "object" && !Array.isArray(cp) ? cp : null,
       loading: false,
       updatedAt: new Date(),
     }));
@@ -174,9 +174,14 @@ export function useBrIntelligenceData(filters: BrIntelligenceFilters) {
       const normalized = (data as unknown[])
         .map(normalizeService)
         .filter(Boolean);
+      // Always keep "All" as the first chip (the API list does not include
+      // it), and dedupe in case the fallback catalog overlaps.
+      const unique = Array.from(
+        new Set(normalized.filter((s) => s.toLowerCase() !== "all"))
+      );
       setState((prev) => ({
         ...prev,
-        services: normalized.length ? normalized : ["All"],
+        services: ["All", ...unique],
       }));
     });
   }, []);

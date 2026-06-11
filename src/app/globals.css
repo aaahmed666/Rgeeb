@@ -845,3 +845,35 @@ button,
     width: 100% !important;
   }
 }
+
+/* ── Sidebar navigation scrollbar ─────────────────────────────────────────
+   Replace the default chunky OS scrollbar inside the sidebar with a thin,
+   theme-aware one that only becomes visible on hover/scroll. */
+[data-sidebar="content"] {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  /* keep layout stable when the thumb appears */
+  scrollbar-gutter: stable;
+}
+[data-sidebar="content"]:hover {
+  scrollbar-color: color-mix(in oklch, var(--sidebar-foreground) 25%, transparent)
+    transparent;
+}
+/* WebKit (Chrome / Edge / Safari / Brave) */
+[data-sidebar="content"]::-webkit-scrollbar {
+  width: 6px;
+}
+[data-sidebar="content"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-sidebar="content"]::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+[data-sidebar="content"]:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--sidebar-foreground) 25%, transparent);
+}
+[data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--sidebar-foreground) 40%, transparent);
+}
