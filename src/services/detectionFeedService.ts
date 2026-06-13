@@ -129,11 +129,20 @@ export const detectionFeedService = {
         };
       }
 
-      const meta = (raw?.meta as Record<string, unknown>) ?? {};
+      // Laravel paginators nest the count under different keys depending on
+      // the wrapper depth. Check every known location before falling back to
+      // the page length (which would otherwise pin the total to 15 and hide
+      // every page after the first).
+      const dataObj = (raw?.data as Record<string, unknown>) ?? {};
+      const meta =
+        ((raw?.meta as Record<string, unknown>) ??
+          (dataObj.meta as Record<string, unknown>)) ||
+        {};
       const total = num(
         raw?.total ??
           meta.total ??
-          (raw?.data as Record<string, unknown>)?.total ??
+          dataObj.total ??
+          (dataObj.meta as Record<string, unknown>)?.total ??
           items.length,
         items.length
       );

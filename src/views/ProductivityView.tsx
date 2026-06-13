@@ -163,7 +163,7 @@ export default function ProductivityView() {
             )}
           </p>
         </div>
-        <div className="flex flex-nowrap items-center gap-2">
+        <div className="no-print flex flex-nowrap items-center gap-2">
           <div className="min-w-0 flex-1 sm:w-64">
             <SharedDateRangePicker
               value={dateRange}
@@ -432,7 +432,7 @@ function LeaderboardTab({
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return (
-    <Card className="overflow-hidden p-5">
+    <Card data-section-id="leaderboard" className="overflow-hidden p-5">
       <div className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
         <Trophy className="h-5 w-5 text-amber-500" />
         {t("productivity.employeeLeaderboard", "Employee Leaderboard")}

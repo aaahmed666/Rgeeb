@@ -62,7 +62,7 @@ export default function DashboardLayout({
         <AppSidebar />
         <SidebarInset className="flex min-h-screen flex-1 flex-col">
           <AppHeader />
-          <main className="flex-1 overflow-y-auto bg-background">
+          <main className="flex-1 overflow-y-auto bg-background pb-24">
             {children}
           </main>
           <ScrollToTop />

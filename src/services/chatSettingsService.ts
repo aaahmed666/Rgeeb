@@ -83,6 +83,36 @@ function mapApiResponse(raw: ApiChatSettings): ChatSettings {
   };
 }
 
+// Maps the internal ChatSettings shape to the flat snake_case payload the
+// POST /customer/chat/settings endpoint expects. Only includes fields that
+// are present so partial updates stay partial.
+function toApiRequest(body: Partial<ChatSettings>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const w = body.whatsapp;
+  if (w) {
+    if (w.enabled !== undefined) out.whatsapp_enabled = w.enabled;
+    if (w.phone_number !== undefined) out.whatsapp_number = w.phone_number;
+    if (w.language !== undefined) out.notification_language = w.language;
+    if (w.daily_reports !== undefined) out.daily_reports = w.daily_reports;
+    if (w.weekly_reports !== undefined) out.weekly_reports = w.weekly_reports;
+    if (w.realtime_alerts !== undefined) out.alerts = w.realtime_alerts;
+  }
+  const a = body.alerts;
+  if (a) {
+    const thresholds: Record<string, number> = {};
+    if (a.ppe_violations_window_minutes !== undefined)
+      thresholds.ppeSurge = a.ppe_violations_window_minutes;
+    if (a.visitor_drop_percentage !== undefined)
+      thresholds.visitorDrop = a.visitor_drop_percentage;
+    if (a.minimum_traffic_baseline !== undefined)
+      thresholds.minTraffic = a.minimum_traffic_baseline;
+    if (a.wait_time_minutes !== undefined)
+      thresholds.waitTime = a.wait_time_minutes;
+    if (Object.keys(thresholds).length) out.alert_thresholds = thresholds;
+  }
+  return out;
+}
+
 async function safe<T>(p: Promise<T>, fb: T): Promise<T> {
   try {
     const result = await p;
@@ -114,7 +144,10 @@ export const chatSettingsService = {
   update: (body: Partial<ChatSettings>) =>
     apiFetch<{ success: boolean } | ChatSettings | { data: ChatSettings }>(
       endpoints.chatSettings.settings,
-      { method: "PUT", body }
+      // Backend route only accepts POST (PUT returns 405 MethodNotAllowed).
+      // It also expects flat snake_case fields, not the internal
+      // { whatsapp, alerts } shape, so map before sending.
+      { method: "POST", body: toApiRequest(body) }
     ),
   sendTest: (phone: string, language: string) =>
     apiFetch<{ success: boolean }>(endpoints.chatSettings.testWhatsapp, {

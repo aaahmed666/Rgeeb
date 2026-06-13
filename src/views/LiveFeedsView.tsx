@@ -94,8 +94,8 @@ export default function LiveFeedsView() {
               labelKey="name"
               valueKey="id"
               extraParams={{ active: 1 }}
-              value={branchId === "all" ? null : branchId}
-              onChange={(v) => setBranchId(v ?? "all")}
+              value={branchId === ALL ? null : branchId}
+              onChange={(v) => setBranchId(v ?? ALL)}
               placeholder="All Branches"
               isClearable
             />
