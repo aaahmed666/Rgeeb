@@ -564,8 +564,8 @@ function DonutChart({
   return (
     <div className="flex flex-col items-center gap-5">
       <svg
-        viewBox="0 0 200 200"
-        className="h-48 w-48"
+        viewBox="-40 0 280 200"
+        className="h-48 w-64 max-w-full"
       >
         {/* track ring (visible while slices are tiny / single-slice) */}
         <circle
@@ -578,29 +578,57 @@ function DonutChart({
           strokeWidth="26"
         />
         {segments.map((p, i) => (
-          <g key={i}>
-            <path
-              d={p.d}
-              fill={p.color}
-              stroke="var(--card, #fff)"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-            />
-            {p.showLabel && (
+          <path
+            key={i}
+            d={p.d}
+            fill={p.color}
+            stroke="var(--card, #fff)"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          />
+        ))}
+
+        {/* Outside % callouts — leader line + label, coloured per slice so
+            they read cleanly off the ring instead of overlapping it. */}
+        {segments.map((p, i) => {
+          if (!p.showLabel) return null;
+          const R = 78; // outerRadius used above
+          const sin = Math.sin(p.mid);
+          const cos = Math.cos(p.mid);
+          const right = sin >= 0;
+          const x1 = 100 + (R + 1) * sin;
+          const y1 = 100 - (R + 1) * cos;
+          const xKnee = 100 + (R + 15) * sin;
+          const yKnee = 100 - (R + 15) * cos;
+          const xTail = xKnee + (right ? 10 : -10);
+          const xText = xTail + (right ? 3 : -3);
+          return (
+            <g key={`label-${i}`}>
+              <path
+                d={`M ${x1} ${y1} L ${xKnee} ${yKnee} L ${xTail} ${yKnee}`}
+                fill="none"
+                stroke={p.color}
+                strokeOpacity="0.55"
+                strokeWidth="1.25"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              <circle cx={x1} cy={y1} r="1.6" fill={p.color} />
               <text
-                x={p.lx}
-                y={p.ly}
-                fontSize="10.5"
-                textAnchor="middle"
-                fill="white"
+                x={xText}
+                y={yKnee}
+                fontSize="11"
+                textAnchor={right ? "start" : "end"}
+                fill={p.color}
                 fontWeight="700"
                 dominantBaseline="middle"
               >
                 {p.pctLabel}
               </text>
-            )}
-          </g>
-        ))}
+            </g>
+          );
+        })}
+
         <text
           x="100"
           y="97"

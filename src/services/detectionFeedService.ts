@@ -66,27 +66,33 @@ export const detectionFeedService = {
     const perPage = f.perPage ?? 15;
     const page = f.page ?? 1;
     const fallback: DetectionResponse = { items: [], total: 0, page, perPage };
+    const serviceFilter = (f.service ?? "").trim();
+    const hasServiceFilter = serviceFilter.length > 0;
     try {
+      // The /customer/detections endpoint has no service filter param, so
+      // sending `service`/`service_id` was silently ignored and the feed came
+      // back unfiltered (e.g. "Clean Tables" rows while "Kitchen PPE" was
+      // selected). We filter by service name client-side instead. When a
+      // service filter is active we pull a wider recent window and paginate
+      // locally so the page controls stay correct; branch / camera / date are
+      // still applied server-side.
+      const reqPage = hasServiceFilter ? 1 : page;
+      const reqPerPage = hasServiceFilter ? Math.max(perPage, 100) : perPage;
       const raw = await api.get<Record<string, unknown>>(
         endpoints.detections.list,
         {
           query: {
-            page,
-            per_page: perPage,
+            page: reqPage,
+            per_page: reqPerPage,
             branch_id: f.branchId,
             camera_id: f.cameraId,
-            // The filter UI provides the service *id* (AsyncPaginatedSelect
-            // with valueKey="id"); the API contract expects `service_id`,
-            // not `service` — sending the wrong key made the backend ignore
-            // the filter and return unfiltered data.
-            service_id: f.service,
             date_from: f.from,
             date_to: f.to,
           },
         }
       );
       const list = unwrapList(raw);
-      const items: DetectionItem[] = list.map((x, i) => {
+      let items: DetectionItem[] = list.map((x, i) => {
         const r = x as Record<string, unknown>;
         const cam = (r.camera as Record<string, unknown>) ?? {};
         const branch = (r.branch as Record<string, unknown>) ?? {};
@@ -109,6 +115,20 @@ export const detectionFeedService = {
           ),
         };
       });
+
+      if (hasServiceFilter) {
+        const target = serviceFilter.toLowerCase();
+        items = items.filter((it) => it.service.trim().toLowerCase() === target);
+        const total = items.length;
+        const start = (page - 1) * perPage;
+        return {
+          items: items.slice(start, start + perPage),
+          total,
+          page,
+          perPage,
+        };
+      }
+
       const meta = (raw?.meta as Record<string, unknown>) ?? {};
       const total = num(
         raw?.total ??

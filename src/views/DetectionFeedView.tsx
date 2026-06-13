@@ -239,7 +239,7 @@ export default function DetectionFeedView() {
               <AsyncPaginatedSelect
                 endpoint={endpoints.services.list}
                 labelKey="name"
-                valueKey="id"
+                valueKey="name"
                 value={service === ALL ? null : service}
                 onChange={(v) => {
                   setService(v ?? ALL);

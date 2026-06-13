@@ -323,32 +323,53 @@ export function TourGuide() {
     [pathname, router]
   );
 
+  /* ── Tear the tour down and persist its outcome ──
+     Flipping `run` to false makes Joyride stop and unmount its overlay
+     portal, so the backdrop never lingers after the tour ends. */
+  const endTour = React.useCallback((outcome: "completed" | "cancelled") => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TOUR_DONE_KEY, outcome);
+      window.localStorage.setItem(TOUR_STATUS_KEY, outcome);
+    }
+    requestAnimationFrame(() => {
+      setRun(false);
+      setStepIndex(0);
+    });
+  }, []);
+
   /* ── Joyride onEvent handler ── */
   const handleCallback = React.useCallback(
     async (data: { action: string; index: number; status: string; type: string }) => {
       const { action, index, status, type } = data;
 
-      /* Tour ended (finished, skipped, or X closed) */
+      /* Tour ended (finished, skipped, or X / overlay close) */
+      const wasCancelled =
+        status === STATUS.SKIPPED ||
+        action === ACTIONS.CLOSE ||
+        action === ACTIONS.SKIP;
+
       if (
         status === STATUS.FINISHED ||
         status === STATUS.SKIPPED ||
-        action === ACTIONS.CLOSE
+        type === EVENTS.TOUR_END ||
+        action === ACTIONS.CLOSE ||
+        action === ACTIONS.SKIP
       ) {
-        const value = status === STATUS.FINISHED ? "completed" : "cancelled";
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(TOUR_DONE_KEY, value);
-          window.localStorage.setItem(TOUR_STATUS_KEY, value);
-        }
-        requestAnimationFrame(() => {
-          setRun(false);
-          setStepIndex(0);
-        });
+        endTour(wasCancelled ? "cancelled" : "completed");
         return;
       }
 
       /* Step navigation */
       if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
         const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
+
+        /* Advancing past the last step = tour complete.
+           In controlled mode Joyride won't emit FINISHED on its own, so we
+           finish explicitly here; otherwise the overlay backdrop stays up. */
+        if (action !== ACTIONS.PREV && nextIndex >= STEP_META.length) {
+          endTour("completed");
+          return;
+        }
 
         if (nextIndex >= 0 && nextIndex < STEP_META.length) {
           await navigateForStep(nextIndex);
@@ -363,7 +384,7 @@ export function TourGuide() {
         }
       }
     },
-    [navigateForStep, fireOpenDrawer]
+    [navigateForStep, fireOpenDrawer, endTour]
   );
 
   /* ── Manual start / restart ── */

@@ -203,6 +203,57 @@ describe("productivityService.employee", () => {
     expect(emp.days_total).toBe(20); // 18 + 2
   });
 
+  test("falls back to the period (10 working days) when the employee has no records", async () => {
+    // No days_total, no tracked days, empty timeline — used to render "0/0".
+    // The denominator should now reflect the period: any 14-day window has
+    // exactly 10 Sun–Thu working days, matching the old project's "0/10".
+    mockFetch.mockResolvedValue({
+      data: {
+        employee: { id: "7", name: "sales", email: "sales@rgeeb.com" },
+        days_present: 0,
+        days_absent: 0,
+        attendance_rate: 0,
+        punctuality_rate: 0,
+        total_hours: 0,
+        timeline: [],
+      },
+    });
+    const emp = await productivityService.employee("7", {});
+    expect(emp.days_present).toBe(0);
+    expect(emp.days_total).toBe(10);
+  });
+
+  test("uses working days within an explicitly selected range", async () => {
+    mockFetch.mockResolvedValue({
+      data: {
+        employee: { id: "7", name: "sales" },
+        days_present: 0,
+        days_absent: 0,
+        timeline: [],
+      },
+    });
+    // 2026-06-01 (Mon) .. 2026-06-14 (Sun) = two weeks = 10 working days.
+    const emp = await productivityService.employee("7", {
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-14",
+    });
+    expect(emp.days_total).toBe(10);
+  });
+
+  test("respects a backend-provided days_total", async () => {
+    mockFetch.mockResolvedValue({
+      data: {
+        employee: { id: "7", name: "sales" },
+        days_present: 3,
+        days_absent: 0,
+        days_total: 22,
+        timeline: [],
+      },
+    });
+    const emp = await productivityService.employee("7", {});
+    expect(emp.days_total).toBe(22);
+  });
+
   test("includes timeline rows with correct shape", async () => {
     mockFetch.mockResolvedValue({ data: EMPLOYEE_DETAIL });
     const emp = await productivityService.employee("101", {});

@@ -103,10 +103,13 @@ export interface DonutSegment {
   pct: number;
   /** "57.3%" — pre-formatted. */
   pctLabel: string;
-  /** Mid-slice label anchor. */
+  /** Mid-slice label anchor (centre of the band). */
   lx: number;
   ly: number;
-  /** Only render the in-slice % when the slice is big enough to fit it. */
+  /** Mid-slice angle in radians (0 = top, increasing clockwise). Used to
+   *  position outside callout labels and their leader lines. */
+  mid: number;
+  /** Only render the % callout when the slice is big enough to label. */
   showLabel: boolean;
 }
 
@@ -178,6 +181,7 @@ export function donutSegments(
         pctLabel: `${(pct * 100).toFixed(1)}%`,
         lx: cx + labelR * Math.sin(mid),
         ly: cy - labelR * Math.cos(mid),
+        mid,
         showLabel: pct >= labelThreshold,
       };
     })

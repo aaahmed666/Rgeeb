@@ -297,6 +297,41 @@ function unwrap<T>(r: T | { data: T }): T {
   ) as T;
 }
 
+/**
+ * Total working days (Sun–Thu, the local business week — Fri/Sat are the
+ * weekend) within [from, to] inclusive. When no range is selected, falls back
+ * to the last two weeks (≈10 working days) so the "Days Present" denominator
+ * reflects a real period instead of collapsing to 0 — matching the old project
+ * (e.g. "0/10") rather than the broken "0/0".
+ */
+function workingDaysInPeriod(from?: string, to?: string): number {
+  let start: Date;
+  let end: Date;
+  if (from && to) {
+    start = new Date(`${from}T00:00:00`);
+    end = new Date(`${to}T00:00:00`);
+  } else {
+    end = new Date();
+    start = new Date();
+    start.setDate(end.getDate() - 13); // last 14 calendar days
+  }
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end < start
+  ) {
+    return 0;
+  }
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const day = cur.getDay(); // 0=Sun … 6=Sat
+    if (day !== 5 && day !== 6) count += 1; // exclude Fri & Sat
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
 export const productivityService = {
   summary: (f: ProdFilters) =>
     safe(
@@ -344,12 +379,31 @@ export const productivityService = {
         ) as unknown as Record<string, unknown>;
         const emp = (raw.employee as Record<string, unknown> | undefined) ?? {};
         const name = String(emp.name ?? raw.name ?? "");
+        const timeline = Array.isArray(raw.timeline)
+          ? (raw.timeline as EmployeeDetail["timeline"])
+          : [];
         const daysPresent = Number(raw.days_present ?? 0);
         const daysAbsent = Number(raw.days_absent ?? 0);
-        const daysTotal =
-          raw.days_total != null
-            ? Number(raw.days_total)
-            : daysPresent + daysAbsent;
+        // Denominator = total working days in the period.
+        //   1. backend `days_total` when it provides one;
+        //   2. present + absent when the employee has tracked days;
+        //   3. otherwise the period length (timeline rows, else working days in
+        //      the selected range, defaulting to the last two weeks).
+        // Step 3 is the fix: an employee with no records used to fall through
+        // to present+absent = 0 and render "0/0" instead of "0/10".
+        const backendTotal = Number(
+          raw.days_total ?? raw.total_days ?? raw.working_days ?? NaN
+        );
+        const trackedDays = daysPresent + daysAbsent;
+        const daysTotal = Math.max(
+          Number.isFinite(backendTotal) && backendTotal > 0
+            ? backendTotal
+            : trackedDays > 0
+              ? trackedDays
+              : timeline.length ||
+                workingDaysInPeriod(f.dateFrom, f.dateTo),
+          daysPresent
+        );
         const detail: EmployeeDetail = {
           id: String(emp.id ?? raw.id ?? id),
           name,
@@ -366,9 +420,7 @@ export const productivityService = {
           attendance_rate: Number(raw.attendance_rate ?? raw.attendance ?? 0),
           punctuality: Number(raw.punctuality_rate ?? raw.punctuality ?? 0),
           total_hours: Number(raw.total_hours ?? raw.avg_hours_per_day ?? 0),
-          timeline: Array.isArray(raw.timeline)
-            ? (raw.timeline as EmployeeDetail["timeline"])
-            : [],
+          timeline,
         };
         return detail;
       }),
