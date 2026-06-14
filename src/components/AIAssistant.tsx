@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +21,7 @@ import {
   type ChatMessage,
   type ChatResponse,
 } from "@/services/chatService";
+import { chatSettingsService } from "@/services/chatSettingsService";
 import { getAuthToken } from "@/lib/api";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -440,7 +442,21 @@ function useVoiceInput(lang: "ar" | "en", onResult: (text: string) => void) {
 
 export function AIAssistant() {
   const { t, i18n } = useTranslation();
-  const lang = (i18n.resolvedLanguage ?? "en") as "ar" | "en";
+  const uiLang = (i18n.resolvedLanguage ?? "en") as "ar" | "en";
+
+  // Apply the language chosen in "AI Assistant Settings" (chat settings →
+  // notificationLanguage). The assistant converses in the configured language
+  // when set, otherwise it follows the current UI locale. Settings are fetched
+  // once and cached; failures fall back to demo defaults (enabled: false), in
+  // which case we keep the UI language.
+  const settingsQ = useQuery({
+    queryKey: ["chat-settings", "assistant"],
+    queryFn: () => chatSettingsService.get(),
+    staleTime: 5 * 60_000,
+    enabled: !!getAuthToken(),
+  });
+  const configuredLang = settingsQ.data?.whatsapp.language;
+  const lang: "ar" | "en" = configuredLang ?? uiLang;
   const dir = detectDirection(lang);
   const isRtl = lang === "ar";
 

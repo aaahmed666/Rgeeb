@@ -854,3 +854,221 @@ export async function deleteAdminClient(
   const deleteFn = endpoints.admin.clientDelete as (id: string | number) => string;
   await api.delete<unknown>(deleteFn(clientId));
 }
+
+// ─── Roles (admin) ────────────────────────────────────────────────────────────
+// Endpoints: GET /admin/roles · GET /admin/roles/single?id= ·
+//            GET /admin/roles/permissions · POST create|update|delete
+// create/update fields: name, permission_ids[]  (update also: id)
+
+export interface AdminPermission {
+  id: string;
+  name: string;
+  group?: string;
+}
+
+export interface AdminRole {
+  id: string;
+  name: string;
+  permissionIds: string[];
+  permissionsCount: number;
+}
+
+function mapPermission(p: RawObject): AdminPermission {
+  return {
+    id: id(p),
+    name: str(p, "name", "label", "key", "display_name") ?? "",
+    group: str(p, "group", "category", "module"),
+  };
+}
+
+function permIds(raw: unknown): string[] {
+  return pickArray(raw)
+    .map((x) =>
+      x && typeof x === "object" ? id(x as RawObject) : String(x)
+    )
+    .filter(Boolean);
+}
+
+function mapRole(r: RawObject): AdminRole {
+  const ids = permIds(r.permissions ?? r.permission_ids ?? r.permissionIds);
+  return {
+    id: id(r),
+    name: str(r, "name", "display_name") ?? "",
+    permissionIds: ids,
+    permissionsCount: num(r, "permissions_count") ?? ids.length,
+  };
+}
+
+export async function fetchAdminRoles(): Promise<AdminRole[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.roles)).map(mapRole);
+}
+
+export async function fetchAdminRoleSingle(
+  roleId: string | number
+): Promise<AdminRole> {
+  return mapRole(
+    unwrap(
+      await api.get<unknown>(endpoints.admin.roleSingle, {
+        query: { id: roleId },
+      })
+    )
+  );
+}
+
+export async function fetchAdminPermissions(): Promise<AdminPermission[]> {
+  return unwrapArray(
+    await api.get<unknown>(endpoints.admin.rolePermissions)
+  ).map(mapPermission);
+}
+
+export interface AdminRoleInput {
+  name: string;
+  permission_ids: (string | number)[];
+}
+
+function roleFormData(input: Partial<AdminRoleInput>, roleId?: string | number) {
+  const fd = new FormData();
+  if (roleId !== undefined) fd.append("id", String(roleId));
+  if (input.name !== undefined) fd.append("name", input.name);
+  // Indexed form (permission_ids[0], permission_ids[1], …) — matches the
+  // proven customer rolesService payload; a plain JSON array is not reliably
+  // accepted by the backend.
+  if (input.permission_ids)
+    input.permission_ids.forEach((pid, i) =>
+      fd.append(`permission_ids[${i}]`, String(pid))
+    );
+  return fd;
+}
+
+export async function createAdminRole(input: AdminRoleInput): Promise<AdminRole> {
+  return mapRole(
+    unwrap(await api.post<unknown>(endpoints.admin.roleCreate, roleFormData(input)))
+  );
+}
+
+export async function updateAdminRole(
+  roleId: string | number,
+  input: Partial<AdminRoleInput>
+): Promise<AdminRole> {
+  return mapRole(
+    unwrap(
+      await api.post<unknown>(
+        endpoints.admin.roleUpdate,
+        roleFormData(input, roleId)
+      )
+    )
+  );
+}
+
+export async function deleteAdminRole(roleId: string | number): Promise<void> {
+  await api.post<unknown>(endpoints.admin.roleDelete, { id: roleId });
+}
+
+// ─── Detections (admin) ─────────────────────────────────────────────────────
+// Endpoints: GET /admin/detections · GET /admin/detections/single?id= ·
+//            POST create|update|delete
+// fields: client_id, branch_id, camera_id, ai_model_id?, service_id?, type?,
+//         score?, detected_at?, data?   (update also: id)
+
+export interface AdminDetection {
+  id: string;
+  clientId?: string;
+  clientName?: string;
+  branchId?: string;
+  branchName?: string;
+  cameraId?: string;
+  cameraName?: string;
+  serviceId?: string;
+  serviceName?: string;
+  aiModelId?: string;
+  type?: string;
+  score?: number;
+  detectedAt?: string;
+}
+
+function mapDetection(d: RawObject): AdminDetection {
+  return {
+    id: id(d),
+    clientId: str(d, "client_id", "clientId"),
+    clientName: str(d, "client_name", "client"),
+    branchId: str(d, "branch_id", "branchId"),
+    branchName: str(d, "branch_name", "branch"),
+    cameraId: str(d, "camera_id", "cameraId"),
+    cameraName: str(d, "camera_name", "camera"),
+    serviceId: str(d, "service_id", "serviceId"),
+    serviceName: str(d, "service_name", "service"),
+    aiModelId: str(d, "ai_model_id", "aiModelId"),
+    type: str(d, "type"),
+    score: num(d, "score"),
+    detectedAt: str(d, "detected_at", "detectedAt", "created_at"),
+  };
+}
+
+export async function fetchAdminDetections(): Promise<AdminDetection[]> {
+  return unwrapArray(await api.get<unknown>(endpoints.admin.detections)).map(
+    mapDetection
+  );
+}
+
+export interface AdminDetectionInput {
+  client_id: string | number;
+  branch_id: string | number;
+  camera_id: string | number;
+  ai_model_id?: string | number;
+  service_id?: string | number;
+  type?: string;
+  score?: number;
+  detected_at?: string;
+}
+
+function detectionFormData(
+  input: Partial<AdminDetectionInput>,
+  detectionId?: string | number
+) {
+  const fd = new FormData();
+  if (detectionId !== undefined) fd.append("id", String(detectionId));
+  const map: Record<string, unknown> = {
+    client_id: input.client_id,
+    branch_id: input.branch_id,
+    camera_id: input.camera_id,
+    ai_model_id: input.ai_model_id,
+    service_id: input.service_id,
+    type: input.type,
+    score: input.score,
+    detected_at: input.detected_at,
+  };
+  Object.entries(map).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") fd.append(k, String(v));
+  });
+  return fd;
+}
+
+export async function createAdminDetection(
+  input: AdminDetectionInput
+): Promise<AdminDetection> {
+  return mapDetection(
+    unwrap(
+      await api.post<unknown>(endpoints.admin.detectionCreate, detectionFormData(input))
+    )
+  );
+}
+
+export async function updateAdminDetection(
+  detectionId: string | number,
+  input: Partial<AdminDetectionInput>
+): Promise<AdminDetection> {
+  return mapDetection(
+    unwrap(
+      await api.post<unknown>(
+        endpoints.admin.detectionUpdate,
+        detectionFormData(input, detectionId)
+      )
+    )
+  );
+}
+
+export async function deleteAdminDetection(
+  detectionId: string | number
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.detectionDelete, { id: detectionId });
+}

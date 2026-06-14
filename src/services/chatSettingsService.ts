@@ -83,18 +83,22 @@ function mapApiResponse(raw: ApiChatSettings): ChatSettings {
   };
 }
 
-// Maps the internal ChatSettings shape to the flat snake_case payload the
-// POST /customer/chat/settings endpoint expects. Only includes fields that
-// are present so partial updates stay partial.
+// Maps the internal ChatSettings shape to the payload the
+// POST /customer/chat/settings endpoint expects. The backend uses the SAME
+// field names it returns from GET (enabled, phoneNumber, notificationLanguage,
+// dailyReports, weeklyReports, alerts, alertThresholds.*) — see the Postman
+// collection. Sending snake_case keys (whatsapp_enabled, …) silently no-ops,
+// so the round-trip must use these exact names. Only present fields are sent
+// so partial updates stay partial.
 function toApiRequest(body: Partial<ChatSettings>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const w = body.whatsapp;
   if (w) {
-    if (w.enabled !== undefined) out.whatsapp_enabled = w.enabled;
-    if (w.phone_number !== undefined) out.whatsapp_number = w.phone_number;
-    if (w.language !== undefined) out.notification_language = w.language;
-    if (w.daily_reports !== undefined) out.daily_reports = w.daily_reports;
-    if (w.weekly_reports !== undefined) out.weekly_reports = w.weekly_reports;
+    if (w.enabled !== undefined) out.enabled = w.enabled;
+    if (w.phone_number !== undefined) out.phoneNumber = w.phone_number;
+    if (w.language !== undefined) out.notificationLanguage = w.language;
+    if (w.daily_reports !== undefined) out.dailyReports = w.daily_reports;
+    if (w.weekly_reports !== undefined) out.weeklyReports = w.weekly_reports;
     if (w.realtime_alerts !== undefined) out.alerts = w.realtime_alerts;
   }
   const a = body.alerts;
@@ -108,7 +112,7 @@ function toApiRequest(body: Partial<ChatSettings>): Record<string, unknown> {
       thresholds.minTraffic = a.minimum_traffic_baseline;
     if (a.wait_time_minutes !== undefined)
       thresholds.waitTime = a.wait_time_minutes;
-    if (Object.keys(thresholds).length) out.alert_thresholds = thresholds;
+    if (Object.keys(thresholds).length) out.alertThresholds = thresholds;
   }
   return out;
 }
@@ -152,6 +156,7 @@ export const chatSettingsService = {
   sendTest: (phone: string, language: string) =>
     apiFetch<{ success: boolean }>(endpoints.chatSettings.testWhatsapp, {
       method: "POST",
-      body: { phone_number: phone, language },
+      // Postman "test whatsapp" expects `phoneNumber` (not phone_number).
+      body: { phoneNumber: phone, notificationLanguage: language },
     }),
 };

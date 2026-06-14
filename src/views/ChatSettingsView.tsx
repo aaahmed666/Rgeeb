@@ -76,6 +76,8 @@ export default function ChatSettingsView() {
     try {
       await chatSettingsService.update({ whatsapp, alerts });
       toast.success(t("chatSettings.saved", "Settings saved"));
+      // Re-fetch so the form reflects the server-persisted (normalized) values.
+      await load();
     } catch {
       toast.error(t("chatSettings.saveFailed", "Failed to save settings"));
     } finally {

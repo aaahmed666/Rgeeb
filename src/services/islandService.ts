@@ -7,7 +7,7 @@
  *   dashboard · traffic · conversion · employee-presence · response-time
  *   demographics · heatmap · violations (paginated)
  */
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 /* ─── Types (1:1 with old `types/apps/customer-island.ts`) ─── */
 
@@ -141,12 +141,42 @@ function unwrap<T>(raw: unknown): T {
   return obj as T;
 }
 
-const BASE = "/customer/island";
+// Backend contract drift: the current API serves these under
+// `/customer/store-intelligence/*`, while older deployments used
+// `/customer/island/*`. The sub-paths are identical, so we try the new base
+// first and fall back to the legacy one on a 404 (mirrors the dual-path
+// strategy used for the renamed Foodics endpoints). The resolved base is
+// cached for the session once a path succeeds.
+const PRIMARY_BASE = "/customer/store-intelligence";
+const LEGACY_BASE = "/customer/island";
+let resolvedBase: string | null = null;
+
+async function fetchWithBaseFallback(
+  path: string,
+  query: Record<string, string | number>
+): Promise<unknown> {
+  // If we already know which base works, use it directly.
+  if (resolvedBase) {
+    return apiFetch<unknown>(`${resolvedBase}/${path}`, { query });
+  }
+  try {
+    const raw = await apiFetch<unknown>(`${PRIMARY_BASE}/${path}`, { query });
+    resolvedBase = PRIMARY_BASE;
+    return raw;
+  } catch (err) {
+    // Only fall back on "route not found" — never on auth/validation/timeout,
+    // which the global handlers should see unchanged.
+    if (err instanceof ApiError && err.status === 404) {
+      const raw = await apiFetch<unknown>(`${LEGACY_BASE}/${path}`, { query });
+      resolvedBase = LEGACY_BASE;
+      return raw;
+    }
+    throw err;
+  }
+}
 
 async function get<T>(path: string, filters: IslandFilters): Promise<T> {
-  const raw = await apiFetch<unknown>(`${BASE}/${path}`, {
-    query: buildParams(filters),
-  });
+  const raw = await fetchWithBaseFallback(path, buildParams(filters));
   return unwrap<T>(raw);
 }
 
@@ -166,9 +196,7 @@ export const islandService = {
   violations: async (
     f: IslandFilters
   ): Promise<{ items: IslandViolation[]; total: number }> => {
-    const raw = await apiFetch<unknown>(`${BASE}/violations`, {
-      query: buildParams(f),
-    });
+    const raw = await fetchWithBaseFallback("violations", buildParams(f));
     // Envelope: { data: { data: [...], total } } (paginator inside data)
     const env = raw as {
       data?: { data?: IslandViolation[]; total?: number } | IslandViolation[];

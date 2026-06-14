@@ -784,6 +784,24 @@ export function AppSidebar() {
       label: t("admin.aiModels.title", "AI Models"),
     },
     {
+      href: "/dashboard/admin/roles",
+      icon: ShieldCheck,
+      label: t("adminRoles.title", "Roles"),
+      badge: { text: "NEW", tone: "new" },
+    },
+    {
+      href: "/dashboard/admin/detections",
+      icon: Radar,
+      label: t("adminDetections.title", "Detections"),
+      badge: { text: "NEW", tone: "new" },
+    },
+    {
+      href: "/dashboard/admin/orchestrator",
+      icon: Cpu,
+      label: t("orchestrator.title", "Orchestrator"),
+      badge: { text: "NEW", tone: "new" },
+    },
+    {
       href: "/dashboard/admin/settings",
       icon: Settings,
       label: t("admin.settings", "Settings"),

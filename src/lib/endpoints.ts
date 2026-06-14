@@ -32,6 +32,12 @@ export const endpoints = {
 
     // Face login
     face: "/customer/face-login", // POST face recognition login
+    facePublic: "/face-login", // POST public face login (no session)
+    faceRegister: "/face/register", // POST enroll a face
+
+    // Public password reset (unauthenticated flow, separate from OTP/profile)
+    passwordRequestReset: "/password/request-reset", // POST { email }
+    passwordReset: "/password/reset", // POST { token, password }
 
     // Profile
     profile: "/customer/profile", // GET  profile
@@ -54,6 +60,7 @@ export const endpoints = {
     list: "/customer/notifications",
     unreadCount: "/customer/notifications/unread-count",
     markAllRead: "/customer/notifications/mark-all-read",
+    readAll: "/customer/notifications/read-all", // collection alias of mark-all-read
     markRead: (id: string | number) => `/customer/notifications/${id}/read`,
   },
 
@@ -94,6 +101,7 @@ export const endpoints = {
     list: "/customer/cameras",
     single: "/customer/cameras/single",
     checkOnline: "/customer/cameras/check-online",
+    stream: "/customer/cameras/stream", // GET live stream URL/token
     create: "/customer/cameras/create",
     update: "/customer/cameras/update",
     delete: "/customer/cameras/delete",
@@ -143,6 +151,7 @@ export const endpoints = {
     list: "/customer/services",
     single: "/customer/services/single",
     available: "/customer/services/available",
+    new: "/customer/services/new", // newly-released services feed
   },
 
   // ── Subscription ─────────────────────────────────────────────────────────────
@@ -150,6 +159,9 @@ export const endpoints = {
     current: "/customer/subscriptions/current",
     subscribe: "/customer/subscriptions/subscribe",
     renew: "/customer/subscriptions/renew",
+    cancel: "/customer/subscriptions/cancel",
+    callback: (id: string | number) => `/customer/subscriptions/callback/${id}`,
+    webhook: "/customer/subscriptions/webhook", // payment gateway → backend
     transactions: "/customer/subscription-transactions",
     transactionSingle: "/customer/subscription-transactions/single",
     usage: "/customer/subscriptions/usage",
@@ -176,6 +188,7 @@ export const endpoints = {
     assign: "/customer/tasks/assign",          // POST { id, user_id }
     comment: "/customer/tasks/comment",        // POST { id, body }
     logs: "/customer/tasks/logs",              // GET  ?id=&per_page=
+    children: "/customer/tasks/children",      // GET  ?id= — subtasks of a parent
     attachment: "/customer/tasks/attachment",  // POST multipart { id, file }
     legacyStatus: "/customer/tasks/status",    // POST { id, status } — OLD path
   },
@@ -183,7 +196,9 @@ export const endpoints = {
   // ── My Tasks ─────────────────────────────────────────────────────────────────
   myTasks: {
     list: "/customer/my-tasks",
+    detail: "/customer/my-tasks/detail", // GET ?id= — single task detail
     stats: "/customer/my-tasks/stats",
+    photo: "/customer/my-tasks/photo", // POST multipart proof photo
     start: (id: string | number) => `/customer/my-tasks/${id}/start`,
     complete: (id: string | number) => `/customer/my-tasks/${id}/complete`,
     status: (id: string | number) => `/customer/my-tasks/${id}/status`,
@@ -203,8 +218,25 @@ export const endpoints = {
     aiPipeline: "/customer/task-analytics/ai-pipeline",
     verify: "/customer/task-analytics/verify",
     reject: "/customer/task-analytics/reject",
+    reopen: "/customer/task-analytics/reopen",
     verifications: "/customer/task-analytics/verifications",
+    verificationStats: "/customer/task-analytics/verification-stats",
+    reviewVerification: "/customer/task-analytics/review-verification",
+    escalationRate: "/customer/task-analytics/escalation-rate",
+    // NOTE: `branches` intentionally points at the generic branch list — it
+    // feeds the branch filter dropdown. `branchesAnalytics` is the dedicated
+    // per-branch analytics breakdown from the collection.
     branches: "/customer/branches",
+    branchesAnalytics: "/customer/task-analytics/branches",
+  },
+
+  // ── Task Notifications ───────────────────────────────────────────────────────
+  // Distinct from the general notifications feed — these are task-assignment /
+  // task-status alerts. The service layer (escalationService) reads the
+  // { notifications: [], unread_count: N } payload.
+  taskNotifications: {
+    list: "/customer/task-notifications",
+    markRead: "/customer/task-notifications/mark-read", // POST { id } | { ids: [] }
   },
 
   // ── Task Reports ─────────────────────────────────────────────────────────────
@@ -214,7 +246,18 @@ export const endpoints = {
     slaCompliance: "/customer/task-reports/sla", // alias
     exportExcel: "/customer/task-reports/export-excel",
     exportCsv: "/customer/task-reports/export-excel", // same endpoint, format param
-    verificationAccuracy: "/customer/task-reports/performance", // fallback to performance
+    // The backend now exposes a real verification report (confirmed in the
+    // current Postman collection). Previously this aliased to /performance,
+    // which silently returned the wrong report.
+    verification: "/customer/task-reports/verification",
+    verificationAccuracy: "/customer/task-reports/verification",
+    types: "/customer/task-reports/types",
+    // Download variants (collection exposes a /download/* prefix that streams
+    // the file rather than returning JSON)
+    downloadPerformance: "/customer/task-reports/download/performance",
+    downloadSla: "/customer/task-reports/download/sla",
+    downloadExportExcel: "/customer/task-reports/download/export-excel",
+    downloadVerification: "/customer/task-reports/download/verification",
   },
 
   // ── Task Rules ───────────────────────────────────────────────────────────────
@@ -283,6 +326,16 @@ export const endpoints = {
     templates: "/customer/reports/templates",
     generated: "/customer/reports/generated",
     generatedById: (id: string) => `/customer/reports/generated/${id}`,
+    // Base list / detail and visitor-count feeds (from the current collection)
+    list: "/customer/reports",
+    single: "/customer/reports/single",
+    statistics: "/customer/reports/statistics",
+    visitorCountToday: "/customer/reports/visitor-count/today",
+    visitorCountByDate: "/customer/reports/visitor-count/by-date",
+    // Delete actions (collection uses POST .../delete, not RESTful DELETE)
+    scheduleDelete: "/customer/reports/schedule/delete",
+    generatedDelete: "/customer/reports/generated/delete",
+    downloadLegacy: "/customer/reports/download", // GET ?id= — legacy fallback
   },
 
   // ── Statistics (business reports tabs) ───────────────────────────────────────
@@ -347,6 +400,7 @@ export const endpoints = {
     trendForecast: "/customer/branch-intelligence/trend-forecast",
     hourlyPeaks: "/customer/branch-intelligence/hourly-peaks",
     periodComparison: "/customer/branch-intelligence/period-comparison",
+    exportReport: "/customer/branch-intelligence/export-report", // GET downloadable report
     // OLD production source for the heatmap service filter — returns only
     // services that actually have branch-intelligence data (unlike the
     // general /customer/services catalog).
@@ -370,6 +424,7 @@ export const endpoints = {
   chatSettings: {
     settings: "/customer/chat/settings",
     testWhatsapp: "/customer/chat/settings/test-whatsapp",
+    testWhatsappLegacy: "/customer/chat/test-whatsapp", // collection top-level path
     resetAlerts: "/customer/chat/settings/reset-alerts",
   },
 
@@ -413,11 +468,50 @@ export const endpoints = {
     inventoryZoneDelete: (id: string) =>
       `/customer/foodics/inventory/zones/${id}/delete`,
     inventoryAuditHistory: "/customer/foodics/inventory/audits",
+    inventoryAudit: "/customer/foodics/inventory/audit", // POST run an audit
+
+    // Branches
+    branches: "/customer/foodics/branches",
+    branchesCustomersServed: "/customer/foodics/branches/customers-served",
+
+    // Health
+    health: "/customer/foodics/health",
+
+    // Conversion (footfall → orders)
+    conversionDaily: "/customer/foodics/conversion/daily",
+    conversionHourly: "/customer/foodics/conversion/hourly",
+    conversionSummary: "/customer/foodics/conversion/summary",
+
+    // Dashboard breakdowns (collection exposes these granular feeds in
+    // addition to the consolidated `dashboard` endpoint above)
+    dashboardInsights: "/customer/foodics/dashboard/insights",
+    dashboardOverview: "/customer/foodics/dashboard/overview",
+    dashboardTrends: "/customer/foodics/dashboard/trends",
+
+    // Orders
+    ordersByFoodicsId: (id: string | number) =>
+      `/customer/foodics/orders/by-foodics-id/${id}`,
+    ordersSummary: "/customer/foodics/orders/summary",
+
+    // Drawer audit analytics
+    drawerAuditsPatterns: "/customer/foodics/drawer-audits/patterns",
+    drawerAuditsStats: "/customer/foodics/drawer-audits/stats",
+
+    // Prep times (granular collection paths alongside the `prepTime` alias)
+    prepTimes: "/customer/foodics/prep-times",
+    prepTimesHeatmap: "/customer/foodics/prep-times/heatmap",
+    prepTimesStats: "/customer/foodics/prep-times/stats",
+    prepTimesSummary: "/customer/foodics/prep-times/summary",
+
+    // Refund verifications (granular collection paths alongside `refunds`)
+    refundVerifications: "/customer/foodics/refund-verifications",
+    refundVerificationsStats: "/customer/foodics/refund-verifications/stats",
   },
 
   // ── Fatoorah Payment ─────────────────────────────────────────────────────────
   payment: {
     linkFatoorah: "/customer/link-fatoorah",
+    fatoorahLink: "/customer/fatoorah/link", // collection path variant
     fatoorahStatus: "/customer/fatoorah/status",
     unlinkFatoorah: "/customer/fatoorah/unlink",
   },
@@ -426,6 +520,25 @@ export const endpoints = {
   admin: {
     login: "/login",
     logout: "/admin/logout",
+    profile: "/admin/profile",
+    dashboardStats: "/admin/dashboard-stats",
+    impersonate: "/admin/impersonate",
+    stopImpersonation: "/admin/stop-impersonation",
+
+    // Detections (admin catalog)
+    detections: "/admin/detections",
+    detectionSingle: "/admin/detections/single",
+    detectionCreate: "/admin/detections/create",
+    detectionUpdate: "/admin/detections/update",
+    detectionDelete: "/admin/detections/delete",
+
+    // Roles (admin)
+    roles: "/admin/roles",
+    roleSingle: "/admin/roles/single",
+    rolePermissions: "/admin/roles/permissions",
+    roleCreate: "/admin/roles/create",
+    roleUpdate: "/admin/roles/update",
+    roleDelete: "/admin/roles/delete",
 
     // Users
     users: "/admin/users",
@@ -499,5 +612,50 @@ export const endpoints = {
     clientUpdate: "/admin/clients/update",
     clientDelete: (id: string | number) => `/admin/clients/${id}`,
     clientToggle: (id: string | number) => `/admin/clients/${id}/toggle-status`,
+  },
+
+  // ── Broadcasting (websocket auth) ────────────────────────────────────────────
+  broadcasting: {
+    auth: "/customer/broadcasting/auth", // GET/POST — private channel auth
+  },
+
+  // ── Store Intelligence (a.k.a. Customer Island) ──────────────────────────────
+  // The current backend serves these under /customer/store-intelligence/*.
+  // Older deployments used /customer/island/* (same sub-paths); islandService
+  // tries store-intelligence first and falls back to island automatically.
+  storeIntelligence: {
+    dashboard: "/customer/store-intelligence/dashboard",
+    traffic: "/customer/store-intelligence/traffic",
+    conversion: "/customer/store-intelligence/conversion",
+    demographics: "/customer/store-intelligence/demographics",
+    heatmap: "/customer/store-intelligence/heatmap",
+    employeePresence: "/customer/store-intelligence/employee-presence",
+    responseTime: "/customer/store-intelligence/response-time",
+    violations: "/customer/store-intelligence/violations",
+    compliance: "/customer/store-intelligence/compliance",
+    settings: "/customer/store-intelligence/settings", // GET + POST same URL
+    // Legacy base (kept for the islandService fallback)
+    legacyBase: "/customer/island",
+  },
+
+  // ── Webhooks / public callbacks (server-to-server) ───────────────────────────
+  webhooks: {
+    whatsapp: "/webhook/whatsapp", // GET verify · POST inbound
+    foodicsSuccess: "/foodics-success", // GET OAuth success redirect
+    foodicsWebhook: "/foodics-webhook", // POST Foodics events
+  },
+
+  // ── Orchestrator (worker / GPU control plane) ───────────────────────────────
+  // Machine-to-machine endpoints authenticated with the X-Orchestrator-Token
+  // header (see orchestratorService). activate/heartbeat/reset-all are writes;
+  // active/pending/stale/stop-list are read-only monitoring feeds.
+  orchestrator: {
+    activate: "/orchestrator/activate", // POST { camera_service_id, container_id }
+    active: "/orchestrator/active", // GET  currently-assigned workers
+    heartbeat: "/orchestrator/heartbeat", // POST { workers[], gpu_stats[] }
+    pending: "/orchestrator/pending", // GET  camera-services awaiting assignment
+    resetAll: "/orchestrator/reset-all", // POST clears all assignments
+    stale: "/orchestrator/stale", // GET  workers past the heartbeat threshold
+    stopList: "/orchestrator/stop-list", // GET  camera-services flagged to stop
   },
 } as const;

@@ -2702,5 +2702,94 @@
         "ignored": "متجاهَلة"
       }
     }
+  },
+  "orchestrator": {
+    "title": "المنسّق",
+    "resetAll": "إعادة تعيين الكل",
+    "resetSuccess": "تم مسح جميع المهام المسندة",
+    "activate": "تفعيل",
+    "activateSuccess": "تم تفعيل العامل",
+    "resetConfirmTitle": "إعادة تعيين جميع المهام؟",
+    "resetConfirmDesc": "سيؤدي ذلك إلى مسح جميع مهام العمال النشطة. ستحتاج إلى إعادة تفعيل العمال. لا يمكن التراجع عن هذا الإجراء.",
+    "tokenTitle": "مطلوب رمز المنسّق",
+    "tokenHelp": "هذه الواجهات محمية برأس X-Orchestrator-Token. الصق الرمز لتحميل البيانات الحية.",
+    "tokenPlaceholder": "الصق الرمز",
+    "tokenSaved": "تم حفظ رمز المنسّق",
+    "tokenCleared": "تم مسح رمز المنسّق",
+    "stat": {
+      "active": "العمال النشطون",
+      "pending": "المهام المعلقة",
+      "stale": "العمال المتوقفون",
+      "stopList": "قائمة الإيقاف"
+    },
+    "section": {
+      "active": "العمال النشطون",
+      "pending": "المهام المعلقة",
+      "stale": "العمال المتوقفون",
+      "stopList": "قائمة الإيقاف"
+    },
+    "empty": {
+      "active": "لا يوجد عمال نشطون",
+      "pending": "لا توجد مهام معلقة",
+      "stale": "لا يوجد عمال متوقفون",
+      "stopList": "قائمة الإيقاف فارغة"
+    },
+    "col": {
+      "cameraService": "خدمة الكاميرا",
+      "service": "الخدمة",
+      "branch": "الفرع",
+      "container": "الحاوية",
+      "worker": "العامل",
+      "status": "الحالة",
+      "lastHeartbeat": "آخر نبضة",
+      "priority": "الأولوية",
+      "requestedAt": "تاريخ الطلب",
+      "staleFor": "متوقف منذ",
+      "reason": "السبب",
+      "flaggedAt": "تاريخ الإشارة"
+    }
+  },
+  "adminRoles": {
+    "title": "الأدوار",
+    "add": "إضافة دور",
+    "create": "إنشاء دور",
+    "edit": "تعديل الدور",
+    "name": "اسم الدور",
+    "namePlaceholder": "مثال: مدير الفرع",
+    "permissions": "الصلاحيات",
+    "permissionsCount": "صلاحية",
+    "selected": "محددة",
+    "general": "عام",
+    "noPermissions": "لا توجد صلاحيات متاحة",
+    "empty": "لا توجد أدوار",
+    "search": "البحث في الأدوار…",
+    "created": "تم إنشاء الدور",
+    "updated": "تم تحديث الدور",
+    "deleted": "تم حذف الدور",
+    "deleteTitle": "حذف الدور"
+  },
+  "adminDetections": {
+    "title": "الاكتشافات",
+    "add": "إضافة اكتشاف",
+    "create": "إنشاء اكتشاف",
+    "edit": "تعديل الاكتشاف",
+    "clientId": "معرّف العميل",
+    "branchId": "معرّف الفرع",
+    "cameraId": "معرّف الكاميرا",
+    "aiModelId": "معرّف نموذج الذكاء",
+    "serviceId": "معرّف الخدمة",
+    "type": "النوع",
+    "score": "النتيجة",
+    "detectedAt": "وقت الاكتشاف",
+    "client": "العميل",
+    "branch": "الفرع",
+    "camera": "الكاميرا",
+    "empty": "لا توجد اكتشافات",
+    "search": "البحث في الاكتشافات…",
+    "created": "تم إنشاء الاكتشاف",
+    "updated": "تم تحديث الاكتشاف",
+    "deleted": "تم حذف الاكتشاف",
+    "deleteTitle": "حذف الاكتشاف",
+    "deleteDesc": "هل أنت متأكد من حذف سجل الاكتشاف هذا؟"
   }
 }

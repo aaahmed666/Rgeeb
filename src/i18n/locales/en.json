@@ -2702,5 +2702,94 @@
         "ignored": "Ignored"
       }
     }
+  },
+  "orchestrator": {
+    "title": "Orchestrator",
+    "resetAll": "Reset All",
+    "resetSuccess": "All assignments cleared",
+    "activate": "Activate",
+    "activateSuccess": "Worker activated",
+    "resetConfirmTitle": "Reset all assignments?",
+    "resetConfirmDesc": "This clears every active worker assignment. Workers will need to be re-activated. This cannot be undone.",
+    "tokenTitle": "Orchestrator token required",
+    "tokenHelp": "These endpoints are authenticated with an X-Orchestrator-Token header. Paste the token to load live data.",
+    "tokenPlaceholder": "Paste token",
+    "tokenSaved": "Orchestrator token saved",
+    "tokenCleared": "Orchestrator token cleared",
+    "stat": {
+      "active": "Active Workers",
+      "pending": "Pending Jobs",
+      "stale": "Stale Workers",
+      "stopList": "Stop List"
+    },
+    "section": {
+      "active": "Active Workers",
+      "pending": "Pending Jobs",
+      "stale": "Stale Workers",
+      "stopList": "Stop List"
+    },
+    "empty": {
+      "active": "No active workers",
+      "pending": "No pending jobs",
+      "stale": "No stale workers",
+      "stopList": "Stop list is empty"
+    },
+    "col": {
+      "cameraService": "Camera Service",
+      "service": "Service",
+      "branch": "Branch",
+      "container": "Container",
+      "worker": "Worker",
+      "status": "Status",
+      "lastHeartbeat": "Last Heartbeat",
+      "priority": "Priority",
+      "requestedAt": "Requested",
+      "staleFor": "Stale For",
+      "reason": "Reason",
+      "flaggedAt": "Flagged"
+    }
+  },
+  "adminRoles": {
+    "title": "Roles",
+    "add": "Add Role",
+    "create": "Create Role",
+    "edit": "Edit Role",
+    "name": "Role Name",
+    "namePlaceholder": "e.g. Branch Manager",
+    "permissions": "Permissions",
+    "permissionsCount": "permissions",
+    "selected": "selected",
+    "general": "General",
+    "noPermissions": "No permissions available",
+    "empty": "No roles found",
+    "search": "Search roles…",
+    "created": "Role created",
+    "updated": "Role updated",
+    "deleted": "Role deleted",
+    "deleteTitle": "Delete role"
+  },
+  "adminDetections": {
+    "title": "Detections",
+    "add": "Add Detection",
+    "create": "Create Detection",
+    "edit": "Edit Detection",
+    "clientId": "Client ID",
+    "branchId": "Branch ID",
+    "cameraId": "Camera ID",
+    "aiModelId": "AI Model ID",
+    "serviceId": "Service ID",
+    "type": "Type",
+    "score": "Score",
+    "detectedAt": "Detected At",
+    "client": "Client",
+    "branch": "Branch",
+    "camera": "Camera",
+    "empty": "No detections found",
+    "search": "Search detections…",
+    "created": "Detection created",
+    "updated": "Detection updated",
+    "deleted": "Detection deleted",
+    "deleteTitle": "Delete detection",
+    "deleteDesc": "Are you sure you want to delete this detection record?"
   }
 }
