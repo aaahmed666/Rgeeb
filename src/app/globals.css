@@ -665,7 +665,7 @@ button,
   text-align: end;
 }
 
-@media (max-width: 1024px) and (min-width: 769px) {
+@media screen and (max-width: 1024px) and (min-width: 769px) {
   .table-responsive-wrapper table {
     font-size: 13px;
   }
@@ -676,7 +676,7 @@ button,
     padding: 8px 10px;
   }
 }
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .table-responsive-wrapper table,
   .table-responsive-wrapper tbody {
     display: block;
@@ -803,6 +803,41 @@ button,
     display: table-header-group;
   }
 
+  /* Force real table rendering in print.
+     The responsive "stacked card" transform (max-width:768px) must never
+     leak into the PDF — the A4 content area (~680px after margins) is below
+     that breakpoint, so without these overrides the leaderboard and every
+     other DataTable would print as broken single-column cards with
+     data-label pseudo-elements instead of aligned columns. */
+  .table-responsive-wrapper table {
+    display: table !important;
+  }
+  .table-responsive-wrapper thead {
+    display: table-header-group !important;
+  }
+  .table-responsive-wrapper tbody {
+    display: table-row-group !important;
+  }
+  .table-responsive-wrapper tr {
+    display: table-row !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .table-responsive-wrapper th,
+  .table-responsive-wrapper td {
+    display: table-cell !important;
+    justify-content: initial !important;
+    border: 0 !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+  }
+  .table-responsive-wrapper td::before {
+    content: none !important;
+    display: none !important;
+  }
+
   /* ── page breaks ── */
   tr {
     break-inside: avoid;
@@ -857,7 +892,11 @@ button,
   scrollbar-gutter: stable;
 }
 [data-sidebar="content"]:hover {
-  scrollbar-color: color-mix(in oklch, var(--sidebar-foreground) 25%, transparent)
+  scrollbar-color: color-mix(
+      in oklch,
+      var(--sidebar-foreground) 25%,
+      transparent
+    )
     transparent;
 }
 /* WebKit (Chrome / Edge / Safari / Brave) */
