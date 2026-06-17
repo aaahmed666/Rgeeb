@@ -71,17 +71,25 @@ export default function ProductivityView() {
       productivityService.summary(filters),
       productivityService.leaderboard(filters),
       productivityService.departments(filters),
-    ]).then(([s, l, d]) => {
-      if (cancelled) return;
-      setSummary(s);
-      setLeaderboard(l);
-      setDepartments(d);
-      if (l.length && !selectedEmployee) setSelectedEmployee(l[0].id);
-    }).catch((err) => {
-      if (!cancelled) setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    ])
+      .then(([s, l, d]) => {
+        if (cancelled) return;
+        setSummary(s);
+        setLeaderboard(l);
+        setDepartments(d);
+        if (l.length && !selectedEmployee) setSelectedEmployee(l[0].id);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setLoadError(
+            err instanceof Error
+              ? err.message
+              : t("errors.somethingWentWrong", "Something went wrong")
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -99,6 +107,40 @@ export default function ProductivityView() {
       cancelled = true;
     };
   }, [selectedEmployee, tab, dateFrom, dateTo]);
+
+  // Flag the document while printing so print-only CSS can target it, mirroring
+  // the BrIntelligence print flow. This guarantees the print stylesheet (light
+  // theme + real table layout) is applied even in browsers that are lazy about
+  // recomputing styles between the beforeprint event and the print snapshot.
+  useEffect(() => {
+    const onBefore = () => {
+      document.body.dataset.printing = "true";
+    };
+    const onAfter = () => {
+      delete document.body.dataset.printing;
+    };
+    window.addEventListener("beforeprint", onBefore);
+    window.addEventListener("afterprint", onAfter);
+    return () => {
+      window.removeEventListener("beforeprint", onBefore);
+      window.removeEventListener("afterprint", onAfter);
+    };
+  }, []);
+
+  // Export the leaderboard to PDF via the browser print engine. We switch to
+  // the Leaderboard tab first (only the active tab is mounted, so printing from
+  // another tab would emit a blank table), then defer the actual print one
+  // frame so the tab content is committed to the DOM before the snapshot.
+  const handleExportPdf = useCallback(() => {
+    setTab("leaderboard");
+    // Two rAFs: first lets React commit the tab switch, second lets the browser
+    // lay it out before we freeze the page for printing.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+      });
+    });
+  }, []);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     {
@@ -134,15 +176,30 @@ export default function ProductivityView() {
           <button
             onClick={() => {
               let cancelled = false;
-              setLoading(true); setLoadError(null);
+              setLoading(true);
+              setLoadError(null);
               void Promise.all([
                 productivityService.summary({ dateFrom, dateTo }),
                 productivityService.leaderboard({ dateFrom, dateTo }),
                 productivityService.departments({ dateFrom, dateTo }),
-              ]).then(([s,l,d]) => { if(!cancelled){setSummary(s);setLeaderboard(l);setDepartments(d);} })
-              .catch(e => { if(!cancelled) setLoadError(e instanceof Error ? e.message : "Error"); })
-              .finally(() => { if(!cancelled) setLoading(false); });
-              return () => { cancelled = true; };
+              ])
+                .then(([s, l, d]) => {
+                  if (!cancelled) {
+                    setSummary(s);
+                    setLeaderboard(l);
+                    setDepartments(d);
+                  }
+                })
+                .catch((e) => {
+                  if (!cancelled)
+                    setLoadError(e instanceof Error ? e.message : "Error");
+                })
+                .finally(() => {
+                  if (!cancelled) setLoading(false);
+                });
+              return () => {
+                cancelled = true;
+              };
             }}
             className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30"
           >
@@ -176,7 +233,7 @@ export default function ProductivityView() {
           </div>
           <button
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={() => window.print()}
+            onClick={handleExportPdf}
             title={t("productivity.pdf", "PDF")}
           >
             <FileText className="h-4 w-4 text-rose-500" />
@@ -187,21 +244,33 @@ export default function ProductivityView() {
             onClick={async () => {
               try {
                 const token = getAuthToken();
-                const params = dateFrom ? `?date_from=${dateFrom}&date_to=${dateTo ?? ""}` : "";
-                const res = await fetch(`/api/customer/productivity/export-excel${params}`, {
-                  headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                });
+                const params = dateFrom
+                  ? `?date_from=${dateFrom}&date_to=${dateTo ?? ""}`
+                  : "";
+                const res = await fetch(
+                  `/api/customer/productivity/export-excel${params}`,
+                  {
+                    headers: {
+                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                  }
+                );
                 if (!res.ok) throw new Error(`Export failed (${res.status})`);
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
-                a.href = url; a.download = "productivity.xlsx"; a.click();
+                a.href = url;
+                a.download = "productivity.xlsx";
+                a.click();
                 URL.revokeObjectURL(url);
               } catch (e) {
                 console.error("Export failed:", e);
                 // Surface the failure — a silent no-op looks like a dead button.
                 toast.error(
-                  t("productivity.exportFailed", "Export failed. Please try again.")
+                  t(
+                    "productivity.exportFailed",
+                    "Export failed. Please try again."
+                  )
                 );
               }
             }}
@@ -432,7 +501,10 @@ function LeaderboardTab({
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return (
-    <Card data-section-id="leaderboard" className="overflow-hidden p-5">
+    <Card
+      data-section-id="leaderboard"
+      className="overflow-hidden p-5"
+    >
       <div className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
         <Trophy className="h-5 w-5 text-amber-500" />
         {t("productivity.employeeLeaderboard", "Employee Leaderboard")}

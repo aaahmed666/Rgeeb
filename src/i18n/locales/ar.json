@@ -2065,6 +2065,7 @@
   "serviceMonitor": {
     "noDetections": "لا توجد كشوفات",
     "noDetectionsDesc": "لا توجد كشوفات للفترة المحددة.",
+    "deleteTitle": "حذف الكشف؟",
     "confirmDeleteDesc": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف سجل الكشف نهائياً.",
     "alertStatus": "حالة التنبيه",
     "detectionsPerHour": "الكشوفات في الساعة",

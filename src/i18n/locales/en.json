@@ -2065,6 +2065,7 @@
   "serviceMonitor": {
     "noDetections": "No detections",
     "noDetectionsDesc": "No detections recorded for the selected period.",
+    "deleteTitle": "Delete detection?",
     "confirmDeleteDesc": "This action cannot be undone. The detection record will be permanently removed.",
     "alertStatus": "Alert Status",
     "detectionsPerHour": "Detections Per Hour",

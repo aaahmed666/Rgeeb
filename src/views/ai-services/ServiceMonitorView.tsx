@@ -9,9 +9,11 @@ import {
   Camera,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
@@ -54,6 +56,8 @@ interface MonitorDashboard {
     score?: number | string;
     time?: string;
     created_at?: string;
+    detected_at?: string;
+    timestamp?: string;
   }>;
   branches?: Array<{ id: string | number; name: string }>;
   [k: string]: unknown;
@@ -64,6 +68,12 @@ const EMPTY_HOURS = Array.from({ length: 24 }, (_, i) => ({
   hour: i,
   count: 0,
 }));
+
+// Mandatory pagination params expected by the service-monitor dashboard API.
+// Omitting these makes the backend return an empty / differently-shaped
+// payload (no recent_detections, no detections_per_hour buckets).
+const DEFAULT_PAGE = 1;
+const DEFAULT_PER_PAGE = 15;
 
 // ─── Helper ────────────────────────────────────────────────────────────────
 function fmt(n: number | undefined | null): string {
@@ -120,7 +130,7 @@ interface Props {
 }
 
 export default function ServiceMonitorView({ service, serviceApiId }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const Icon = service.icon;
   const today = new Date().toISOString().slice(0, 10);
   const [dateRange, setDateRange] = React.useState<DateRange | null>([
@@ -132,11 +142,28 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const [branchId, setBranchId] = React.useState("all");
   const [data, setData] = React.useState<MonitorDashboard | null>(null);
   const [loading, setLoading] = React.useState(true);
+  // Delete-action state (Bug: delete non-functional). `deletedIds` lets us
+  // optimistically drop a row from the rendered list the moment the DELETE
+  // request succeeds, without waiting for a full dashboard refetch.
+  const [deleteTarget, setDeleteTarget] = React.useState<
+    string | number | null
+  >(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deletedIds, setDeletedIds] = React.useState<Set<string | number>>(
+    () => new Set()
+  );
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const q: Record<string, string> = { date_from: from, date_to: to };
+      const q: Record<string, string | number> = {
+        date_from: from,
+        date_to: to,
+        // Mandatory pagination params — the backend returns an empty payload
+        // (blank chart, no recent detections) when these are missing.
+        page: DEFAULT_PAGE,
+        per_page: DEFAULT_PER_PAGE,
+      };
       if (branchId !== "all") q.branch_id = branchId;
       const cacheKey = serviceMonitorKey(serviceApiId, from, to, branchId);
       const res = await serviceMonitorCache.get(cacheKey, () =>
@@ -148,6 +175,8 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       const d =
         (res as { data?: MonitorDashboard }).data ?? (res as MonitorDashboard);
       setData(d);
+      // Fresh payload — clear any optimistic deletions from the prior view.
+      setDeletedIds(new Set());
     } catch {
       setData(null);
     } finally {
@@ -162,9 +191,44 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   // ── Derived values ────────────────────────────────────────────────────────
   const stats = data?.stats ?? {};
   const alertStatus = data?.alert_status ?? {};
-  const perHour = data?.detections_per_hour ?? EMPTY_HOURS;
   const detections = data?.recent_detections ?? [];
   const branches = data?.branches ?? [];
+
+  // ── Detections-per-hour normalization (Bug: blank chart) ──────────────────
+  // The API delivers hourly buckets under several shapes depending on the
+  // service: `detections_per_hour`, `hourly`, or nested under `chart.hourly`,
+  // and each bucket may key its value as `count`, `total`, or `value` and its
+  // hour as `hour` or `label`. Previously only the exact
+  // `detections_per_hour: [{hour, count}]` shape was read, so any other shape
+  // (or a sparse response containing only populated hours) rendered nothing.
+  // We coalesce every known source and project it onto a full 24-hour axis so
+  // the bars always render and align to the correct hour slot.
+  const perHour = React.useMemo(() => {
+    const rawSource =
+      data?.detections_per_hour ??
+      (data?.hourly as MonitorDashboard["detections_per_hour"]) ??
+      ((data?.chart as { hourly?: MonitorDashboard["detections_per_hour"] })
+        ?.hourly as MonitorDashboard["detections_per_hour"]) ??
+      null;
+
+    if (!rawSource || !Array.isArray(rawSource) || rawSource.length === 0) {
+      return EMPTY_HOURS;
+    }
+
+    // Build a 0-filled 24-slot axis, then merge each returned bucket into it.
+    const buckets = EMPTY_HOURS.map((h) => ({ ...h }));
+    for (const entry of rawSource) {
+      const e = entry as Record<string, unknown>;
+      const rawHour = e.hour ?? e.label ?? e.h;
+      const hour =
+        typeof rawHour === "number" ? rawHour : parseInt(String(rawHour), 10);
+      if (Number.isNaN(hour) || hour < 0 || hour > 23) continue;
+      const rawCount = e.count ?? e.total ?? e.value ?? 0;
+      const count = Number(rawCount);
+      buckets[hour].count = Number.isFinite(count) ? count : 0;
+    }
+    return buckets;
+  }, [data]);
 
   // generic stat reading
   const totalDet = (stats.total_detections ??
@@ -213,6 +277,71 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const todayCount = (stats.today_count ??
     stats.customers_today ??
     totalDet) as number;
+
+  // ── Time formatting (Bug: Time column shows "-") ──────────────────────────
+  // Detections carry their timestamp under varying keys (`time`, `created_at`,
+  // `detected_at`, `timestamp`). The old code read only `time`/`created_at`
+  // and, when it found an ISO string, printed it raw. We resolve every known
+  // key and render a localized, human-readable time string.
+  const locale = i18n.language === "ar" ? "ar" : "en";
+  const formatTime = React.useCallback(
+    (det: (typeof detections)[number]): string => {
+      const raw =
+        det.time ?? det.detected_at ?? det.created_at ?? det.timestamp ?? "";
+      if (!raw) return "—";
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return String(raw);
+      return d.toLocaleString(locale, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    },
+    [locale]
+  );
+
+  // Rows actually rendered — drop any optimistically-deleted ids.
+  const visibleDetections = React.useMemo(
+    () =>
+      detections
+        .map((d, i) => ({ ...d, id: d.id ?? i }))
+        .filter((d) => !deletedIds.has(d.id)),
+    [detections, deletedIds]
+  );
+
+  // ── Delete a detection row (Bug: delete non-functional) ───────────────────
+  // The trash button previously had no handler — no request was dispatched and
+  // the list never updated. We now DELETE the record, optimistically remove it
+  // from the list, and invalidate the cached dashboard so a later refetch
+  // reflects the change server-side.
+  const confirmDelete = React.useCallback(async () => {
+    if (deleteTarget == null) return;
+    setDeleting(true);
+    try {
+      await apiFetch(endpoints.detections.byId(deleteTarget), {
+        method: "DELETE",
+      });
+      setDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.add(deleteTarget);
+        return next;
+      });
+      invalidateService(serviceApiId);
+      toast.success(
+        t("detectionFeed.detectionDeleted", "Detection deleted successfully")
+      );
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("common.error", "Something went wrong")
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, serviceApiId, t]);
 
   const statCards: StatCardProps[] = [
     {
@@ -576,7 +705,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       {/* ── Recent Detections ───────────────────────────────────────────── */}
       <DataTable
         title={t("serviceMonitor.recentDetections", "Recent Detections")}
-        data={detections.map((d, i) => ({ ...d, id: d.id ?? i }))}
+        data={visibleDetections}
         isLoading={loading}
         emptyMessage={t("serviceMonitor.noDetections", "No detections")}
         skeletonRows={5}
@@ -674,7 +803,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             header: t("serviceMonitor.colTime", "Time"),
             render: (det) => (
               <span className="whitespace-nowrap text-xs text-muted-foreground">
-                {det.time ?? det.created_at ?? "—"}
+                {formatTime(det)}
               </span>
             ),
           },
@@ -682,13 +811,34 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             key: "actions",
             header: "",
             headClassName: "w-12",
-            render: () => (
-              <button className="rounded p-1 text-muted-foreground hover:text-red-500 transition-colors">
+            render: (det) => (
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(det.id)}
+                aria-label={t("common.delete", "Delete")}
+                className="rounded p-1 text-muted-foreground hover:text-red-500 transition-colors"
+              >
                 <Trash2 className="h-4 w-4" />
               </button>
             ),
           },
         ]}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+        isLoading={deleting}
+        title={t("serviceMonitor.deleteTitle", "Delete detection?")}
+        description={t(
+          "serviceMonitor.confirmDeleteDesc",
+          "This action cannot be undone. The detection record will be permanently removed."
+        )}
+        confirmLabel={t("common.delete", "Delete")}
+        cancelLabel={t("common.cancel", "Cancel")}
       />
     </div>
   );
