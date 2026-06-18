@@ -98,6 +98,14 @@ export interface AuthPaginatedSelectProps {
   id?: string;
   /** Control height in px. Defaults to 52 for auth pages, use 36 for dashboard. */
   height?: number;
+  /**
+   * Where to portal the dropdown menu. Leave undefined to auto-detect: the menu
+   * is portalled into the nearest Radix dialog/sheet ancestor when present, and
+   * falls back to document.body otherwise. Portalling to body from inside a modal
+   * dialog makes the menu inherit the dialog's `pointer-events: none`, which
+   * freezes clicks and blocks scrolling — auto-detect avoids that.
+   */
+  menuPortalTarget?: HTMLElement | null;
 }
 
 export function AuthPaginatedSelect({
@@ -121,7 +129,27 @@ export function AuthPaginatedSelect({
   hasError = false,
   id,
   height = 52,
+  menuPortalTarget,
 }: AuthPaginatedSelectProps) {
+  // Wrapper ref lets us find the nearest dialog ancestor so the portalled menu
+  // stays inside the dialog's focus-trap / pointer-events scope (see prop docs).
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const [autoPortalTarget, setAutoPortalTarget] =
+    React.useState<HTMLElement | null>(null);
+  React.useEffect(() => {
+    if (menuPortalTarget !== undefined || typeof document === "undefined")
+      return;
+    const dialog =
+      wrapRef.current?.closest<HTMLElement>(
+        '[role="dialog"], [role="alertdialog"]'
+      ) ?? null;
+    setAutoPortalTarget(dialog ?? document.body);
+  }, [menuPortalTarget]);
+  const effectivePortalTarget =
+    menuPortalTarget !== undefined
+      ? (menuPortalTarget ?? undefined)
+      : (autoPortalTarget ?? undefined);
+
   const [resolvedOption, setResolvedOption] =
     React.useState<SelectOption | null>(
       value && defaultOption ? defaultOption : null
@@ -405,30 +433,30 @@ export function AuthPaginatedSelect({
   );
 
   return (
-    <AsyncPaginate
-      inputId={id}
-      isMulti={isMulti}
-      value={isMulti ? resolvedOptions : resolvedOption}
-      onChange={handleChange}
-      loadOptions={loadOptions}
-      additional={{ page: 1 }}
-      debounceTimeout={debounceTimeout}
-      placeholder={placeholder}
-      isClearable={isClearable}
-      isDisabled={isDisabled}
-      closeMenuOnSelect={!isMulti}
-      hideSelectedOptions={false}
-      styles={selectStyles}
-      theme={selectTheme}
-      menuPortalTarget={
-        typeof document !== "undefined" ? document.body : undefined
-      }
-      menuPosition="fixed"
-      loadingMessage={() => loadingText}
-      noOptionsMessage={({ inputValue }) =>
-        inputValue ? `No results for "${inputValue}"` : "No options"
-      }
-    />
+    <div ref={wrapRef}>
+      <AsyncPaginate
+        inputId={id}
+        isMulti={isMulti}
+        value={isMulti ? resolvedOptions : resolvedOption}
+        onChange={handleChange}
+        loadOptions={loadOptions}
+        additional={{ page: 1 }}
+        debounceTimeout={debounceTimeout}
+        placeholder={placeholder}
+        isClearable={isClearable}
+        isDisabled={isDisabled}
+        closeMenuOnSelect={!isMulti}
+        hideSelectedOptions={false}
+        styles={selectStyles}
+        theme={selectTheme}
+        menuPortalTarget={effectivePortalTarget}
+        menuPosition="fixed"
+        loadingMessage={() => loadingText}
+        noOptionsMessage={({ inputValue }) =>
+          inputValue ? `No results for "${inputValue}"` : "No options"
+        }
+      />
+    </div>
   );
 }
 

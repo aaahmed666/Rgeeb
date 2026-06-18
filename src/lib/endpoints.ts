@@ -185,12 +185,12 @@ export const endpoints = {
     dashboard: "/customer/tasks/dashboard",
     branches: "/customer/branches",
     // OLD production task-detail contract (not in Postman; kept for parity):
-    assign: "/customer/tasks/assign",          // POST { id, user_id }
-    comment: "/customer/tasks/comment",        // POST { id, body }
-    logs: "/customer/tasks/logs",              // GET  ?id=&per_page=
-    children: "/customer/tasks/children",      // GET  ?id= — subtasks of a parent
-    attachment: "/customer/tasks/attachment",  // POST multipart { id, file }
-    legacyStatus: "/customer/tasks/status",    // POST { id, status } — OLD path
+    assign: "/customer/tasks/assign", // POST { id, user_id }
+    comment: "/customer/tasks/comment", // POST { id, body }
+    logs: "/customer/tasks/logs", // GET  ?id=&per_page=
+    children: "/customer/tasks/children", // GET  ?id= — subtasks of a parent
+    attachment: "/customer/tasks/attachment", // POST multipart { id, file }
+    legacyStatus: "/customer/tasks/status", // POST { id, status } — OLD path
   },
 
   // ── My Tasks ─────────────────────────────────────────────────────────────────
@@ -423,8 +423,7 @@ export const endpoints = {
   // ── Chat Settings ────────────────────────────────────────────────────────────
   chatSettings: {
     settings: "/customer/chat/settings",
-    testWhatsapp: "/customer/chat/settings/test-whatsapp",
-    testWhatsappLegacy: "/customer/chat/test-whatsapp", // collection top-level path
+    testWhatsapp: "/customer/chat/test-whatsapp", // matches Postman collection (backend route)
     resetAlerts: "/customer/chat/settings/reset-alerts",
   },
 
