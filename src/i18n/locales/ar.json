@@ -2098,7 +2098,8 @@
     "colScore": "الدرجة",
     "colTime": "الوقت",
     "noData": "لا توجد بيانات",
-    "selectDate": "اختر تاريخاً لعرض البيانات"
+    "selectDate": "اختر تاريخاً لعرض البيانات",
+    "viewingRange": "عرض البيانات من {{from}} إلى {{to}}"
   },
   "validation": {
     "required": "هذا الحقل مطلوب",
@@ -2603,14 +2604,6 @@
     "alerts": "التنبيهات",
     "found": "تم العثور على {{n}} حدثاً",
     "noEvents": "لا توجد أحداث"
-  },
-  "visitorRecords": {
-    "title": "سجلات الزوار",
-    "subtitle": "تتبع نشاط دخول وخروج الزوار",
-    "total": "إجمالي الزوار",
-    "entered": "دخل",
-    "exited": "خرج",
-    "noRecords": "لا توجد سجلات زوار"
   },
   "visitors": {
     "enter": "دخول",

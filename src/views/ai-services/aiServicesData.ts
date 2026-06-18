@@ -37,7 +37,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   // ── Safety ──────────────────────────────────────────────────────────────
   {
     id: "helmet-detection",
-    apiId: 13,
+    apiId: 21,
     label: "Helmet Detection",
     labelKey: "aiServices.helmetDetection",
     category: "Safety",
@@ -65,7 +65,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "kitchen-ppe",
-    apiId: 14,
+    apiId: 11,
     label: "Kitchen PPE",
     labelKey: "aiServices.kitchenPpe",
     category: "Safety",
@@ -93,7 +93,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "restricted-area",
-    apiId: 24,
+    apiId: 27,
     label: "Restricted Area",
     labelKey: "aiServices.restrictedArea",
     category: "Safety",
@@ -121,7 +121,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "fire-detection",
-    apiId: 11,
+    apiId: 4,
     label: "Fire Detection",
     labelKey: "aiServices.fireDetection",
     category: "Safety",
@@ -149,7 +149,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "smoke-detection",
-    apiId: 12,
+    apiId: 4,
     label: "Smoke Detection",
     labelKey: "aiServices.smokeDetection",
     category: "Safety",
@@ -177,7 +177,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "smoking-detection",
-    apiId: 26,
+    apiId: 20,
     label: "Smoking Detection",
     labelKey: "aiServices.smokingDetection",
     category: "Safety",
@@ -205,7 +205,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "spill-detection",
-    apiId: 27,
+    apiId: 22,
     label: "Spill Detection",
     labelKey: "aiServices.spillDetection",
     category: "Safety",
@@ -235,7 +235,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   // ── Analytics ────────────────────────────────────────────────────────────
   {
     id: "age-gender",
-    apiId: 1,
+    apiId: 26,
     label: "Age Gender Analytics",
     labelKey: "aiServices.ageGender",
     category: "Analytics",
@@ -263,7 +263,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "behavior-analysis",
-    apiId: 3,
+    apiId: 6,
     label: "Behavior Analysis",
     labelKey: "aiServices.behaviorAnalysis",
     category: "Analytics",
@@ -291,7 +291,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "customer-traffic",
-    apiId: 7,
+    apiId: 13,
     label: "Customer Traffic",
     labelKey: "aiServices.customerTraffic",
     category: "Analytics",
@@ -319,7 +319,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "face-attendance",
-    apiId: 2,
+    apiId: 17,
     label: "Face Attendance",
     labelKey: "aiServices.faceAttendance",
     category: "Analytics",
@@ -347,7 +347,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "face-detection",
-    apiId: 10,
+    apiId: 2,
     label: "Face Detection",
     labelKey: "aiServices.faceDetection",
     category: "Analytics",
@@ -375,7 +375,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "queue-management",
-    apiId: 22,
+    apiId: 25,
     label: "Queue Management",
     labelKey: "aiServices.queueManagement",
     category: "Analytics",
@@ -403,7 +403,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "waiting-customer",
-    apiId: 29,
+    apiId: 16,
     label: "Waiting Customer",
     labelKey: "aiServices.waitingCustomer",
     category: "Analytics",
@@ -433,7 +433,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   // ── Operations ───────────────────────────────────────────────────────────
   {
     id: "cash-register",
-    apiId: 4,
+    apiId: 23,
     label: "Cash Register",
     labelKey: "aiServices.cashRegister",
     category: "Operations",
@@ -461,7 +461,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "clean-tables",
-    apiId: 5,
+    apiId: 12,
     label: "Clean Tables",
     labelKey: "aiServices.cleanTables",
     category: "Operations",
@@ -489,7 +489,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "cup-counting",
-    apiId: 6,
+    apiId: 10,
     label: "Cup Counting",
     labelKey: "aiServices.cupCounting",
     category: "Operations",
@@ -517,7 +517,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "delivery-tracking",
-    apiId: 8,
+    apiId: 24,
     label: "Delivery Tracking",
     labelKey: "aiServices.deliveryTracking",
     category: "Operations",
@@ -573,7 +573,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "receipt-detection",
-    apiId: 23,
+    apiId: 29,
     label: "Receipt Detection",
     labelKey: "aiServices.receiptDetection",
     category: "Operations",
@@ -601,7 +601,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "sandwich-counting",
-    apiId: 25,
+    apiId: 28,
     label: "Sandwich Counting",
     labelKey: "aiServices.sandwichCounting",
     category: "Operations",
@@ -631,12 +631,8 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   // ── Monitoring ──────────────────────────────────────────────────────────
   {
     id: "gate-monitoring",
-    // FIXME(backend-id): apiId was 12, which DUPLICATES smoke-detection (apiId 12)
-    // and caused Gate Monitoring to pull Smoke Detection's live data. Removed
-    // until the real backend service id is confirmed (apiIds 1–29 are taken; 30
-    // is free and is the likely candidate). With apiId omitted, the detail view
-    // shows the static fallback instead of wrong live data.
-    // apiId: 30,
+    // apiId confirmed against the legacy project (old serviceId = 18).
+    apiId: 18,
     label: "Gate Monitoring",
     labelKey: "aiServices.gateMonitoring",
     category: "Monitoring",
@@ -664,7 +660,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "license-plate",
-    apiId: 15,
+    apiId: 19,
     label: "License Plate",
     labelKey: "aiServices.licensePlate",
     category: "Monitoring",
@@ -692,7 +688,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "mask-detection",
-    apiId: 16,
+    apiId: 3,
     label: "Mask Detection",
     labelKey: "aiServices.maskDetection",
     category: "Monitoring",
@@ -720,7 +716,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "motion-detection",
-    apiId: 17,
+    apiId: 5,
     label: "Motion Detection",
     labelKey: "aiServices.motionDetection",
     category: "Monitoring",
@@ -748,7 +744,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "object-detection",
-    apiId: 18,
+    apiId: 7,
     label: "Object Detection",
     labelKey: "aiServices.objectDetection",
     category: "Monitoring",
@@ -776,7 +772,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "overcrowd-violation",
-    apiId: 19,
+    apiId: 15,
     label: "Overcrowd Violation",
     labelKey: "aiServices.overcrowdViolation",
     category: "Monitoring",
@@ -804,7 +800,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "people-counting",
-    apiId: 20,
+    apiId: 1,
     label: "People Counting",
     labelKey: "aiServices.peopleCounting",
     category: "Monitoring",
@@ -832,7 +828,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "person-detection",
-    apiId: 21,
+    apiId: 14,
     label: "Person Detection",
     labelKey: "aiServices.personDetection",
     category: "Monitoring",
@@ -860,7 +856,7 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   },
   {
     id: "vehicle-tracking",
-    apiId: 28,
+    apiId: 8,
     label: "Vehicle Tracking",
     labelKey: "aiServices.vehicleTracking",
     category: "Monitoring",

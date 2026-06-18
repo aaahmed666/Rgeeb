@@ -19,7 +19,7 @@ import type { DateRange } from "rsuite/DateRangePicker";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { cn } from "@/lib/utils";
+import { cn, toLocalISODate } from "@/lib/utils";
 import {
   serviceMonitorCache,
   serviceMonitorKey,
@@ -132,13 +132,21 @@ interface Props {
 export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const { t, i18n } = useTranslation();
   const Icon = service.icon;
-  const today = new Date().toISOString().slice(0, 10);
+  // Default range = "last month" (one month back → today) so every AI-service
+  // page opens on a meaningful window of data instead of just today.
+  const monthAgo = new Date();
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
   const [dateRange, setDateRange] = React.useState<DateRange | null>([
-    new Date(),
+    monthAgo,
     new Date(),
   ]);
-  const from = dateRange ? dateRange[0].toISOString().slice(0, 10) : today;
-  const to = dateRange ? dateRange[1].toISOString().slice(0, 10) : today;
+  // Format in LOCAL time, not UTC. toISOString() shifts the calendar day for
+  // any timezone east of UTC (e.g. Egypt UTC+2/+3), which sent the wrong
+  // date_from/date_to to the backend and made filtered queries return no /
+  // mismatched data.
+  const today = toLocalISODate(new Date());
+  const from = dateRange ? toLocalISODate(dateRange[0]) : today;
+  const to = dateRange ? toLocalISODate(dateRange[1]) : today;
   const [branchId, setBranchId] = React.useState("all");
   const [data, setData] = React.useState<MonitorDashboard | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -157,10 +165,12 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     setLoading(true);
     try {
       const q: Record<string, string | number> = {
-        date_from: from,
-        date_to: to,
-        // Mandatory pagination params — the backend returns an empty payload
-        // (blank chart, no recent detections) when these are missing.
+        // Backend contract (Postman: service-monitor/{id}/dashboard) expects
+        // `from` / `to`. Sending `date_from` / `date_to` made the backend
+        // ignore the range and return an empty payload (0 detections, blank
+        // chart) on every AI-service page.
+        from,
+        to,
         page: DEFAULT_PAGE,
         per_page: DEFAULT_PER_PAGE,
       };
@@ -194,41 +204,72 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const detections = data?.recent_detections ?? [];
   const branches = data?.branches ?? [];
 
-  // ── Detections-per-hour normalization (Bug: blank chart) ──────────────────
-  // The API delivers hourly buckets under several shapes depending on the
-  // service: `detections_per_hour`, `hourly`, or nested under `chart.hourly`,
-  // and each bucket may key its value as `count`, `total`, or `value` and its
-  // hour as `hour` or `label`. Previously only the exact
-  // `detections_per_hour: [{hour, count}]` shape was read, so any other shape
-  // (or a sparse response containing only populated hours) rendered nothing.
-  // We coalesce every known source and project it onto a full 24-hour axis so
-  // the bars always render and align to the correct hour slot.
+  // ── Detections-per-hour normalization (Bug: chart shows no data) ──────────
+  // The backend is inconsistent: hourly buckets may arrive as
+  // `detections_per_hour` / `hourly` / `hourly_detections` / `per_hour` /
+  // `chart.hourly`, either as an array ([{hour,count}]) or as an object map
+  // ({ "0": 5, "13": 2 }). And frequently the backend sends NO hourly data at
+  // all even when there are detections (observed: "0 total" chart while total
+  // detections > 0). In that case we derive the buckets client-side from the
+  // timestamps of `recent_detections`, so the chart always reflects real data.
   const perHour = React.useMemo(() => {
+    const buckets = EMPTY_HOURS.map((h) => ({ ...h }));
+
     const rawSource =
       data?.detections_per_hour ??
-      (data?.hourly as MonitorDashboard["detections_per_hour"]) ??
-      ((data?.chart as { hourly?: MonitorDashboard["detections_per_hour"] })
-        ?.hourly as MonitorDashboard["detections_per_hour"]) ??
+      (data?.hourly as unknown) ??
+      (data?.hourly_detections as unknown) ??
+      (data?.per_hour as unknown) ??
+      ((data?.chart as { hourly?: unknown })?.hourly as unknown) ??
+      ((data?.stats as { hourly?: unknown })?.hourly as unknown) ??
       null;
 
-    if (!rawSource || !Array.isArray(rawSource) || rawSource.length === 0) {
-      return EMPTY_HOURS;
+    // Normalize array OR object-map into [hour, count] pairs.
+    let pairs: Array<[number, number]> = [];
+    if (Array.isArray(rawSource)) {
+      pairs = rawSource
+        .map((entry): [number, number] => {
+          const e = entry as Record<string, unknown>;
+          const rawHour = e.hour ?? e.label ?? e.h;
+          const hour =
+            typeof rawHour === "number"
+              ? rawHour
+              : parseInt(String(rawHour), 10);
+          const rawCount = e.count ?? e.total ?? e.value ?? 0;
+          return [hour, Number(rawCount)];
+        })
+        .filter(([h]) => Number.isInteger(h) && h >= 0 && h <= 23);
+    } else if (rawSource && typeof rawSource === "object") {
+      pairs = Object.entries(rawSource as Record<string, unknown>)
+        .map(([k, v]): [number, number] => [parseInt(k, 10), Number(v)])
+        .filter(([h]) => Number.isInteger(h) && h >= 0 && h <= 23);
     }
 
-    // Build a 0-filled 24-slot axis, then merge each returned bucket into it.
-    const buckets = EMPTY_HOURS.map((h) => ({ ...h }));
-    for (const entry of rawSource) {
-      const e = entry as Record<string, unknown>;
-      const rawHour = e.hour ?? e.label ?? e.h;
-      const hour =
-        typeof rawHour === "number" ? rawHour : parseInt(String(rawHour), 10);
-      if (Number.isNaN(hour) || hour < 0 || hour > 23) continue;
-      const rawCount = e.count ?? e.total ?? e.value ?? 0;
-      const count = Number(rawCount);
-      buckets[hour].count = Number.isFinite(count) ? count : 0;
+    const hasServerData = pairs.some(([, c]) => Number.isFinite(c) && c > 0);
+
+    if (hasServerData) {
+      for (const [hour, count] of pairs) {
+        buckets[hour].count = Number.isFinite(count) ? count : 0;
+      }
+      return buckets;
     }
-    return buckets;
-  }, [data]);
+
+    // Fallback: derive from recent_detections timestamps.
+    let derived = false;
+    for (const det of detections) {
+      const raw =
+        det.time ?? det.detected_at ?? det.created_at ?? det.timestamp ?? "";
+      if (!raw) continue;
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) continue;
+      const hour = d.getHours();
+      if (hour >= 0 && hour <= 23) {
+        buckets[hour].count += 1;
+        derived = true;
+      }
+    }
+    return derived ? buckets : EMPTY_HOURS;
+  }, [data, detections]);
 
   // generic stat reading
   const totalDet = (stats.total_detections ??
@@ -272,6 +313,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const normal = alertStatus.normal ?? 0;
 
   const maxBar = Math.max(...perHour.map((h) => h.count), 1);
+  // Total shown on the chart header = sum of the charted buckets, so it stays
+  // consistent with the bars (the server's stats.total can be 0/absent even
+  // when detections exist).
+  const chartTotal = perHour.reduce((sum, h) => sum + h.count, 0);
   const currentHour = new Date().getHours();
 
   const todayCount = (stats.today_count ??
@@ -319,8 +364,12 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     if (deleteTarget == null) return;
     setDeleting(true);
     try {
-      await apiFetch(endpoints.detections.byId(deleteTarget), {
-        method: "DELETE",
+      // Backend contract: POST /customer/detections/delete with a JSON body
+      // { id }. The previous RESTful DELETE /customer/detections/{id} call
+      // hit a route that does not exist ("route ... could not be found").
+      await apiFetch(endpoints.detections.delete, {
+        method: "POST",
+        body: { id: deleteTarget },
       });
       setDeletedIds((prev) => {
         const next = new Set(prev);
@@ -419,13 +468,15 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           </p>
         </div>
 
-        {/* Controls */}
+        {/* Controls — date range + branch select aligned on a single row */}
         <div className="flex flex-wrap items-center gap-2">
-          <SharedDateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-          />
-          <div className="min-w-[160px]">
+          <div className="w-[240px] max-w-full">
+            <SharedDateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
+          </div>
+          <div className="w-[180px] max-w-full">
             <AsyncPaginatedSelect
               endpoint="/customer/branches"
               labelKey="name"
@@ -497,7 +548,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             y2="10"
           />
         </svg>
-        {t("serviceMonitor.selectDate", "Select a date to view data")}
+        {t("serviceMonitor.viewingRange", "Showing data from {{from}} to {{to}}", {
+          from,
+          to,
+        })}
       </div>
 
       {/* ── Stat Cards ──────────────────────────────────────────────────── */}
@@ -628,7 +682,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
               </h2>
             </div>
             <span className="text-xs font-semibold text-muted-foreground bg-muted rounded px-2 py-0.5">
-              {fmt(totalDet)} {t("common.total", "total")}
+              {fmt(chartTotal)} {t("common.total", "total")}
             </span>
           </div>
 

@@ -28,9 +28,20 @@ function listFrom(res: unknown): Record<string, unknown>[] {
 }
 
 function totalFrom(res: unknown): number {
-  const r = res as Record<string, unknown>;
-  const meta = (r?.meta ?? (r?.data as Record<string, unknown>)?.meta ?? {}) as Record<string, unknown>;
-  return Number(meta?.total ?? r?.total ?? 0);
+  const r = (res ?? {}) as Record<string, unknown>;
+  const data = (r.data ?? {}) as Record<string, unknown>;
+  const meta = (r.meta ?? data.meta ?? {}) as Record<string, unknown>;
+  const pagination = (r.pagination ??
+    data.pagination ??
+    {}) as Record<string, unknown>;
+  // Cover flat, wrapped, meta-based and pagination-based paginator shapes.
+  return Number(
+    meta.total ??
+      r.total ??
+      data.total ??
+      pagination.total ??
+      0
+  );
 }
 
 export interface PaginatedResult<T> {

@@ -466,7 +466,7 @@ function EmployeeDrawer({
   onOpenChange: (v: boolean) => void;
   employee: Employee | null;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const isEdit = !!employee;
   const photoRef = useRef<HTMLInputElement>(null);
@@ -762,28 +762,52 @@ function EmployeeDrawer({
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t("employees.department", "Department")}</Label>
-                  <AsyncPaginatedSelect
-                    endpoint="/customer/departments"
-                    labelKey="name_en"
-                    valueKey="id"
-                    extraParams={{ active: 1 }}
-                    value={form.department_id || null}
-                    onChange={(opt) => setForm({ ...form, department_id: opt ?? "" })}
-                    placeholder={t("common.select", "Select")}
-                  />
+                  {/* Dropdown mode: fetchDepartments() sends all=1 and returns
+                      every ACTIVE department at once (no pagination), matching
+                      the same pattern used for registration forms. The table
+                      view uses paginated fetchDepartments({ page }) instead. */}
+                  <Select
+                    value={form.department_id || ""}
+                    onValueChange={(v) =>
+                      setForm({ ...form, department_id: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("common.select", "Select")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {i18n.language === "ar"
+                            ? d.nameAr || d.nameEn
+                            : d.nameEn || d.nameAr}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label>{t("employees.branch", "Branch")}</Label>
-                <AsyncPaginatedSelect
-                  endpoint="/customer/branches"
-                  labelKey="name"
-                  valueKey="id"
-                  extraParams={{ active: 1 }}
-                  value={form.branch_id || null}
-                  onChange={(opt) => setForm({ ...form, branch_id: opt ?? "" })}
-                  placeholder={t("common.select", "Select")}
-                />
+                {/* Dropdown mode: fetchBranches() sends all=1 → all ACTIVE
+                    branches at once, no pagination (same rule as departments). */}
+                <Select
+                  value={form.branch_id || ""}
+                  onValueChange={(v) => setForm({ ...form, branch_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("common.select", "Select")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((br) => (
+                      <SelectItem key={br.id} value={br.id}>
+                        {i18n.language === "ar"
+                          ? br.nameAr || br.name
+                          : br.name || br.nameAr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

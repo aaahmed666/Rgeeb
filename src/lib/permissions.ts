@@ -71,7 +71,6 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   foodics_dashboard: ["foodics"],
   // ── Event Timeline / Notifications ──
   event_timeline: ["alerts", "notifications"],
-  visitor_records: ["detections", "analytics"],
   notifications: ["notifications", "notification"],
 };
 

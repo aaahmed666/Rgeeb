@@ -153,7 +153,11 @@ export const detectionFeedService = {
   },
 
   remove: (id: string) =>
-    api.delete<unknown>(endpoints.detections.byId(id)).catch(() => null),
+    // POST /customer/detections/delete with { id } — the RESTful
+    // DELETE /customer/detections/{id} route does not exist on the backend.
+    api
+      .post<unknown>(endpoints.detections.delete, { id })
+      .catch(() => null),
 
   /** For SELECT DROPDOWNS prefer: <AsyncPaginatedSelect endpoint="/customer/branches" />
    *  This method is still used for non-select contexts. */

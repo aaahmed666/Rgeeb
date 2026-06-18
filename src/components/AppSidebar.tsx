@@ -288,12 +288,6 @@ export function AppSidebar() {
       permission: "event-timeline",
     },
     {
-      href: "/dashboard/visitor-records",
-      icon: UserCheck,
-      label: t("visitorRecords.title", "Visitor Records"),
-      permission: "visitor-records",
-    },
-    {
       href: "/dashboard/notifications",
       icon: Bell,
       label: t("navigation.notifications"),

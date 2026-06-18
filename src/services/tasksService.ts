@@ -307,8 +307,26 @@ export const tasksService = {
       const items = list.map(mapTask);
       const meta = (raw?.meta as Record<string, unknown>) ?? {};
       const dataMeta = (raw?.data as Record<string, unknown>) ?? {};
+      // Total can live in several places depending on the paginator shape:
+      //   { total }                              (flat)
+      //   { meta: { total } }                    (API resource collection)
+      //   { data: { total } }                    (wrapped Laravel paginator)
+      //   { data: { meta: { total } } }          (wrapped + meta)
+      //   { pagination: { total } } / data.pagination.total
+      // Falling back to items.length pins total to the page size (15) and
+      // hides the pagination controls, so we look in all of them first.
+      const dataMetaMeta = (dataMeta.meta as Record<string, unknown>) ?? {};
+      const pagination = (raw?.pagination as Record<string, unknown>) ?? {};
+      const dataPagination =
+        (dataMeta.pagination as Record<string, unknown>) ?? {};
       const total = num(
-        raw?.total ?? meta.total ?? dataMeta.total ?? items.length,
+        raw?.total ??
+          meta.total ??
+          dataMeta.total ??
+          dataMetaMeta.total ??
+          pagination.total ??
+          dataPagination.total ??
+          items.length,
         items.length
       );
       const summaryRaw =

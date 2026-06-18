@@ -2098,7 +2098,8 @@
     "colScore": "Score",
     "colTime": "Time",
     "noData": "NO DATA",
-    "selectDate": "Select a date to view data"
+    "selectDate": "Select a date to view data",
+    "viewingRange": "Showing data from {{from}} to {{to}}"
   },
   "validation": {
     "required": "This field is required",
@@ -2603,14 +2604,6 @@
     "alerts": "Alerts",
     "found": "{{n}} events found",
     "noEvents": "No events found"
-  },
-  "visitorRecords": {
-    "title": "Visitor Records",
-    "subtitle": "Track visitor entry and exit activity",
-    "total": "Total Visitors",
-    "entered": "Entered",
-    "exited": "Exited",
-    "noRecords": "No visitor records found"
   },
   "visitors": {
     "enter": "Entry",
