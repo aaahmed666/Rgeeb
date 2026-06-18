@@ -41,6 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/admin/AdminPageHeader";
 // Postman: POST /admin/users/create  fields: name_ar, name_en, email, password, phone, active, main_admin, client_id
@@ -117,6 +118,7 @@ function UserDialog({
   const [password, setPassword] = useState("");
   const [active, setActive] = useState(user?.active !== false);
   const [mainAdmin, setMainAdmin] = useState(user?.mainAdmin ?? false);
+  const [clientId, setClientId] = useState<string>(user?.clientId ?? "");
 
   // useEffect (not useState callback — that never runs) to reset when dialog opens
   useEffect(() => {
@@ -128,6 +130,7 @@ function UserDialog({
       setPassword("");
       setActive(user?.active !== false);
       setMainAdmin(user?.mainAdmin ?? false);
+      setClientId(user?.clientId ?? "");
     }
   }, [open, user]);
 
@@ -139,6 +142,7 @@ function UserDialog({
       phone: phone || undefined,
       active,
       main_admin: mainAdmin,
+      client_id: clientId || undefined,
     };
     if (password) inp.password = password;
     return inp;
@@ -214,6 +218,25 @@ function UserDialog({
             />
           </div>
           <div className="space-y-1.5">
+            <Label>{t("admin.users.client", "Client")} *</Label>
+            <AsyncPaginatedSelect
+              endpoint="/admin/clients"
+              labelKey="name_en"
+              valueKey="id"
+              value={clientId || null}
+              onChange={(v) => setClientId(v ?? "")}
+              defaultOption={
+                user?.clientId
+                  ? {
+                      value: user.clientId,
+                      label: user.clientName ?? user.clientId,
+                    }
+                  : undefined
+              }
+              placeholder={t("admin.users.selectClient", "Select a client…")}
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label>
               {isEdit
                 ? t(
@@ -253,7 +276,11 @@ function UserDialog({
           </Button>
           <Button
             disabled={
-              !nameEn || !email || (!isEdit && !password) || mut.isPending
+              !nameEn ||
+              !email ||
+              !clientId ||
+              (!isEdit && !password) ||
+              mut.isPending
             }
             onClick={() => mut.mutate()}
             className="gap-2"

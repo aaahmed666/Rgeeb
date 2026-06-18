@@ -631,7 +631,12 @@ export const ALL_SERVICES: AIServiceMeta[] = [
   // ── Monitoring ──────────────────────────────────────────────────────────
   {
     id: "gate-monitoring",
-    apiId: 12,
+    // FIXME(backend-id): apiId was 12, which DUPLICATES smoke-detection (apiId 12)
+    // and caused Gate Monitoring to pull Smoke Detection's live data. Removed
+    // until the real backend service id is confirmed (apiIds 1–29 are taken; 30
+    // is free and is the likely candidate). With apiId omitted, the detail view
+    // shows the static fallback instead of wrong live data.
+    // apiId: 30,
     label: "Gate Monitoring",
     labelKey: "aiServices.gateMonitoring",
     category: "Monitoring",

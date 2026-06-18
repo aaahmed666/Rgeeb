@@ -109,6 +109,7 @@ export interface AdminUser {
   active?: boolean;
   mainAdmin?: boolean;
   clientId?: string;
+  clientName?: string;
   country?: string;
   city?: string;
   avatar?: string | null;
@@ -128,6 +129,7 @@ function mapUser(u: RawObject): AdminUser {
     active: bool(u, "active"),
     mainAdmin: bool(u, "main_admin"),
     clientId: str(u, "client_id"),
+    clientName: str(u, "client_name", "client"),
     country:
       (country && str(country, "name_en", "name")) ?? str(u, "country_name"),
     city: (city && str(city, "name_en", "name")) ?? str(u, "city_name"),
@@ -347,6 +349,7 @@ export interface AdminPackage {
   serviceIds?: string[];
   serviceNames?: string[];
   active?: boolean;
+  isTrial?: boolean;
 }
 
 function mapPackage(p: RawObject): AdminPackage {
@@ -370,6 +373,7 @@ function mapPackage(p: RawObject): AdminPackage {
       .map((s) => str(s, "name_en", "name") ?? "")
       .filter(Boolean),
     active: bool(p, "active"),
+    isTrial: bool(p, "is_trial"),
   };
 }
 
@@ -387,6 +391,7 @@ export interface AdminPackageInput {
   price: number | string;
   duration_months: number | string;
   active?: boolean;
+  is_trial?: boolean;
   category_id?: string | number;
   max_cameras?: number | string;
   max_branches?: number | string;
@@ -437,6 +442,8 @@ function buildPackageFormData(input: Partial<AdminPackageInput>): FormData {
     if (input[k] !== undefined) fd.append(k, String(input[k]));
   });
   if (input.active !== undefined) fd.append("active", input.active ? "1" : "0");
+  if (input.is_trial !== undefined)
+    fd.append("is_trial", input.is_trial ? "1" : "0");
   (input["service_ids[]"] ?? []).forEach((sid, idx) => {
     fd.append(`service_ids[${idx}]`, String(sid));
   });

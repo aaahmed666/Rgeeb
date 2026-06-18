@@ -15,6 +15,7 @@
 
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { canAccess, permissionMatchesAction } from "@/lib/permissions";
 
 export interface PermissionSet {
   read: boolean;
@@ -24,8 +25,6 @@ export interface PermissionSet {
   /** true if the user has ANY permission for this resource */
   any: boolean;
 }
-
-const ACTIONS = ["read", "create", "update", "delete"] as const;
 
 export function usePermission(resource: string): PermissionSet {
   const { isAdmin, user } = useAuth();
@@ -37,39 +36,29 @@ export function usePermission(resource: string): PermissionSet {
     }
 
     const perms: string[] = (user as { permissions?: string[] })?.permissions ?? [];
+    const rbacProvided = (user as { rbacProvided?: boolean })?.rbacProvided;
 
-    // If user has no permissions array at all, grant read-only access
-    // (backend may not send permissions for all roles)
+    // `read` goes through the SHARED canAccess — the exact same function
+    // hasPermission/the sidebar use — so "shows in sidebar" === "page opens",
+    // including the legacy/empty-RBAC fallback. A user needs read to view.
+    const read = canAccess(resource, {
+      isAdmin,
+      userPerms: perms,
+      rbacProvided,
+    });
+
+    // create/update/delete: if the backend sent no RBAC data at all, this is a
+    // legacy account — keep the historical read-only default (no write actions).
     if (perms.length === 0) {
-      return { read: true, create: false, update: false, delete: false, any: true };
+      return { read, create: false, update: false, delete: false, any: read };
     }
 
-    // Normalise resource key — "ai_task_rules" → "ai-task-rules" etc.
-    const normalised = resource.toLowerCase().replace(/_/g, "-").replace(/\./g, "-");
-    const normalised2 = resource.toLowerCase().replace(/-/g, "_").replace(/\./g, "_");
-
-    const has = (action: string) =>
-      perms.some((p) => {
-        const pl = p.toLowerCase();
-        return (
-          pl === `${normalised}.${action}` ||
-          pl === `${normalised}.*` ||
-          pl === `${normalised2}.${action}` ||
-          pl === `${normalised2}.*` ||
-          pl === `*.${action}` ||
-          pl === "*" ||
-          // Broad match: if permission starts with the resource name
-          pl.startsWith(`${normalised}.`) ||
-          pl.startsWith(`${normalised2}.`)
-        );
-      });
-
     const result: PermissionSet = {
-      read:   has("read"),
-      create: has("create"),
-      update: has("update"),
-      delete: has("delete"),
-      any:    false,
+      read,
+      create: permissionMatchesAction(resource, "create", perms),
+      update: permissionMatchesAction(resource, "update", perms),
+      delete: permissionMatchesAction(resource, "delete", perms),
+      any: false,
     };
     result.any = result.read || result.create || result.update || result.delete;
     return result;

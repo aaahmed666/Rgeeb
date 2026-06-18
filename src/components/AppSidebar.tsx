@@ -168,6 +168,9 @@ export function AppSidebar() {
           pathname.startsWith(href + "?");
   };
 
+  // canSee uses the same hasPermission the page guards use. hasPermission now
+  // requires `read` (see auth.tsx / @/lib/permissions canAccess), so an item
+  // shows in the sidebar IFF its page actually opens — no more mismatch.
   const canSee = (item: LeafItem) =>
     !item.permission || hasPermission(item.permission);
 

@@ -19,6 +19,7 @@ import {
   type AuthUserRaw,
   type RegisterPayload,
 } from "@/services/authService";
+import { canAccess } from "@/lib/permissions";
 
 /**
  * Auth context backed by the rgeeb API.
@@ -309,91 +310,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: user?.role === "admin",
       hasPermission: (perm) => {
         if (!user) return false;
-        if (user.role === "admin") return true;
-        // Legacy compatibility: if the backend never sent RBAC data at all
-        // (no roles array, no permissions field), this account type predates
-        // RBAC — grant access. But if RBAC data WAS provided and the list is
-        // empty, that is an explicit "no permissions" decision — fail CLOSED.
-        if (!user.permissions || user.permissions.length === 0) {
-          // `!== true` (not `=== false`): sessions cached in localStorage
-          // before this field existed have `undefined` — treat them as
-          // legacy until the next profile refresh repopulates the flag.
-          return user.rbacProvided !== true;
-        }
-
-        // Normalise: lowercase, treat `-` and `_` as the same separator.
-        const norm = (s: string) => s.toLowerCase().replace(/[-_.]/g, "_");
-        const key = norm(String(perm));
-
-        /**
-         * Aliases: maps sidebar/view route keys → real backend permission namespaces.
-         * Real permissions use format: "namespace.action" e.g. "analytics.read"
-         * Source: /customer/profile API response → roles[].permissions[].name
-         */
-        const aliases: Record<string, string[]> = {
-          // ── Dashboard & Overview ──
-          dashboard:            ["detections", "analytics", "branches", "service_monitor", "task_management"],
-          // ── AI Services ──
-          ai_services:          ["detections", "analytics", "service_monitor"],
-          detection_feed:       ["detections"],
-          live_feeds:           ["detections", "cameras"],
-          system_monitoring:    ["detections", "cameras", "service_monitor"],
-          // ── Analytics & Insights ──
-          analytics:            ["analytics"],
-          statistics:           ["reports", "analytics"],
-          insights:             ["analytics"],
-          chat_analytics:       ["analytics"],
-          br_intelligence:      ["analytics"],
-          // ── Tasks ──
-          tasks:                ["task_management"],
-          kanban:               ["task_management"],
-          my_tasks:             ["my_tasks", "task_management"],
-          task_analytics:       ["task_analytics"],
-          task_reports:         ["task_reports"],
-          ai_scheduler:         ["smart_scheduler"],
-          task_templates:       ["task_templates"],
-          ai_task_rules:        ["task_rules"],
-          escalation_alerts:    ["escalation"],
-          // ── Organization ──
-          organization:         ["branches", "departments", "employees"],
-          branches:             ["branches"],
-          departments:          ["departments"],
-          employees:            ["employees"],
-          cameras:              ["cameras"],
-          attendance:           ["attendances", "attendance"],
-          projects:             ["projects"],
-          // ── Customer Island (parity with old ACL subject "island") ──
-          island:               ["island", "customer_island"],
-          customer_island:      ["island", "customer_island"],
-          // ── Preferences ──
-          preferences:          ["roles", "notification_settings", "settings"],
-          roles:                ["roles"],
-          permissions:          ["roles"],
-          notification_settings:["notification_settings"],
-          security:             ["settings"],
-          chat_settings:        ["settings"],
-          // ── Reports & Other ──
-          report_center:        ["reports"],
-          subscription:         ["subscriptions"],
-          productivity:         ["productivity"],
-          // ── Foodics ──
-          foodics:              ["foodics"],
-          foodics_connection:   ["foodics"],
-          foodics_orders:       ["foodics"],
-          foodics_dashboard:    ["foodics"],
-          // ── Event Timeline / Notifications ──
-          event_timeline:       ["alerts", "notifications"],
-          visitor_records:      ["detections", "analytics"],
-          notifications:        ["notifications", "notification"],
-        };
-
-        const candidates = [key, ...(aliases[key] ?? [])];
-
-        return user.permissions.some((p) => {
-          const np = norm(p);
-          return candidates.some(
-            (c) => np === c || np.startsWith(`${c}_`) || np.startsWith(`${c}.`.replace(".", "_"))
-          );
+        // Viewing access requires `read` (or the explicit action if `perm`
+        // already carries one, e.g. "foodics.orders.read"). Shared with the
+        // sidebar via canAccess so "shows in sidebar" === "page opens".
+        return canAccess(String(perm), {
+          isAdmin: user.role === "admin",
+          userPerms: user.permissions ?? [],
+          rbacProvided: user.rbacProvided,
         });
       },
       login,

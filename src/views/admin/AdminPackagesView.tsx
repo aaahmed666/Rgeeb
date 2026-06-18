@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import { DataTable  } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   AdminPageHeader,
   StatusPill,
@@ -96,6 +97,7 @@ function PackageDialog({
   );
   const [serviceIds, setServiceIds] = useState<string[]>(pkg?.serviceIds ?? []);
   const [categoryId, setCategoryId] = useState<string>(pkg?.categoryId ?? "");
+  const [isTrial, setIsTrial] = useState<boolean>(pkg?.isTrial ?? false);
 
   const servicesQ = useQuery({
     queryKey: ["admin", "services"],
@@ -119,6 +121,7 @@ function PackageDialog({
       setActive(pkg?.active === false ? "inactive" : "active");
       setServiceIds(pkg?.serviceIds ?? []);
       setCategoryId(pkg?.categoryId ?? "");
+      setIsTrial(pkg?.isTrial ?? false);
     }
   }, [open, pkg]);
 
@@ -133,6 +136,7 @@ function PackageDialog({
     max_cameras: maxCameras ? Number(maxCameras) : undefined,
     max_branches: maxBranches ? Number(maxBranches) : undefined,
     active: active === "active",
+    is_trial: isTrial,
     category_id: categoryId || undefined,
     "service_ids[]": serviceIds.length > 0 ? serviceIds : undefined,
   });
@@ -329,6 +333,21 @@ function PackageDialog({
                 </SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>{t("admin.packages.isTrial", "Trial package")}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "admin.packages.isTrialHint",
+                  "Used as the free trial auto-assigned on registration."
+                )}
+              </p>
+            </div>
+            <Switch
+              checked={isTrial}
+              onCheckedChange={setIsTrial}
+            />
           </div>
         </div>
         <DialogFooter>

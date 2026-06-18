@@ -3,8 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/lib/auth";
-import { Search, ChevronDown, ChevronUp, Brain } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import { Search, ChevronDown, ChevronUp, Brain, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export default function AiServicesView({
   defaultTab,
 }: { defaultTab?: string } = {}) {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const can = usePermission("ai-services");
 
   // Resolve tab label via i18n
   const tLabel = (id: string): string => {
@@ -128,6 +128,22 @@ export default function AiServicesView({
   const hasMore = filtered.length > INITIAL_VISIBLE;
 
   // Read guard handled via auth aliases — isAdmin bypasses all
+
+  // Read guard — same `ai-services` permission that gates the sidebar group,
+  // so the page can't be reached directly without it. Admins bypass via usePermission.
+  if (!can.read) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <h2 className="text-lg font-semibold">
+          {t("common.notAuthorized", "You are not authorized to perform this action")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("common.noPermission", "You don't have permission to view this page.")}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

@@ -1,0 +1,165 @@
+/**
+ * Shared permission logic.
+ *
+ * Both the sidebar (`hasPermission` in auth.tsx) and the page-level CRUD guard
+ * (`usePermission`) MUST use the same alias map and matching rules — otherwise
+ * an item can appear in the sidebar but its page rejects you with
+ * "You are not authorized to perform this action" (and vice-versa).
+ *
+ * Real backend permissions use the format "namespace.action", e.g.
+ * "task_management.read". Source: /customer/profile → roles[].permissions[].name
+ */
+
+/** Normalise: lowercase, treat `-`, `_`, and `.` as the same separator. */
+export const normPerm = (s: string): string =>
+  s.toLowerCase().replace(/[-_.]/g, "_");
+
+/**
+ * Maps sidebar/view route keys → real backend permission namespaces.
+ * A single route key can map to several backend namespaces (ANY match grants).
+ */
+export const PERMISSION_ALIASES: Record<string, string[]> = {
+  // ── Dashboard & Overview ──
+  dashboard: ["detections", "analytics", "branches", "service_monitor", "task_management"],
+  // ── AI Services ──
+  ai_services: ["detections", "analytics", "service_monitor"],
+  detection_feed: ["detections"],
+  live_feeds: ["detections", "cameras"],
+  system_monitoring: ["detections", "cameras", "service_monitor"],
+  // ── Analytics & Insights ──
+  analytics: ["analytics"],
+  statistics: ["reports", "analytics"],
+  insights: ["analytics"],
+  chat_analytics: ["analytics"],
+  br_intelligence: ["analytics"],
+  // ── Tasks ──
+  tasks: ["task_management"],
+  kanban: ["task_management"],
+  my_tasks: ["my_tasks", "task_management"],
+  task_analytics: ["task_analytics"],
+  task_reports: ["task_reports"],
+  ai_scheduler: ["smart_scheduler"],
+  task_templates: ["task_templates"],
+  ai_task_rules: ["task_rules"],
+  escalation_alerts: ["escalation"],
+  // ── Organization ──
+  organization: ["branches", "departments", "employees"],
+  branches: ["branches"],
+  departments: ["departments"],
+  employees: ["employees"],
+  cameras: ["cameras"],
+  attendance: ["attendances", "attendance"],
+  projects: ["projects"],
+  // ── Customer Island (parity with old ACL subject "island") ──
+  island: ["island", "customer_island"],
+  customer_island: ["island", "customer_island"],
+  // ── Preferences ──
+  preferences: ["roles", "notification_settings", "settings"],
+  roles: ["roles"],
+  permissions: ["roles"],
+  notification_settings: ["notification_settings"],
+  security: ["settings"],
+  chat_settings: ["settings"],
+  // ── Reports & Other ──
+  report_center: ["reports"],
+  subscription: ["subscriptions"],
+  productivity: ["productivity"],
+  // ── Foodics ──
+  foodics: ["foodics"],
+  foodics_connection: ["foodics"],
+  foodics_orders: ["foodics"],
+  foodics_dashboard: ["foodics"],
+  // ── Event Timeline / Notifications ──
+  event_timeline: ["alerts", "notifications"],
+  visitor_records: ["detections", "analytics"],
+  notifications: ["notifications", "notification"],
+};
+
+/** Resolve a route key to the list of namespaces that grant access to it. */
+export function resolvePermissionCandidates(resource: string): string[] {
+  const key = normPerm(resource);
+  return [key, ...(PERMISSION_ALIASES[key] ?? [])];
+}
+
+/**
+ * Does the user (with `userPerms`) have ANY permission for `resource`?
+ * Mirrors the sidebar `hasPermission` matching exactly.
+ */
+export function permissionMatchesAny(
+  resource: string,
+  userPerms: string[]
+): boolean {
+  const candidates = resolvePermissionCandidates(resource);
+  return userPerms.some((p) => {
+    const np = normPerm(p);
+    return candidates.some(
+      (c) => np === c || np.startsWith(`${c}_`)
+    );
+  });
+}
+
+/**
+ * Does the user have permission for a specific CRUD `action` on `resource`?
+ * Matches "namespace.read", "namespace.*", "*.read", "*", or any broader grant
+ * for the namespace (e.g. an admin-style "task_management" with no action).
+ */
+export function permissionMatchesAction(
+  resource: string,
+  action: string,
+  userPerms: string[]
+): boolean {
+  const candidates = resolvePermissionCandidates(resource);
+  const act = normPerm(action);
+  return userPerms.some((p) => {
+    const np = normPerm(p); // e.g. "task_management_read", "task_management", "*"
+    // Global wildcards: "*" stays "*"; "*.read" → "*_read"
+    if (np === "*" || np === `*_${act}`) return true;
+    return candidates.some(
+      (c) =>
+        np === `${c}_${act}` || // exact namespace.action  (e.g. task_management_read)
+        np === `${c}_*` || // namespace.*  → namespace_*
+        np === c // whole namespace granted with no action suffix (admin-style)
+    );
+  });
+}
+
+/**
+ * View-access check used by `hasPermission` (page guards + sidebar parity).
+ *
+ * Two shapes of `perm` are supported:
+ *  1. A bare resource/route key (e.g. "tasks", "island", "system_monitoring")
+ *     → requires `read` on that resource (a user with only create/update but
+ *     no read can NOT view the page).
+ *  2. An explicit "namespace.action" (e.g. "foodics.orders.read",
+ *     "attendance.read", "analytics.read") → requires exactly that action.
+ *
+ * Both go through the same alias map + matcher, so the sidebar and every page
+ * guard agree: an item shows IFF its page opens.
+ */
+export function canAccess(
+  perm: string,
+  {
+    isAdmin,
+    userPerms,
+    rbacProvided,
+  }: { isAdmin: boolean; userPerms: string[]; rbacProvided?: boolean }
+): boolean {
+  if (isAdmin) return true;
+
+  // No RBAC data at all → legacy account: grant. Empty list w/ RBAC → fail closed.
+  if (!userPerms || userPerms.length === 0) {
+    return rbacProvided !== true;
+  }
+
+  // Detect an explicit CRUD action suffix on the requested permission.
+  const ACTIONS = ["read", "create", "update", "delete"];
+  const lastSegment = perm.split(".").pop()?.toLowerCase() ?? "";
+  if (ACTIONS.includes(lastSegment)) {
+    const resource = perm.slice(0, perm.lastIndexOf("."));
+    return permissionMatchesAction(resource, lastSegment, userPerms);
+  }
+
+  // Bare resource key → viewing requires read.
+  return permissionMatchesAction(perm, "read", userPerms);
+}
+

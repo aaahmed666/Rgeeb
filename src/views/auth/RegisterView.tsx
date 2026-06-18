@@ -11,10 +11,10 @@ import {
   fetchCategories,
   fetchCities,
   fetchCountries,
-  fetchPackages,
+  // fetchPackages, // removed with package-selection step
 } from "@/services/lookupsService";
 import { sendOtpRequest } from "@/services/authService";
-import { subscribeToPackage } from "@/services/subscriptionService";
+// import { subscribeToPackage } from "@/services/subscriptionService"; // removed with payment step
 import { EmailSentIllustration, Icon } from "@/app/assets/icons/auth-icon";
 import "./auth-shared.css";
 import "./auth-register.css";
@@ -143,7 +143,7 @@ export default function RegisterView() {
   const [showPw, setShowPw] = React.useState(false);
   const [categoryId, setCategoryId] = React.useState("");
   const [otp, setOtp] = React.useState("");
-  const [packageId, setPackageId] = React.useState("");
+  // const [packageId, setPackageId] = React.useState(""); // removed with package step
   const [submitting, setSubmitting] = React.useState(false);
   const [sendingOtp, setSendingOtp] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
@@ -174,12 +174,14 @@ export default function RegisterView() {
     queryKey: ["categories"],
     queryFn: () => fetchCategories(i18n.language),
   });
-  const packagesQ = useQuery({
-    queryKey: ["packages", categoryId],
-    queryFn: () =>
-      fetchPackages({ all: true, category_id: categoryId || undefined }),
-    enabled: step >= 3,
-  });
+  // Package selection step removed — auto free-trial on registration.
+  // Kept commented in case paid packages return.
+  // const packagesQ = useQuery({
+  //   queryKey: ["packages", categoryId],
+  //   queryFn: () =>
+  //     fetchPackages({ all: true, category_id: categoryId || undefined }),
+  //   enabled: step >= 3,
+  // });
 
   React.useEffect(() => {
     if (resendTimer <= 0) return;
@@ -233,6 +235,10 @@ export default function RegisterView() {
     }
     if (step === 2) {
       // ── Step 2: verify OTP then register the account ─────────────────────
+      // NOTE: This is now the FINAL step. Registration auto-subscribes the
+      // account to a free trial package (managed from admin). The package
+      // selection + payment steps were removed — see the commented-out
+      // `step === 3` block below if we ever need to bring them back.
       if (otp.length !== 6) {
         toast.error(t("auth.register.errorCode"));
         return;
@@ -253,7 +259,8 @@ export default function RegisterView() {
           otp: otp,
         });
         toast.success(t("auth.register.successCreate"));
-        setStep(3); // advance to package selection
+        // Free trial is applied automatically server-side — straight to dashboard.
+        router.push(isAdmin ? "/dashboard/admin" : "/dashboard");
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : t("auth.register.errorCreate")
@@ -263,64 +270,57 @@ export default function RegisterView() {
       }
       return;
     }
-    if (step === 3) {
-      // ── Step 3: subscribe to selected package ─────────────────────────────
-      if (!packageId) {
-        toast.error(t("auth.register.errorPackage"));
-        return;
-      }
-      setSubmitting(true);
-      try {
-        const { payment_link } = await subscribeToPackage(packageId);
-        toast.success(
-          t(
-            "auth.register.successSubscribe",
-            "Successfully subscribed to package!"
-          )
-        );
-        if (payment_link) {
-          // Open the Fatoorah checkout in a new tab (matches old project behaviour).
-          const paymentWindow = window.open(
-            payment_link,
-            "_blank",
-            "noopener,noreferrer"
-          );
-          if (
-            !paymentWindow ||
-            paymentWindow.closed ||
-            typeof paymentWindow.closed === "undefined"
-          ) {
-            toast.error(
-              `${t(
-                "auth.register.popupBlocked",
-                "Popup blocked! Please allow popups or visit:"
-              )} ${payment_link}`
-            );
-          } else {
-            toast.success(
-              t(
-                "auth.register.redirectingPayment",
-                "Redirecting to payment page..."
-              )
-            );
-          }
-        }
-        // Whether or not there is a payment link, navigate to the dashboard.
-        router.push(isAdmin ? "/dashboard/admin" : "/dashboard");
-      } catch (err) {
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : t(
-                "auth.register.errorSubscribe",
-                "Failed to subscribe to package"
-              )
-        );
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
+    /* ──────────────────────────────────────────────────────────────────────
+     * REMOVED — Package selection + payment step (Fatoorah).
+     * Kept commented in case we decide to re-introduce paid packages later.
+     *
+     * if (step === 3) {
+     *   // ── Step 3: subscribe to selected package ─────────────────────────
+     *   if (!packageId) {
+     *     toast.error(t("auth.register.errorPackage"));
+     *     return;
+     *   }
+     *   setSubmitting(true);
+     *   try {
+     *     const { payment_link } = await subscribeToPackage(packageId);
+     *     toast.success(
+     *       t("auth.register.successSubscribe", "Successfully subscribed to package!")
+     *     );
+     *     if (payment_link) {
+     *       // Open the Fatoorah checkout in a new tab (matches old project behaviour).
+     *       const paymentWindow = window.open(
+     *         payment_link,
+     *         "_blank",
+     *         "noopener,noreferrer"
+     *       );
+     *       if (
+     *         !paymentWindow ||
+     *         paymentWindow.closed ||
+     *         typeof paymentWindow.closed === "undefined"
+     *       ) {
+     *         toast.error(
+     *           `${t("auth.register.popupBlocked", "Popup blocked! Please allow popups or visit:")} ${payment_link}`
+     *         );
+     *       } else {
+     *         toast.success(
+     *           t("auth.register.redirectingPayment", "Redirecting to payment page...")
+     *         );
+     *       }
+     *     }
+     *     // Whether or not there is a payment link, navigate to the dashboard.
+     *     router.push(isAdmin ? "/dashboard/admin" : "/dashboard");
+     *   } catch (err) {
+     *     toast.error(
+     *       err instanceof Error
+     *         ? err.message
+     *         : t("auth.register.errorSubscribe", "Failed to subscribe to package")
+     *     );
+     *   } finally {
+     *     setSubmitting(false);
+     *   }
+     *   return;
+     * }
+     * ────────────────────────────────────────────────────────────────────── */
     setStep((s) => s + 1);
   };
 
@@ -342,7 +342,8 @@ export default function RegisterView() {
     { label: t("auth.register.step1Label"), sub: t("auth.register.step1Sub") },
     { label: t("auth.register.step2Label"), sub: t("auth.register.step2Sub") },
     { label: t("auth.register.step3Label"), sub: t("auth.register.step3Sub") },
-    { label: t("auth.register.step4Label"), sub: t("auth.register.step4Sub") },
+    // Step 4 (package selection) removed — auto free-trial on registration.
+    // { label: t("auth.register.step4Label"), sub: t("auth.register.step4Sub") },
   ];
 
   // ── colours
@@ -1081,111 +1082,62 @@ export default function RegisterView() {
           )}
 
           {/* ─── STEP 3: Package ─── */}
-          {step === 3 && (
-            <div
-              className="auth-page"
-              style={{ flex: 1, overflow: "auto" }}
-            >
-              <div
-                className="auth-b1"
-                style={{ marginBottom: 24 }}
-              >
-                <h1
-                  className="register-step-title"
-                  style={{ color: textMain }}
-                >
-                  {t("auth.register.packageTitle")}
-                </h1>
-                <p
-                  className="register-step-subtitle"
-                  style={{ color: textMuted }}
-                >
-                  {t("auth.register.packageSubtitle")}
-                </p>
-              </div>
-              <div className="register-packages-grid">
-                {packagesQ.isLoading
-                  ? Array.from({ length: 4 }).map((_, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          height: 180,
-                          borderRadius: 14,
-                          border: `1px solid ${dividerBg}`,
-                          background: inputBg,
-                          opacity: 0.6,
-                        }}
-                      />
-                    ))
-                  : (packagesQ.data ?? []).map((p: any) => {
-                      const id = String(p.id);
-                      const active = packageId === id;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          className="register-pkg-card"
-                          onClick={() => setPackageId(id)}
-                          style={{
-                            border: `2px solid ${active ? "#F97316" : dividerBg}`,
-                            background: active
-                              ? isDark
-                                ? "rgba(249,115,22,0.1)"
-                                : "rgba(249,115,22,0.06)"
-                              : inputBg,
-                            boxShadow: active
-                              ? "0 6px 20px rgba(249,115,22,0.2)"
-                              : "none",
-                          }}
-                        >
-                          <div
-                            className="register-pkg-name"
-                            style={{ color: textMain }}
-                          >
-                            {localised(p.name_en, p.name_ar, p.name)}
-                          </div>
-                          <p
-                            className="register-pkg-desc"
-                            style={{ color: textFaint }}
-                          >
-                            {localised(
-                              p.description_en,
-                              p.description_ar,
-                              p.description
-                            )}
-                          </p>
-                          <div
-                            style={{
-                              marginTop: 14,
-                              display: "flex",
-                              alignItems: "baseline",
-                              gap: 4,
-                            }}
-                          >
-                            <span className="register-pkg-price">
-                              ${p.price ?? 0}
-                            </span>
-                            {p.duration && (
-                              <span style={{ fontSize: 12, color: textFaint }}>
-                                / {p.duration} {p.duration_unit ?? "month"}
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className="register-pkg-radio"
-                            style={{
-                              border: `2px solid ${active ? "#F97316" : isDark ? "#334155" : "#D1D5DB"}`,
-                              background: active ? "#F97316" : "transparent",
-                            }}
-                          >
-                            {active && <Icon.SmallCheck />}
-                          </div>
-                        </button>
-                      );
-                    })}
-              </div>
-            </div>
-          )}
+          {/* ──────────────────────────────────────────────────────────────
+            * REMOVED — Package selection step UI (step === 3).
+            * Auto free-trial on registration; no package/payment screen.
+            * Kept commented in case paid packages return.
+            *
+            * {step === 3 && (
+            *   <div className="auth-page" style={{ flex: 1, overflow: "auto" }}>
+            *     <div className="auth-b1" style={{ marginBottom: 24 }}>
+            *       <h1 className="register-step-title" style={{ color: textMain }}>
+            *         {t("auth.register.packageTitle")}
+            *       </h1>
+            *       <p className="register-step-subtitle" style={{ color: textMuted }}>
+            *         {t("auth.register.packageSubtitle")}
+            *       </p>
+            *     </div>
+            *     <div className="register-packages-grid">
+            *       {packagesQ.isLoading
+            *         ? Array.from({ length: 4 }).map((_, i) => (
+            *             <div key={i} style={{ height: 180, borderRadius: 14,
+            *               border: `1px solid ${dividerBg}`, background: inputBg, opacity: 0.6 }} />
+            *           ))
+            *         : (packagesQ.data ?? []).map((p: any) => {
+            *             const id = String(p.id);
+            *             const active = packageId === id;
+            *             return (
+            *               <button key={id} type="button" className="register-pkg-card"
+            *                 onClick={() => setPackageId(id)}
+            *                 style={{ border: `2px solid ${active ? "#F97316" : dividerBg}`,
+            *                   background: active ? (isDark ? "rgba(249,115,22,0.1)" : "rgba(249,115,22,0.06)") : inputBg,
+            *                   boxShadow: active ? "0 6px 20px rgba(249,115,22,0.2)" : "none" }}>
+            *                 <div className="register-pkg-name" style={{ color: textMain }}>
+            *                   {localised(p.name_en, p.name_ar, p.name)}
+            *                 </div>
+            *                 <p className="register-pkg-desc" style={{ color: textFaint }}>
+            *                   {localised(p.description_en, p.description_ar, p.description)}
+            *                 </p>
+            *                 <div style={{ marginTop: 14, display: "flex", alignItems: "baseline", gap: 4 }}>
+            *                   <span className="register-pkg-price">${p.price ?? 0}</span>
+            *                   {p.duration && (
+            *                     <span style={{ fontSize: 12, color: textFaint }}>
+            *                       / {p.duration} {p.duration_unit ?? "month"}
+            *                     </span>
+            *                   )}
+            *                 </div>
+            *                 <div className="register-pkg-radio"
+            *                   style={{ border: `2px solid ${active ? "#F97316" : isDark ? "#334155" : "#D1D5DB"}`,
+            *                     background: active ? "#F97316" : "transparent" }}>
+            *                   {active && <Icon.SmallCheck />}
+            *                 </div>
+            *               </button>
+            *             );
+            *           })}
+            *     </div>
+            *   </div>
+            * )}
+            * ────────────────────────────────────────────────────────────── */}
 
           {/* ── Navigation buttons ── */}
           <div
@@ -1225,7 +1177,7 @@ export default function RegisterView() {
                 <Icon.Spinner />
               ) : (
                 <>
-                  {step === 3
+                  {step === 2
                     ? t("auth.register.createAccount")
                     : t("auth.register.continue")}
                   <Icon.SignInArrow rtl={isRtl} />
