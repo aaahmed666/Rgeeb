@@ -57,6 +57,7 @@ import {
   BusIcon,
 } from "@/components/ai-service-icons";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubscriptionBanner } from "@/components/dashboard/SubscriptionBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
@@ -488,6 +489,9 @@ export default function DashboardView() {
           </div>
         </div>
       </section>
+
+      {/* Subscription banner — days remaining, renewal date, consumption */}
+      <SubscriptionBanner />
 
       {/* AI Services Hub */}
       <Card>

@@ -2792,5 +2792,20 @@
     "deleted": "تم حذف الاكتشاف",
     "deleteTitle": "حذف الاكتشاف",
     "deleteDesc": "هل أنت متأكد من حذف سجل الاكتشاف هذا؟"
+  },
+  "subscriptionBanner": {
+    "noActiveTitle": "لا يوجد اشتراك نشط",
+    "noActiveDesc": "اشترك الآن لتفعيل جميع خدمات الذكاء الاصطناعي.",
+    "subscribe": "اشترك",
+    "statusActive": "نشط",
+    "statusExpiringSoon": "ينتهي قريبًا",
+    "plan": "باقتك",
+    "subtitle": "نظرة سريعة على اشتراكك",
+    "remaining": "المتبقي",
+    "days": "يوم",
+    "renewalDate": "تاريخ التجديد",
+    "consumed": "المُستهلك",
+    "renew": "تجديد",
+    "upgrade": "ترقية"
   }
 }

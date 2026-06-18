@@ -2792,5 +2792,20 @@
     "deleted": "Detection deleted",
     "deleteTitle": "Delete detection",
     "deleteDesc": "Are you sure you want to delete this detection record?"
+  },
+  "subscriptionBanner": {
+    "noActiveTitle": "No active subscription",
+    "noActiveDesc": "Subscribe now to unlock all AI services.",
+    "subscribe": "Subscribe",
+    "statusActive": "Active",
+    "statusExpiringSoon": "Expiring soon",
+    "plan": "Your Plan",
+    "subtitle": "Subscription overview at a glance",
+    "remaining": "Remaining",
+    "days": "days",
+    "renewalDate": "Renewal date",
+    "consumed": "Consumed",
+    "renew": "Renew",
+    "upgrade": "Upgrade"
   }
 }
