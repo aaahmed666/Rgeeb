@@ -549,8 +549,20 @@ function EmployeeDrawer({
       if (form.is_main_admin !== undefined) payload.main_admin = form.is_main_admin;
       // photo avatar
       if (form.photo) payload.avatar_file = form.photo;
-      // working hours
-      if (form.working_hours) payload.working_hours = form.working_hours as any;
+      // working hours - convert the day-keyed object into the array shape
+      // the API/service expects: [{ day, is_day_off, start_time, end_time }]
+      if (form.working_hours) {
+        const wh = form.working_hours;
+        payload.working_hours = DAYS.map((day) => {
+          const sched = wh[day];
+          return {
+            day,
+            is_day_off: sched.dayOff,
+            start_time: sched.startTime,
+            end_time: sched.endTime,
+          };
+        });
+      }
       return employee
         ? updateEmployee(employee.id, payload)
         : createEmployee(payload as EmployeeInput);
