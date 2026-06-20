@@ -434,15 +434,15 @@ export const endpoints = {
     disconnect: "/customer/foodics/disconnect",
     importBranches: "/customer/foodics/branches/import",
 
-    // Dashboard
-    dashboard: "/customer/foodics/dashboard",
+    // Dashboard — the page aggregates the three /dashboard/* feeds via
+    // foodicsService.getDashboard (overview + insights + trends below).
 
     // Orders
     orders: "/customer/foodics/orders",
     ordersSync: "/customer/foodics/orders/sync",
 
-    // Refund Verification
-    refunds: "/customer/foodics/refunds",
+    // Refund Verification (backend path is /refund-verifications, not /refunds)
+    refunds: "/customer/foodics/refund-verifications",
 
     // Cash Drawer
     drawerAudits: "/customer/foodics/drawer-audits",
@@ -453,17 +453,19 @@ export const endpoints = {
     refundReview: (id: string | number) =>
       `/customer/foodics/refund-verifications/${id}/review`,
 
-    // Prep Time
-    prepTime: "/customer/foodics/prep-time",
+    // Prep Time (backend path is /prep-times, plural)
+    prepTime: "/customer/foodics/prep-times",
 
-    // Footfall vs Revenue
-    footfall: "/customer/foodics/footfall",
+    // Footfall vs Revenue — the page consumes a consolidated shape that the
+    // backend does not expose directly; foodicsService.getFootfall aggregates
+    // the three /conversion/* feeds (daily, hourly, summary) instead.
 
-    // Inventory
+    // Inventory — zone create is a POST to the base zones path (no /create
+    // suffix in the backend); update posts to /zones/{id}; delete to /delete.
     inventoryZones: "/customer/foodics/inventory/zones",
-    inventoryZoneCreate: "/customer/foodics/inventory/zones/create",
+    inventoryZoneCreate: "/customer/foodics/inventory/zones",
     inventoryZoneUpdate: (id: string) =>
-      `/customer/foodics/inventory/zones/${id}/update`,
+      `/customer/foodics/inventory/zones/${id}`,
     inventoryZoneDelete: (id: string) =>
       `/customer/foodics/inventory/zones/${id}/delete`,
     inventoryAuditHistory: "/customer/foodics/inventory/audits",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,6 +31,8 @@ import {
   fetchTransactions,
   fetchAvailableServices,
   addServices,
+  subscribeToPackage,
+  renewSubscription,
 } from "@/services/subscriptionService";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
@@ -83,10 +86,20 @@ function AddServicesModal({
 
   const addMut = useMutation({
     mutationFn: () => addServices(selected),
-    onSuccess: () => {
-      toast.success(
-        t("subscription.servicesAdded", "Services added successfully")
-      );
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(
+          t("subscription.servicesAddFailed", "Failed to add services")
+        );
+        return;
+      }
+      // Parity with OLD AddServiceDialog: if the backend returns a Fatoorah
+      // checkout link, redirect the user to complete payment.
+      if (!openPaymentLink(res.payment_link, t)) {
+        toast.success(
+          t("subscription.servicesAdded", "Services added successfully")
+        );
+      }
       onSuccess();
       onClose();
       setSelected([]);
@@ -219,15 +232,30 @@ async function fetchPackages() {
   return Array.isArray(list) ? list : [];
 }
 
-async function subscribeToPackage(packageId: string) {
-  await apiFetch(endpoints.subscription.subscribe, {
-    method: "POST",
-    body: { package_id: packageId },
-  });
-}
-
-async function renewSubscription() {
-  await apiFetch(endpoints.subscription.renew, { method: "POST" });
+/**
+ * Open a Fatoorah checkout link in a new tab, mirroring the OLD project's
+ * behaviour (window.open + popup-blocked fallback toast). Returns true when a
+ * link was present and a redirect was attempted.
+ */
+function openPaymentLink(
+  paymentLink: string | null | undefined,
+  t: TFunction
+): boolean {
+  if (!paymentLink) return false;
+  const win = window.open(paymentLink, "_blank", "noopener,noreferrer");
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    toast.error(
+      t(
+        "subscription.popupBlocked",
+        "Popup blocked! Please allow popups and try again."
+      )
+    );
+  } else {
+    toast.success(
+      t("subscription.redirectingToPayment", "Redirecting to payment…")
+    );
+  }
+  return true;
 }
 
 function SubscribeModal({
@@ -251,10 +279,14 @@ function SubscribeModal({
 
   const subMut = useMutation({
     mutationFn: () => subscribeToPackage(selected),
-    onSuccess: () => {
-      toast.success(
-        t("subscription.subscribeSuccess", "Subscription activated!")
-      );
+    onSuccess: (res) => {
+      // Parity with OLD plan-details: redirect to Fatoorah checkout when the
+      // API returns a payment_link; otherwise treat it as instantly activated.
+      if (!openPaymentLink(res.payment_link, t)) {
+        toast.success(
+          t("subscription.subscribeSuccess", "Subscription activated!")
+        );
+      }
       onSuccess();
       onClose();
     },
@@ -383,10 +415,13 @@ export default function SubscriptionView() {
 
   const renewMut = useMutation({
     mutationFn: renewSubscription,
-    onSuccess: () => {
-      toast.success(
-        t("subscription.renewSuccess", "Subscription renewed successfully")
-      );
+    onSuccess: (res) => {
+      // Parity: renew may also return a Fatoorah checkout link.
+      if (!openPaymentLink(res.payment_link, t)) {
+        toast.success(
+          t("subscription.renewSuccess", "Subscription renewed successfully")
+        );
+      }
       invalidateAll();
     },
     onError: () =>

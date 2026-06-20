@@ -32,7 +32,9 @@ import {
   Trash2,
   TrendingUp,
   UserCheck,
-  Zap, ShieldAlert } from "lucide-react";
+  Zap,
+  ShieldAlert,
+} from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import TaskDetailDialog from "@/components/tasks/TaskDetailDialog";
@@ -44,7 +46,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from "@/components/ui/select";
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,13 +56,15 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle } from "@/components/ui/alert-dialog";
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle } from "@/components/ui/dialog";
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus } from "lucide-react";
@@ -67,7 +72,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import { cn } from "@/lib/utils";
@@ -77,7 +83,8 @@ import { toast } from "sonner";
 import {
   tasksService,
   type TaskItem,
-  type TaskSummary } from "@/services/tasksService";
+  type TaskSummary,
+} from "@/services/tasksService";
 import { TaskBoard } from "@/views/TaskBoard";
 
 const ALL = "__all__";
@@ -233,7 +240,11 @@ export default function TasksView() {
   const qc = useQueryClient();
 
   const [page, setPage] = React.useState(1);
-  const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
+  const {
+    searchValue: search,
+    debouncedValue: debouncedSearch,
+    handleSearchChange,
+  } = useDebounceSearch("", 300);
   const [status, setStatus] = React.useState(ALL);
   const [type, setType] = React.useState(ALL);
   const [priority, setPriority] = React.useState(ALL);
@@ -244,17 +255,28 @@ export default function TasksView() {
   const [taskOpen, setTaskOpen] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<TaskItem | null>(null);
   const EMPTY_TASK = {
-    name: "", description: "", priority: "medium", type: "manual", status: "pending",
-    scheduled_date: "", branch_id: "", department_id: "",
+    name: "",
+    description: "",
+    priority: "medium",
+    type: "manual",
+    status: "new",
+    scheduled_date: "",
+    branch_id: "",
+    department_id: "",
     time: "",
     recurring_every_days: "",
-    start_date: "", end_date: "",
+    start_date: "",
+    end_date: "",
     assigned_user_ids: [] as string[],
     is_draft: false,
   };
   const [taskForm, setTaskForm] = React.useState<typeof EMPTY_TASK>(EMPTY_TASK);
 
-  function openCreateTask() { setEditingTask(null); setTaskForm(EMPTY_TASK); setTaskOpen(true); }
+  function openCreateTask() {
+    setEditingTask(null);
+    setTaskForm(EMPTY_TASK);
+    setTaskOpen(true);
+  }
 
   // Auto-open create dialog when navigated with ?action=create
   const searchParams = useSearchParams();
@@ -276,10 +298,13 @@ export default function TasksView() {
       branch_id: t.branchIds?.[0] ?? "",
       department_id: t.departmentId ?? "",
       time: t.time ?? "",
-      recurring_every_days: t.recurringEveryDays ? String(t.recurringEveryDays) : "",
+      recurring_every_days: t.recurringEveryDays
+        ? String(t.recurringEveryDays)
+        : "",
       start_date: t.startDate ?? "",
       end_date: t.endDate ?? "",
-      assigned_user_ids: t.assignedUserIds ?? (t.assignedTo?.id ? [t.assignedTo.id] : []),
+      assigned_user_ids:
+        t.assignedUserIds ?? (t.assignedTo?.id ? [t.assignedTo.id] : []),
       is_draft: t.isDraft ?? false,
     });
     setTaskOpen(true);
@@ -307,7 +332,9 @@ export default function TasksView() {
         ...(taskForm.type === "recurring" && taskForm.end_date
           ? { end_date: taskForm.end_date }
           : {}),
-        assigned_user_ids: taskForm.assigned_user_ids.length ? taskForm.assigned_user_ids : undefined,
+        assigned_user_ids: taskForm.assigned_user_ids.length
+          ? taskForm.assigned_user_ids
+          : undefined,
         is_draft: taskForm.is_draft ? 1 : 0,
       };
       return editingTask
@@ -317,22 +344,31 @@ export default function TasksView() {
     onSuccess: () => {
       invalidate();
       setTaskOpen(false);
-      toast.success(editingTask ? t("tasks.updateSuccess", "Task updated") : t("tasks.createSuccess", "Task created"));
+      toast.success(
+        editingTask
+          ? t("tasks.updateSuccess", "Task updated")
+          : t("tasks.createSuccess", "Task created")
+      );
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // The board needs every column populated at once, so in board view we request
+  // a large page and ignore the single-status filter (each status maps to its
+  // own column). The table view keeps normal pagination + status filtering.
+  const BOARD_PER_PAGE = 200;
   const filters = React.useMemo(
     () => ({
-      page,
-      perPage: PER_PAGE,
+      page: view === "board" ? 1 : page,
+      perPage: view === "board" ? BOARD_PER_PAGE : PER_PAGE,
       search: debouncedSearch || undefined,
-      status: status === ALL ? undefined : status,
+      status:
+        view === "board" ? undefined : status === ALL ? undefined : status,
       type: type === ALL ? undefined : type,
       priority: priority === ALL ? undefined : priority,
       branchId: branchId ?? undefined,
     }),
-    [page, debouncedSearch, status, type, priority, branchId]
+    [view, page, debouncedSearch, status, type, priority, branchId]
   );
 
   const dashQ = useQuery({
@@ -368,11 +404,34 @@ export default function TasksView() {
   const statusM = useMutation({
     mutationFn: (p: { id: string; status: string }) =>
       tasksService.updateStatus(p.id, p.status),
-    onSuccess: () => {
-      invalidate();
-      toast.success(t("tasks.statusUpdated", "Status updated"));
+    // Optimistic: reflect the new status (board column / list dot) immediately.
+    onMutate: async ({ id, status }: { id: string; status: string }) => {
+      await qc.cancelQueries({ queryKey: ["tasks", "list"] });
+      const prev = qc.getQueriesData({ queryKey: ["tasks", "list"] });
+      qc.setQueriesData({ queryKey: ["tasks", "list"] }, (old: unknown) => {
+        const data = old as { items?: TaskItem[] } | undefined;
+        if (!data?.items) return old;
+        return {
+          ...data,
+          items: data.items.map((it) =>
+            it.id === id ? { ...it, status } : it
+          ),
+        };
+      });
+      return { prev };
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (
+      e: Error,
+      _vars,
+      ctx: { prev?: [unknown, unknown][] } | undefined
+    ) => {
+      ctx?.prev?.forEach(([key, data]) =>
+        qc.setQueryData(key as readonly unknown[], data)
+      );
+      toast.error(e.message);
+    },
+    onSuccess: () => toast.success(t("tasks.statusUpdated", "Status updated")),
+    onSettled: () => invalidate(),
   });
 
   const items = dataQ.data?.items ?? [];
@@ -518,26 +577,26 @@ export default function TasksView() {
             <Eye className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
           {can.update && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            aria-label="Edit"
-            onClick={() => openEditTask(task)}
-          >
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Edit"
+              onClick={() => openEditTask(task)}
+            >
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
           )}
           {can.delete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setDeleteId(task.id)}
-            aria-label="Delete"
-          >
-            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setDeleteId(task.id)}
+              aria-label="Delete"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+            </Button>
           )}
         </div>
       ),
@@ -549,8 +608,15 @@ export default function TasksView() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
         <ShieldAlert className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
-        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+        <p className="text-lg font-semibold">
+          {t("errors.unauthorized", "Access Denied")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "common.noPermission",
+            "You don't have permission to view this page."
+          )}
+        </p>
       </div>
     );
   }
@@ -597,10 +663,14 @@ export default function TasksView() {
             />
           </Button>
           {can.create && (
-          <Button size="sm" className="gap-1.5" onClick={openCreateTask}>
-            <Plus className="h-4 w-4" />
-            {t("tasks.newTask", "New Task")}
-          </Button>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={openCreateTask}
+            >
+              <Plus className="h-4 w-4" />
+              {t("tasks.newTask", "New Task")}
+            </Button>
           )}
         </div>
       </header>
@@ -656,22 +726,24 @@ export default function TasksView() {
               </div>
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {t("tasks.status", "Status")}
-              </label>
-              <FilterSelect
-                value={status}
-                onChange={setStatus}
-                placeholder={t("tasks.all", "All Statuses")}
-                options={STATUSES.map((s) => ({
-                  value: s,
-                  label: statusLabel(s),
-                }))}
-                allLabel={t("tasks.allStatuses", "All Statuses")}
-              />
-            </div>
+            {/* Status — hidden in board view, where each status is its own column */}
+            {view !== "board" && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {t("tasks.status", "Status")}
+                </label>
+                <FilterSelect
+                  value={status}
+                  onChange={setStatus}
+                  placeholder={t("tasks.all", "All Statuses")}
+                  options={STATUSES.map((s) => ({
+                    value: s,
+                    label: statusLabel(s),
+                  }))}
+                  allLabel={t("tasks.allStatuses", "All Statuses")}
+                />
+              </div>
+            )}
 
             {/* Type */}
             <div>
@@ -795,18 +867,32 @@ export default function TasksView() {
       </AlertDialog>
 
       {/* ── Create / Edit Task Dialog ── */}
-      <Dialog open={taskOpen} onOpenChange={(o) => { if (!saveMutation.isPending) setTaskOpen(o); }}>
+      <Dialog
+        open={taskOpen}
+        onOpenChange={(o) => {
+          if (!saveMutation.isPending) setTaskOpen(o);
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingTask ? t("tasks.editTask", "Edit Task") : t("tasks.newTask", "New Task")}</DialogTitle>
+            <DialogTitle>
+              {editingTask
+                ? t("tasks.editTask", "Edit Task")
+                : t("tasks.newTask", "New Task")}
+            </DialogTitle>
           </DialogHeader>
           <div className="max-h-[65vh] space-y-4 overflow-y-auto py-2 pr-1">
             {/* Name */}
             <div className="space-y-1.5">
-              <Label>{t("tasks.form.name", "Task Name")} <span className="text-destructive">*</span></Label>
+              <Label>
+                {t("tasks.form.name", "Task Name")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <Input
                 value={taskForm.name}
-                onChange={(e) => setTaskForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setTaskForm((f) => ({ ...f, name: e.target.value }))
+                }
                 placeholder={t("tasks.form.namePlaceholder", "Enter task name")}
               />
             </div>
@@ -816,8 +902,13 @@ export default function TasksView() {
               <Label>{t("tasks.form.description", "Description")}</Label>
               <Textarea
                 value={taskForm.description}
-                onChange={(e) => setTaskForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder={t("tasks.form.descPlaceholder", "Task description...")}
+                onChange={(e) =>
+                  setTaskForm((f) => ({ ...f, description: e.target.value }))
+                }
+                placeholder={t(
+                  "tasks.form.descPlaceholder",
+                  "Task description..."
+                )}
                 rows={2}
               />
             </div>
@@ -826,19 +917,45 @@ export default function TasksView() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.priority", "Priority")}</Label>
-                <Select value={taskForm.priority} onValueChange={(v) => setTaskForm((f) => ({ ...f, priority: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={taskForm.priority}
+                  onValueChange={(v) =>
+                    setTaskForm((f) => ({ ...f, priority: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
+                    {PRIORITIES.map((p) => (
+                      <SelectItem
+                        key={p}
+                        value={p}
+                      >
+                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.type", "Type")}</Label>
-                <Select value={taskForm.type} onValueChange={(v) => setTaskForm((f) => ({ ...f, type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={taskForm.type}
+                  onValueChange={(v) => setTaskForm((f) => ({ ...f, type: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {TYPES.map((tp) => <SelectItem key={tp} value={tp}>{tp.replace(/_/g, " ")}</SelectItem>)}
+                    {TYPES.map((tp) => (
+                      <SelectItem
+                        key={tp}
+                        value={tp}
+                      >
+                        {tp.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -848,41 +965,89 @@ export default function TasksView() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.status", "Status")}</Label>
-                <Select value={taskForm.status} onValueChange={(v) => setTaskForm((f) => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={taskForm.status}
+                  onValueChange={(v) =>
+                    setTaskForm((f) => ({ ...f, status: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
+                    {STATUSES.map((s) => (
+                      <SelectItem
+                        key={s}
+                        value={s}
+                      >
+                        {s.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.scheduledDate", "Scheduled Date")}</Label>
-                <SharedDateRangePicker single date={taskForm.scheduled_date} onDateChange={(v) => setTaskForm((f) => ({ ...f, scheduled_date: v }))} />
+                <SharedDateRangePicker
+                  single
+                  date={taskForm.scheduled_date}
+                  onDateChange={(v) =>
+                    setTaskForm((f) => ({ ...f, scheduled_date: v }))
+                  }
+                />
               </div>
             </div>
 
             {/* Time */}
             <div className="space-y-1.5">
               <Label>{t("tasks.form.time", "Time")}</Label>
-              <Input type="time" value={taskForm.time} onChange={(e) => setTaskForm((f) => ({ ...f, time: e.target.value }))} />
+              <Input
+                type="time"
+                value={taskForm.time}
+                onChange={(e) =>
+                  setTaskForm((f) => ({ ...f, time: e.target.value }))
+                }
+              />
             </div>
 
             {/* Recurring fields — only shown when type is "recurring" */}
             {taskForm.type === "recurring" && (
               <div className="rounded-lg border border-dashed border-amber-400/60 bg-amber-500/5 p-3 space-y-3">
-                <p className="text-xs font-semibold text-amber-600">{t("tasks.form.recurringSettings", "Recurring Settings")}</p>
+                <p className="text-xs font-semibold text-amber-600">
+                  {t("tasks.form.recurringSettings", "Recurring Settings")}
+                </p>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">{t("tasks.form.everyDays", "Every (days)")}</Label>
-                    <Input type="number" min={1} value={taskForm.recurring_every_days} onChange={(e) => setTaskForm((f) => ({ ...f, recurring_every_days: e.target.value }))} placeholder="7" />
+                    <Label className="text-xs">
+                      {t("tasks.form.everyDays", "Every (days)")}
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={taskForm.recurring_every_days}
+                      onChange={(e) =>
+                        setTaskForm((f) => ({
+                          ...f,
+                          recurring_every_days: e.target.value,
+                        }))
+                      }
+                      placeholder="7"
+                    />
                   </div>
-                <div className="space-y-1.5 col-span-2">
-                    <Label className="text-xs">{t("tasks.form.startDate", "Start Date")} – {t("tasks.form.endDate", "End Date")}</Label>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">
+                      {t("tasks.form.startDate", "Start Date")} –{" "}
+                      {t("tasks.form.endDate", "End Date")}
+                    </Label>
                     <SharedDateRangePicker
                       from={taskForm.start_date}
                       to={taskForm.end_date}
-                      onFromChange={(v) => setTaskForm((f) => ({ ...f, start_date: v }))}
-                      onToChange={(v) => setTaskForm((f) => ({ ...f, end_date: v }))}
+                      onFromChange={(v) =>
+                        setTaskForm((f) => ({ ...f, start_date: v }))
+                      }
+                      onToChange={(v) =>
+                        setTaskForm((f) => ({ ...f, end_date: v }))
+                      }
                     />
                   </div>
                 </div>
@@ -898,7 +1063,9 @@ export default function TasksView() {
                 labelKey="name"
                 valueKey="id"
                 value={taskForm.branch_id || null}
-                onChange={(opt) => setTaskForm((f) => ({ ...f, branch_id: opt ?? "" }))}
+                onChange={(opt) =>
+                  setTaskForm((f) => ({ ...f, branch_id: opt ?? "" }))
+                }
                 placeholder={t("common.selectBranch", "Select branch")}
                 isClearable
               />
@@ -912,11 +1079,21 @@ export default function TasksView() {
                 labelKey="name_en"
                 valueKey="id"
                 value={taskForm.assigned_user_ids[0] ?? null}
-                onChange={(v) => setTaskForm((f) => ({ ...f, assigned_user_ids: v ? [v] : [] }))}
+                onChange={(v) =>
+                  setTaskForm((f) => ({
+                    ...f,
+                    assigned_user_ids: v ? [v] : [],
+                  }))
+                }
                 placeholder={t("tasks.form.selectEmployee", "Select employee")}
                 isClearable
               />
-              <p className="text-[10px] text-muted-foreground">{t("tasks.form.assignNote", "For multi-assign, use the full task editor")}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {t(
+                  "tasks.form.assignNote",
+                  "For multi-assign, use the full task editor"
+                )}
+              </p>
             </div>
 
             {/* Save as draft toggle */}
@@ -926,23 +1103,36 @@ export default function TasksView() {
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300"
                 checked={taskForm.is_draft}
-                onChange={(e) => setTaskForm((f) => ({ ...f, is_draft: e.target.checked }))}
+                onChange={(e) =>
+                  setTaskForm((f) => ({ ...f, is_draft: e.target.checked }))
+                }
               />
-              <label htmlFor="is_draft" className="text-sm font-medium cursor-pointer select-none">
+              <label
+                htmlFor="is_draft"
+                className="text-sm font-medium cursor-pointer select-none"
+              >
                 {t("tasks.form.saveAsDraft", "Save as draft")}
               </label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTaskOpen(false)} disabled={saveMutation.isPending}>
+            <Button
+              variant="outline"
+              onClick={() => setTaskOpen(false)}
+              disabled={saveMutation.isPending}
+            >
               {t("common.cancel", "Cancel")}
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={!taskForm.name.trim() || saveMutation.isPending}
             >
-              {saveMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-              {editingTask ? t("common.save", "Save") : t("tasks.createTask", "Create Task")}
+              {saveMutation.isPending && (
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+              )}
+              {editingTask
+                ? t("common.save", "Save")
+                : t("tasks.createTask", "Create Task")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1070,6 +1260,7 @@ function statusLabel(s: string): string {
 }
 
 const ALL_STATUS_DOTS: Record<string, string> = {
+  new: "bg-slate-700",
   pending: "bg-slate-500",
   assigned: "bg-violet-500",
   in_progress: "bg-amber-500",

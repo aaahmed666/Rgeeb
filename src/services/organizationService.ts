@@ -31,17 +31,12 @@ function totalFrom(res: unknown): number {
   const r = (res ?? {}) as Record<string, unknown>;
   const data = (r.data ?? {}) as Record<string, unknown>;
   const meta = (r.meta ?? data.meta ?? {}) as Record<string, unknown>;
-  const pagination = (r.pagination ??
-    data.pagination ??
-    {}) as Record<string, unknown>;
+  const pagination = (r.pagination ?? data.pagination ?? {}) as Record<
+    string,
+    unknown
+  >;
   // Cover flat, wrapped, meta-based and pagination-based paginator shapes.
-  return Number(
-    meta.total ??
-      r.total ??
-      data.total ??
-      pagination.total ??
-      0
-  );
+  return Number(meta.total ?? r.total ?? data.total ?? pagination.total ?? 0);
 }
 
 export interface PaginatedResult<T> {
@@ -58,6 +53,11 @@ export interface Branch {
   address?: string;
   camerasCount: number;
   active: boolean;
+  /** Municipality permit fields (echoed back for edit pre-fill). */
+  permitNumber?: string;
+  permitActivityType?: string;
+  permitEndDate?: string;
+  permitImage?: string;
 }
 
 export interface BranchInput {
@@ -66,10 +66,36 @@ export interface BranchInput {
   phone?: string;
   address?: string;
   active?: boolean;
-  /** Municipality permit fields */
+  /** Municipality permit fields (parity with OLD AddBranchDrawer). */
   permit_number?: string;
   permit_activity_type?: string;
   permit_end_date?: string;
+  permit_image?: File | null;
+}
+
+/**
+ * Build the multipart body for branch create/update. The OLD production
+ * contract (and the Postman collection) expects these exact field names:
+ *   municipality_permit_number, activity_type, permit_end_date,
+ *   permit_image_file. We map our friendlier input keys onto them and only
+ *   append optional fields when present so we don't clobber existing values.
+ */
+function buildBranchFormData(input: Partial<BranchInput>): FormData {
+  const fd = new FormData();
+  if (input.name !== undefined) fd.append("name", input.name);
+  if (input.name_ar) fd.append("name_ar", input.name_ar);
+  if (input.phone !== undefined) fd.append("phone", input.phone);
+  if (input.address !== undefined) fd.append("address", input.address);
+  if (input.active !== undefined) fd.append("active", input.active ? "1" : "0");
+  if (input.permit_number)
+    fd.append("municipality_permit_number", input.permit_number);
+  if (input.permit_activity_type)
+    fd.append("activity_type", input.permit_activity_type);
+  if (input.permit_end_date)
+    fd.append("permit_end_date", input.permit_end_date);
+  if (input.permit_image instanceof File)
+    fd.append("permit_image_file", input.permit_image);
+  return fd;
 }
 
 function mapBranch(r: Record<string, unknown>): Branch {
@@ -85,6 +111,10 @@ function mapBranch(r: Record<string, unknown>): Branch {
     address: s(r.address) ?? s(r.location),
     camerasCount: Number(cams ?? 0) || 0,
     active: b(r.is_active ?? r.active ?? r.status),
+    permitNumber: s(r.municipality_permit_number),
+    permitActivityType: s(r.activity_type),
+    permitEndDate: s(r.permit_end_date),
+    permitImage: s(r.permit_image) ?? s(r.permit_image_file),
   };
 }
 
@@ -137,7 +167,7 @@ export async function createBranch(input: BranchInput): Promise<Branch> {
     endpoints.organization.branchCreate,
     {
       method: "POST",
-      body: input,
+      body: buildBranchFormData(input),
     }
   );
   return mapBranch((res?.data as Record<string, unknown>) ?? res ?? {});
@@ -147,18 +177,23 @@ export async function updateBranch(
   id: string,
   input: Partial<BranchInput>
 ): Promise<Branch> {
+  const fd = buildBranchFormData(input);
+  fd.append("id", id);
   const res = await apiFetch<Record<string, unknown>>(
     endpoints.organization.branchUpdate,
     {
       method: "POST",
-      body: { id, ...input },
+      body: fd,
     }
   );
   return mapBranch((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
 export async function deleteBranch(id: string): Promise<void> {
-  await apiFetch(endpoints.organization.branchDelete, { method: "POST", body: { id } });
+  await apiFetch(endpoints.organization.branchDelete, {
+    method: "POST",
+    body: { id },
+  });
 }
 
 /* ================ Departments ================ */
@@ -303,7 +338,7 @@ export interface WorkingHourDay {
 }
 
 export interface EmployeeInput {
-  name: string;          // API primary (name_en in Postman)
+  name: string; // API primary (name_en in Postman)
   name_en?: string;
   name_ar?: string;
   email: string;
@@ -337,21 +372,19 @@ function buildEmployeeFormData(
   if (input.id) fd.append("id", input.id);
   // name_en is the Postman field; also send "name" for compatibility
   const nameEn = input.name_en || input.name || "";
-  fd.append("name",    nameEn);
+  fd.append("name", nameEn);
   fd.append("name_en", nameEn);
   if (input.name_ar) fd.append("name_ar", input.name_ar);
-  fd.append("email",   input.email || "");
-  if (input.phone)    fd.append("phone",    input.phone);
+  fd.append("email", input.email || "");
+  if (input.phone) fd.append("phone", input.phone);
   if (input.password) fd.append("password", input.password);
-  if (input.branch_id)     fd.append("branch_id",     input.branch_id);
+  if (input.branch_id) fd.append("branch_id", input.branch_id);
   if (input.department_id) fd.append("department_id", input.department_id);
-  if (input.role_id)       fd.append("role_id",       input.role_id);
-  if (input.active !== undefined)
-    fd.append("active", input.active ? "1" : "0");
+  if (input.role_id) fd.append("role_id", input.role_id);
+  if (input.active !== undefined) fd.append("active", input.active ? "1" : "0");
   // main_admin (Postman field)
   const isAdmin = input.main_admin ?? input.is_main_admin;
-  if (isAdmin !== undefined)
-    fd.append("main_admin", isAdmin ? "1" : "0");
+  if (isAdmin !== undefined) fd.append("main_admin", isAdmin ? "1" : "0");
   // identity (was national_id)
   const identity = input.identity ?? input.national_id;
   if (identity) fd.append("identity", identity);
@@ -362,15 +395,15 @@ function buildEmployeeFormData(
     fd.append("certificate_number", input.certificate_number);
   if (input.certificate_end_date)
     fd.append("certificate_end_date", input.certificate_end_date);
-  if (input.avatar_file)
-    fd.append("avatar_file", input.avatar_file);
+  if (input.avatar_file) fd.append("avatar_file", input.avatar_file);
   // working_hours[N][day], [is_day_off], [start_time], [end_time]
   (input.working_hours ?? []).forEach((wh, i) => {
-    fd.append(`working_hours[${i}][day]`,        wh.day);
+    fd.append(`working_hours[${i}][day]`, wh.day);
     fd.append(`working_hours[${i}][is_day_off]`, wh.is_day_off ? "1" : "0");
     if (!wh.is_day_off) {
-      if (wh.start_time) fd.append(`working_hours[${i}][start_time]`, wh.start_time);
-      if (wh.end_time)   fd.append(`working_hours[${i}][end_time]`,   wh.end_time);
+      if (wh.start_time)
+        fd.append(`working_hours[${i}][start_time]`, wh.start_time);
+      if (wh.end_time) fd.append(`working_hours[${i}][end_time]`, wh.end_time);
     }
   });
   return fd;

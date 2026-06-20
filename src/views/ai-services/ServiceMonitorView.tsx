@@ -167,12 +167,12 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     setLoading(true);
     try {
       const q: Record<string, string | number> = {
-        // Backend contract (Postman: service-monitor/{id}/dashboard) expects
-        // `from` / `to`. Sending `date_from` / `date_to` made the backend
-        // ignore the range and return an empty payload (0 detections, blank
-        // chart) on every AI-service page.
-        from,
-        to,
+        // Parity with the OLD project: every service-monitor page (and the
+        // Redux thunk) sends `date_from` / `date_to` to
+        // /customer/service-monitor/{id}/dashboard. Matching those exact param
+        // names so the backend applies the date range identically.
+        date_from: from,
+        date_to: to,
       };
       if (branchId !== "all") q.branch_id = branchId;
       // Pagination params are MANDATORY: without `page` / `per_page` the backend
@@ -210,8 +210,27 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   }, [load]);
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const stats = data?.stats ?? {};
-  const alertStatus = data?.alert_status ?? {};
+  // The real backend (OLD project contract) returns KPIs under `kpis`
+  //   { total_today, total_yesterday, critical, warning, normal,
+  //     active_cameras, avg_score }
+  // and alert counts live INSIDE that same `kpis` object — there is no separate
+  // `stats` / `alert_status`. The previous code only read `stats` /
+  // `alert_status`, so every card collapsed to 0 and the donut showed NO DATA.
+  // We merge kpis first, then let any newer `stats` / `alert_status` shape
+  // override, so both contracts work.
+  const stats = {
+    ...((data?.kpis as Record<string, unknown>) ?? {}),
+    ...((data?.stats as Record<string, unknown>) ?? {}),
+  } as Record<string, unknown>;
+  const alertStatus = {
+    ...((data?.kpis as Record<string, unknown>) ?? {}),
+    ...((data?.alert_status as Record<string, unknown>) ?? {}),
+  } as {
+    critical?: number;
+    warning?: number;
+    normal?: number;
+    percentage?: number;
+  };
   const detections = data?.recent_detections ?? [];
   const branches = data?.branches ?? [];
 
@@ -283,7 +302,8 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   }, [data, detections]);
 
   // generic stat reading
-  const totalDet = (stats.total_detections ??
+  const totalDet = (stats.total_today ??
+    stats.total_detections ??
     stats.total ??
     stats.spills_detected ??
     stats.smoking_events ??
@@ -297,6 +317,8 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     stats.critical_alerts ??
     stats.hazard_alerts ??
     stats.long_wait_alerts ??
+    stats.warning ??
+    stats.critical ??
     0) as number;
   const activeCams = (stats.active_cameras ?? stats.cameras ?? 0) as number;
   const complianceOrScore = (stats.compliance_rate ??

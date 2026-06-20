@@ -16,6 +16,7 @@ import {
   Eye,
   Inbox,
   Loader2,
+  Lock,
   MapPin,
   Move,
   Play,
@@ -58,9 +59,9 @@ interface BoardColumn {
 
 const COLUMNS: BoardColumn[] = [
   {
-    id: "pending",
+    id: "new",
     label: "New",
-    labelKey: "kanban.status.pending",
+    labelKey: "kanban.status.new",
     tone: "bg-slate-500/5 border-slate-500/20",
     badgeTone: "bg-slate-700 text-white",
     icon: <Inbox className="h-4 w-4" />,
@@ -82,9 +83,9 @@ const COLUMNS: BoardColumn[] = [
     icon: <Play className="h-4 w-4" />,
   },
   {
-    id: "pending_review",
+    id: "pending_verification",
     label: "Pending Review",
-    labelKey: "kanban.status.pending_review",
+    labelKey: "kanban.status.pending_verification",
     tone: "bg-violet-500/5 border-violet-500/20",
     badgeTone: "bg-violet-500 text-white",
     icon: <Eye className="h-4 w-4" />,
@@ -96,6 +97,14 @@ const COLUMNS: BoardColumn[] = [
     tone: "bg-emerald-500/5 border-emerald-500/20",
     badgeTone: "bg-emerald-500 text-white",
     icon: <CheckCircle2 className="h-4 w-4" />,
+  },
+  {
+    id: "closed",
+    label: "Closed",
+    labelKey: "kanban.status.closed",
+    tone: "bg-slate-500/5 border-slate-500/20",
+    badgeTone: "bg-slate-500 text-white",
+    icon: <Lock className="h-4 w-4" />,
   },
 ];
 
@@ -137,7 +146,7 @@ function TaskForm({
   );
   const [type, setType] = React.useState(initial?.type ?? "manual");
   const [priority, setPriority] = React.useState(initial?.priority ?? "medium");
-  const [status, setStatus] = React.useState(initial?.status ?? "pending");
+  const [status, setStatus] = React.useState(initial?.status ?? "new");
   const [time, setTime] = React.useState(initial?.time ?? "");
   const [scheduledDate, setScheduledDate] = React.useState(
     initial?.scheduledDate ?? ""
@@ -345,7 +354,9 @@ function TaskForm({
             {type === "recurring" && (
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5 col-span-2">
-                  <Label>{t("projects.startDate")} – {t("projects.endDate")}</Label>
+                  <Label>
+                    {t("projects.startDate")} – {t("projects.endDate")}
+                  </Label>
                   <SharedDateRangePicker
                     from={startDate}
                     to={endDate}
@@ -615,8 +626,40 @@ function KanbanPageRoute() {
   const moveM = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       tasksService.updateStatus(id, status),
-    onSuccess: () => invalidate(),
-    onError: (e: Error) => toast.error(e.message),
+    // Optimistic: move the card to the new column immediately on drop, then
+    // reconcile with the server. The API call still fires via mutationFn.
+    onMutate: async ({ id, status }: { id: string; status: string }) => {
+      await qc.cancelQueries({ queryKey: ["kanban"] });
+      const prev = qc.getQueriesData({ queryKey: ["kanban"] });
+      qc.setQueriesData({ queryKey: ["kanban"] }, (old: unknown) => {
+        const data = old as { pages?: { items?: TaskItem[] }[] } | undefined;
+        if (!data?.pages) return old;
+        return {
+          ...data,
+          pages: data.pages.map((pg) => ({
+            ...pg,
+            items: (pg.items ?? []).map((it) =>
+              it.id === id ? { ...it, status } : it
+            ),
+          })),
+        };
+      });
+      return { prev };
+    },
+    onError: (
+      e: Error,
+      _vars,
+      ctx: { prev?: [unknown, unknown][] } | undefined
+    ) => {
+      // Roll back the optimistic move on failure.
+      ctx?.prev?.forEach(([key, data]) =>
+        qc.setQueryData(key as readonly unknown[], data)
+      );
+      toast.error(e.message);
+    },
+    onSuccess: () => toast.success(t("tasks.statusUpdated", "Status updated")),
+    // Always re-sync with the server (counts, server-side ordering, etc.).
+    onSettled: () => invalidate(),
   });
 
   const deleteM = useMutation({
@@ -635,8 +678,10 @@ function KanbanPageRoute() {
     const map: Record<string, TaskItem[]> = {};
     COLUMNS.forEach((c) => (map[c.id] = []));
     for (const task of items) {
-      const key = map[task.status] ? task.status : "pending";
-      map[key].push(task);
+      // Strict status→column match (parity with the OLD board). Tasks whose
+      // status isn't one of the board columns (e.g. on_hold/cancelled/pending)
+      // are not shown here rather than being dumped into the first column.
+      if (map[task.status]) map[task.status].push(task);
     }
     return map;
   }, [items]);

@@ -148,37 +148,53 @@ export function AuthPaginatedSelect({
   // Wrapper ref lets us find the nearest dialog ancestor so the portalled menu
   // stays inside the dialog's focus-trap / pointer-events scope (see prop docs).
   const wrapRef = React.useRef<HTMLDivElement>(null);
+  // Portal target resolution:
+  //   undefined (caller default) → auto: portal to document.body.
+  //   null (caller forced)       → no portal (render menu inline).
+  //   element (caller forced)    → portal to that element.
+  // We deliberately do NOT portal into the dialog node itself. A Radix dialog is
+  // centered with a CSS transform (translate(-50%,-50%)); a portalled
+  // react-select menu computes viewport-relative coordinates from
+  // getBoundingClientRect(), and a transformed portal/offset ancestor shifts
+  // those coordinates so the menu lands detached (the bottom-right symptom in
+  // the New Task modal). Portalling to document.body — which has no transform —
+  // keeps `position: fixed` coordinates correct AND lets the menu escape the
+  // dialog body's `overflow-y:auto` clipping.
   const [autoPortalTarget, setAutoPortalTarget] =
     React.useState<HTMLElement | null>(null);
+
   React.useEffect(() => {
     if (menuPortalTarget !== undefined || typeof document === "undefined")
       return;
-    const dialog =
-      wrapRef.current?.closest<HTMLElement>(
-        '[role="dialog"], [role="alertdialog"]'
-      ) ?? null;
-    setAutoPortalTarget(dialog ?? document.body);
+    setAutoPortalTarget(document.body);
   }, [menuPortalTarget]);
+
   const effectivePortalTarget =
     menuPortalTarget !== undefined
       ? (menuPortalTarget ?? undefined)
       : (autoPortalTarget ?? undefined);
 
-  // When the menu is portalled INTO a dialog, that dialog is centered with a
-  // CSS transform (translate(-50%,-50%)). Per spec, a `position: fixed` child
-  // of a transformed ancestor is positioned relative to that ancestor, not the
-  // viewport — react-select computes viewport-relative fixed coords, so the
-  // transform offsets them and the menu lands detached (bottom-right). Using
-  // `absolute` anchors the menu to its control inside the dialog instead.
-  // Portalling to document.body (no transform) keeps `fixed` so the menu can
-  // escape overflow-clipping containers.
-  const portalIsDialog =
-    effectivePortalTarget != null &&
-    effectivePortalTarget !==
-      (typeof document !== "undefined" ? document.body : null);
-  const menuPosition: "fixed" | "absolute" = portalIsDialog
-    ? "absolute"
-    : "fixed";
+  // `fixed` when portalling to body (correct viewport coords, escapes overflow
+  // clipping). `absolute` only when the caller explicitly disabled the portal.
+  const menuPosition: "fixed" | "absolute" =
+    effectivePortalTarget != null ? "fixed" : "absolute";
+
+  // Close the menu when the user scrolls a containing element (e.g. the
+  // dialog body's overflow-y:auto region). With a body-portalled fixed menu,
+  // scrolling the inner container would otherwise leave the menu floating at a
+  // stale position. Closing on scroll keeps it anchored correctly on reopen.
+  const closeMenuOnScroll = React.useCallback((e: Event) => {
+    const target = e.target as Node | null;
+    // Ignore scroll events originating inside the menu list itself.
+    if (
+      target &&
+      target instanceof HTMLElement &&
+      target.closest('[class*="-MenuList"], [class*="menu"]')
+    ) {
+      return false;
+    }
+    return true;
+  }, []);
 
   const [resolvedOption, setResolvedOption] =
     React.useState<SelectOption | null>(
@@ -307,7 +323,14 @@ export function AuthPaginatedSelect({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [endpoint, labelKey, valueKey, perPage, JSON.stringify(extraParams), staticOptions]
+    [
+      endpoint,
+      labelKey,
+      valueKey,
+      perPage,
+      JSON.stringify(extraParams),
+      staticOptions,
+    ]
   );
 
   const handleChange = React.useCallback(
@@ -539,7 +562,10 @@ export function AuthPaginatedSelect({
   );
 
   return (
-    <div ref={wrapRef} className={className}>
+    <div
+      ref={wrapRef}
+      className={className}
+    >
       <AsyncPaginate
         inputId={id}
         isMulti={isMulti}
@@ -557,6 +583,7 @@ export function AuthPaginatedSelect({
         theme={selectTheme}
         menuPortalTarget={effectivePortalTarget}
         menuPosition={menuPosition}
+        closeMenuOnScroll={closeMenuOnScroll}
         menuShouldScrollIntoView={false}
         loadingMessage={() => loadingText}
         noOptionsMessage={({ inputValue }) =>

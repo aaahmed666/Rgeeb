@@ -2,14 +2,15 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { SERVICE_MAP } from "@/views/ai-services/aiServicesData";
 
-const AIServiceDetailView = dynamic(() => import("@/views/ai-services/AIServiceDetailView"), {
-  ssr: false,
-});
+// Drive-thru has its own dedicated dashboard endpoint
+// (/customer/drive-thru/dashboard) and a specialized layout — matching the OLD
+// project — so it does NOT go through the generic AIServiceDetailView monitor.
+const DriveThruView = dynamic(
+  () => import("@/views/ai-services/DriveThruView"),
+  { ssr: false }
+);
 
 export default function Page() {
-  const service = SERVICE_MAP["drive-thru"];
-  if (!service) return <div className="p-8 text-muted-foreground">Service not found.</div>;
-  return <AIServiceDetailView service={service} />;
+  return <DriveThruView />;
 }

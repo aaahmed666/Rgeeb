@@ -188,6 +188,41 @@ export interface FoodicsFootfallResponse {
   hourly_breakdown: HourlyBreakdown[];
 }
 
+// ── Raw conversion feeds (parity with OLD store conversion_* migrations) ──
+export interface ConversionHourlyStat {
+  branch_id: number | string;
+  stat_date: string;
+  hour: number;
+  footfall_in: number;
+  footfall_out: number;
+  orders_count: number;
+  conversion_rate: number | null;
+  revenue: number;
+  revenue_per_visitor: number | null;
+}
+
+export interface ConversionDailySummary {
+  branch_id: number | string;
+  stat_date: string;
+  total_footfall_in: number;
+  total_footfall_out: number;
+  total_orders: number;
+  avg_conversion_rate: number | null;
+  total_revenue: number;
+  revenue_per_visitor: number | null;
+  peak_hour: number | null;
+}
+
+export interface ConversionSummary {
+  days_count: number;
+  total_footfall: number;
+  total_orders: number;
+  total_revenue: number;
+  avg_conversion_rate: number | null;
+  avg_revenue_per_visitor: number | null;
+  avg_daily_footfall: number;
+}
+
 export interface HourlyBreakdown {
   hour: number;
   avg_footfall: number;
@@ -284,84 +319,499 @@ export const foodicsService = {
   disconnect: () => api.post(endpoints.foodics.disconnect),
 
   // Dashboard (aggregate)
-  getDashboard: (params?: FoodicsDateBranchFilter) =>
-    api
-      .get<{
-        data: FoodicsDashboard;
-      }>(endpoints.foodics.dashboard, { query: params as never })
-      .then((r) => r.data),
+  //
+  // The page needs stats + ai_insights + trends together. The backend exposes
+  // these as three separate feeds (/dashboard/overview, /insights, /trends),
+  // matching the OLD app. We fetch them in parallel and adapt to the page's
+  // consolidated shape, tolerating both the OLD nested response (orders.*,
+  // conversion.*, refunds.*, prep_time.*) and a newer flat `stats` response.
+  getDashboard: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<FoodicsDashboard> => {
+    const query = params as never;
+    const [ovRes, insRes, trRes] = await Promise.all([
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.dashboardOverview, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.dashboardInsights, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.dashboardTrends, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+    ]);
+
+    const ov = (ovRes?.data ?? {}) as Record<string, never>;
+    const num = (v: unknown): number =>
+      typeof v === "number" ? v : Number(v ?? 0) || 0;
+    const get = (obj: unknown, key: string): unknown =>
+      obj && typeof obj === "object"
+        ? (obj as Record<string, unknown>)[key]
+        : undefined;
+
+    // Prefer a flat `stats` block if present; else derive from nested groups.
+    const flatStats = get(ov, "stats") as Record<string, unknown> | undefined;
+    const orders = get(ov, "orders");
+    const conversion = get(ov, "conversion");
+    const refunds = get(ov, "refunds");
+    const prep = get(ov, "prep_time") ?? get(ov, "prep_times");
+
+    const stats: FoodicsDashboardStats = flatStats
+      ? {
+          total_orders: num(flatStats.total_orders),
+          total_revenue: num(flatStats.total_revenue),
+          avg_ticket: num(flatStats.avg_ticket),
+          conversion_rate: (flatStats.conversion_rate as number | null) ?? null,
+          suspicious_refunds: num(flatStats.suspicious_refunds),
+          suspicious_refunds_pct: num(flatStats.suspicious_refunds_pct),
+          drawer_flags: num(flatStats.drawer_flags),
+          drawer_flags_pct: num(flatStats.drawer_flags_pct),
+          avg_kitchen_prep:
+            (flatStats.avg_kitchen_prep as number | null) ?? null,
+          avg_kitchen_matched_pct: num(flatStats.avg_kitchen_matched_pct),
+          inventory_issues: num(flatStats.inventory_issues),
+          inventory_audits_total: num(flatStats.inventory_audits_total),
+        }
+      : {
+          total_orders: num(get(orders, "total_orders")),
+          total_revenue: num(get(orders, "total_revenue")),
+          avg_ticket: num(get(orders, "avg_ticket")),
+          conversion_rate:
+            (get(conversion, "conversion_rate") as number | null) ?? null,
+          suspicious_refunds: num(get(refunds, "suspicious_count")),
+          suspicious_refunds_pct: num(get(refunds, "suspicious_rate")),
+          drawer_flags: num(get(ov, "drawer_flags")),
+          drawer_flags_pct: num(get(ov, "drawer_flags_pct")),
+          avg_kitchen_prep:
+            (get(prep, "avg_kitchen_prep_seconds") as number | null) ?? null,
+          avg_kitchen_matched_pct: num(get(prep, "match_rate")),
+          inventory_issues: num(get(ov, "inventory_issues")),
+          inventory_audits_total: num(get(ov, "inventory_audits_total")),
+        };
+
+    const ins = (insRes?.data ?? {}) as Record<string, unknown>;
+    const anomalies = Array.isArray(ins.anomalies)
+      ? (ins.anomalies as string[])
+      : [];
+    const ai_insights: FoodicsDashboardInsights = {
+      summary: String(ins.summary ?? ""),
+      anomalies,
+      all_clear:
+        typeof ins.all_clear === "boolean"
+          ? ins.all_clear
+          : anomalies.length === 0,
+    };
+
+    // Trends: tolerate OLD array feeds or the newer scalar-summary shape.
+    const tr = (trRes?.data ?? {}) as Record<string, unknown>;
+    const arr = (v: unknown): Record<string, unknown>[] =>
+      Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+    const sumBy = (rows: Record<string, unknown>[], key: string) =>
+      rows.reduce((s, r) => s + num(r[key]), 0);
+
+    const trOrders = tr.orders;
+    const trPrep = tr.prep_times ?? tr.prep_time;
+    const trConv = tr.conversion;
+    const trRef = tr.refunds;
+
+    const trends: FoodicsDashboardTrends = {
+      orders: Array.isArray(trOrders)
+        ? { days: arr(trOrders).length, total: sumBy(arr(trOrders), "orders") }
+        : {
+            days: num(get(trOrders, "days")),
+            total: num(get(trOrders, "total")),
+          },
+      prep_times: Array.isArray(trPrep)
+        ? {
+            data_points: arr(trPrep).length,
+            avg: arr(trPrep).length
+              ? Math.round(sumBy(arr(trPrep), "avg_prep") / arr(trPrep).length)
+              : null,
+          }
+        : {
+            data_points: num(get(trPrep, "data_points")),
+            avg: (get(trPrep, "avg") as number | null) ?? null,
+          },
+      conversion: Array.isArray(trConv)
+        ? {
+            days: arr(trConv).length,
+            visitors: sumBy(arr(trConv), "total_footfall_in"),
+          }
+        : {
+            days: num(get(trConv, "days")),
+            visitors: num(get(trConv, "visitors")),
+          },
+      refunds: Array.isArray(trRef)
+        ? { records: arr(trRef).length, total: sumBy(arr(trRef), "count") }
+        : {
+            records: num(get(trRef, "records")),
+            total: num(get(trRef, "total")),
+          },
+    };
+
+    return {
+      stats,
+      ai_insights,
+      trends,
+      branch_id: (get(ov, "branch_id") as string | null) ?? null,
+      date_from: (get(ov, "date_from") as string | null) ?? null,
+      date_to: (get(ov, "date_to") as string | null) ?? null,
+    };
+  },
 
   // Orders
-  getOrders: (params?: FoodicsDateBranchFilter) =>
-    api
-      .get<{
-        data: FoodicsOrdersResponse;
-      }>(endpoints.foodics.orders, { query: params as never })
-      .then((r) => r.data),
+  // Orders
+  //
+  // Records from /orders; aggregate stats from /orders/summary when the base
+  // response doesn't embed them (parity with the OLD orders page).
+  getOrders: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<FoodicsOrdersResponse> => {
+    const query = params as never;
+    const [listRes, sumRes] = await Promise.all([
+      api
+        .get<Record<string, unknown>>(endpoints.foodics.orders, { query })
+        .catch(() => ({}) as Record<string, unknown>),
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.ordersSummary, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+    ]);
+    const root = (listRes ?? {}) as Record<string, unknown>;
+    const inner = (root.data ?? root) as Record<string, unknown>;
+    const num = (v: unknown) =>
+      typeof v === "number" ? v : Number(v ?? 0) || 0;
+    const data = (
+      Array.isArray(inner) ? inner : Array.isArray(inner.data) ? inner.data : []
+    ) as FoodicsOrder[];
+    // /orders/summary may return an array of daily rows; fold to totals.
+    const rawSum = sumRes?.data;
+    const sumRows = Array.isArray(rawSum)
+      ? (rawSum as Record<string, unknown>[])
+      : [];
+    const embedded = root.stats as Record<string, unknown> | undefined;
+    const totalOrders = embedded
+      ? num(embedded.total_orders)
+      : sumRows.reduce((s, r) => s + num(r.orders_count ?? r.total_orders), 0);
+    const totalSales = embedded
+      ? num(embedded.total_sales)
+      : sumRows.reduce((s, r) => s + num(r.total_sales), 0);
+    const totalDiscounts = embedded
+      ? num(embedded.total_discounts)
+      : sumRows.reduce((s, r) => s + num(r.total_discounts), 0);
+    const stats: FoodicsOrderStats = {
+      total_orders: totalOrders,
+      total_sales: totalSales,
+      total_discounts: totalDiscounts,
+      avg_order_value: embedded
+        ? num(embedded.avg_order_value)
+        : totalOrders > 0
+          ? Math.round((totalSales / totalOrders) * 100) / 100
+          : 0,
+    };
+    return {
+      data,
+      stats,
+      current_page: num(inner.current_page ?? root.current_page) || 1,
+      last_page: num(inner.last_page ?? root.last_page) || 1,
+      per_page: num(inner.per_page ?? root.per_page) || data.length,
+      total: num(inner.total ?? root.total) || data.length,
+    };
+  },
   syncOrders: () => api.post(endpoints.foodics.ordersSync),
 
   // Refund Verification
-  getRefunds: (params?: FoodicsDateBranchFilter) =>
-    api
-      .get<{
-        data: FoodicsRefundsResponse;
-      }>(endpoints.foodics.refunds, { query: params as never })
-      .then((r) => r.data),
-  /**
-   * Manager review of a refund verification (verdict: legitimate | fraud | inconclusive).
-   * Primary path matches the legacy production system; falls back to the
-   * new-style `/refunds/{id}/review` path if the backend was renamed.
-   */
-  reviewRefund: async (
-    id: string | number,
-    body: { verdict: string; notes: string },
-  ) => {
-    try {
-      return await api.post(endpoints.foodics.refundReview(id), body);
-    } catch {
-      return api.post(`${endpoints.foodics.refunds}/${id}/review`, body);
-    }
+  //
+  // Records come from /refund-verifications. Aggregate stats from a /stats
+  // sibling feed when the base response doesn't embed them (parity with OLD).
+  getRefunds: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<FoodicsRefundsResponse> => {
+    const query = params as never;
+    const [listRes, statsRes] = await Promise.all([
+      api
+        .get<Record<string, unknown>>(endpoints.foodics.refunds, { query })
+        .catch(() => ({}) as Record<string, unknown>),
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.refundVerificationsStats, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+    ]);
+    const root = (listRes ?? {}) as Record<string, unknown>;
+    const inner = (root.data ?? root) as Record<string, unknown>;
+    const num = (v: unknown) =>
+      typeof v === "number" ? v : Number(v ?? 0) || 0;
+    const data = (
+      Array.isArray(inner) ? inner : Array.isArray(inner.data) ? inner.data : []
+    ) as FoodicsRefundVerification[];
+    const rawStats =
+      (root.stats as Record<string, unknown> | undefined) ??
+      (statsRes?.data as Record<string, unknown> | undefined) ??
+      {};
+    const stats: FoodicsRefundStats = {
+      total_refunds: num(rawStats.total_refunds),
+      suspicious: num(rawStats.suspicious),
+      critical: num(rawStats.critical),
+      flagged_rate: num(rawStats.flagged_rate),
+    };
+    return {
+      data,
+      stats,
+      current_page: num(inner.current_page ?? root.current_page) || 1,
+      last_page: num(inner.last_page ?? root.last_page) || 1,
+      per_page: num(inner.per_page ?? root.per_page) || data.length,
+      total: num(inner.total ?? root.total) || data.length,
+    };
   },
+  /**
+   * Manager review of a refund verification
+   * (verdict: legitimate | fraud | inconclusive).
+   * POST /customer/foodics/refund-verifications/{id}/review
+   */
+  reviewRefund: (
+    id: string | number,
+    body: { verdict: string; notes: string }
+  ) => api.post(endpoints.foodics.refundReview(id), body),
 
   // Cash Drawer Audit
-  getDrawerAudits: (params?: FoodicsDateBranchFilter) =>
-    api
-      .get<{
-        data: FoodicsDrawerResponse;
-      }>(endpoints.foodics.drawerAudits, { query: params as never })
-      .then((r) => r.data),
-  syncDrawerOperations: () =>
-    api.post(endpoints.foodics.drawerOperationsSync),
-  /**
-   * Manager review of a drawer audit (verdict: legitimate | fraud | inconclusive).
-   * Primary path matches the legacy production system.
-   */
-  reviewDrawerAudit: async (
-    id: string | number,
-    body: { verdict: string; notes: string },
-  ) => {
-    try {
-      return await api.post(endpoints.foodics.drawerAuditReview(id), body);
-    } catch {
-      return api.post(`${endpoints.foodics.drawerAudits}/${id}/review`, body);
-    }
+  //
+  // Records from /drawer-audits; stats from /drawer-audits/stats; pattern flags
+  // from /drawer-audits/patterns (parity with OLD app's three calls).
+  getDrawerAudits: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<FoodicsDrawerResponse> => {
+    const query = params as never;
+    const [listRes, statsRes, patRes] = await Promise.all([
+      api
+        .get<Record<string, unknown>>(endpoints.foodics.drawerAudits, { query })
+        .catch(() => ({}) as Record<string, unknown>),
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.drawerAuditsStats, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+      api
+        .get<{ data: PatternFlag[] }>(endpoints.foodics.drawerAuditsPatterns, {
+          query,
+        })
+        .catch(() => ({ data: [] as PatternFlag[] })),
+    ]);
+    const root = (listRes ?? {}) as Record<string, unknown>;
+    const inner = (root.data ?? root) as Record<string, unknown>;
+    const num = (v: unknown) =>
+      typeof v === "number" ? v : Number(v ?? 0) || 0;
+    const data = (
+      Array.isArray(inner) ? inner : Array.isArray(inner.data) ? inner.data : []
+    ) as FoodicsDrawerAudit[];
+    const rawStats =
+      (root.stats as Record<string, unknown> | undefined) ??
+      (statsRes?.data as Record<string, unknown> | undefined) ??
+      {};
+    const stats: FoodicsDrawerStats = {
+      total_opens: num(rawStats.total_opens),
+      unmatched: num(rawStats.unmatched),
+      suspicious: num(rawStats.suspicious),
+      critical: num(rawStats.critical),
+      flagged_rate: num(rawStats.flagged_rate),
+    };
+    const pattern_flags = Array.isArray(root.pattern_flags)
+      ? (root.pattern_flags as PatternFlag[])
+      : (patRes?.data ?? []);
+    return {
+      data,
+      stats,
+      pattern_flags,
+      current_page: num(inner.current_page ?? root.current_page) || 1,
+      last_page: num(inner.last_page ?? root.last_page) || 1,
+      per_page: num(inner.per_page ?? root.per_page) || data.length,
+      total: num(inner.total ?? root.total) || data.length,
+    };
   },
+  syncDrawerOperations: () => api.post(endpoints.foodics.drawerOperationsSync),
+  /**
+   * Manager review of a drawer audit
+   * (verdict: legitimate | fraud | inconclusive).
+   * POST /customer/foodics/drawer-audits/{id}/review
+   */
+  reviewDrawerAudit: (
+    id: string | number,
+    body: { verdict: string; notes: string }
+  ) => api.post(endpoints.foodics.drawerAuditReview(id), body),
 
   // Prep Time Intelligence
-  getPrepTime: (params?: FoodicsDateBranchFilter) =>
-    api
-      .get<{
-        data: FoodicsPrepTimeResponse;
-      }>(endpoints.foodics.prepTime, { query: params as never })
-      .then((r) => r.data),
+  //
+  // Records come from /prep-times (paginated). The page also needs aggregate
+  // stats and a day/hour heatmap, which the backend serves from /summary and
+  // /heatmap (parity with the OLD app's three prep-time calls). Fetch all three
+  // in parallel and adapt field names; tolerate a base response that already
+  // bundles stats/heatmap.
+  getPrepTime: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<FoodicsPrepTimeResponse> => {
+    const query = params as never;
+    const [recRes, sumRes, heatRes] = await Promise.all([
+      api
+        .get<Record<string, unknown>>(endpoints.foodics.prepTime, { query })
+        .catch(() => ({}) as Record<string, unknown>),
+      api
+        .get<{
+          data: Record<string, unknown>;
+        }>(endpoints.foodics.prepTimesSummary, { query })
+        .catch(() => ({ data: {} as Record<string, unknown> })),
+      api
+        .get<{
+          data: Record<string, unknown>[];
+        }>(endpoints.foodics.prepTimesHeatmap, { query })
+        .catch(() => ({ data: [] as Record<string, unknown>[] })),
+    ]);
+
+    const root = (recRes ?? {}) as Record<string, unknown>;
+    // The records list may be at .data, .data.data, or .data.records.
+    const inner = (root.data ?? root) as Record<string, unknown>;
+    const records = (
+      Array.isArray(inner)
+        ? inner
+        : Array.isArray(inner.data)
+          ? inner.data
+          : Array.isArray(inner.records)
+            ? inner.records
+            : []
+    ) as FoodicsPrepTimeRecord[];
+
+    const num = (v: unknown): number =>
+      typeof v === "number" ? v : Number(v ?? 0) || 0;
+    const numN = (v: unknown): number | null =>
+      v == null ? null : Number(v) || 0;
+
+    // Stats: prefer an embedded stats block, else the /summary feed.
+    const rawStats =
+      (root.stats as Record<string, unknown> | undefined) ??
+      (sumRes?.data as Record<string, unknown> | undefined) ??
+      {};
+    const stats: FoodicsPrepTimeStats = {
+      total_orders: num(rawStats.total_orders),
+      ai_matched: num(rawStats.ai_matched ?? rawStats.matched_orders),
+      ai_matched_pct: num(rawStats.ai_matched_pct ?? rawStats.match_rate),
+      avg_kitchen_prep: numN(
+        rawStats.avg_kitchen_prep ?? rawStats.avg_kitchen_prep_seconds
+      ),
+      avg_service: numN(rawStats.avg_service ?? rawStats.avg_service_seconds),
+      avg_total_cycle: numN(
+        rawStats.avg_total_cycle ?? rawStats.avg_total_cycle_seconds
+      ),
+    };
+
+    // Heatmap: flatten the backend's cell list into a single row of cells; the
+    // page re-bins by day/hour itself.
+    const rawHeat = Array.isArray(root.heatmap)
+      ? (root.heatmap as Record<string, unknown>[])
+      : (heatRes?.data ?? []);
+    const heatCells: HeatmapCell[] = rawHeat.map((c) => ({
+      hour: num(c.hour),
+      day: num(c.day),
+      value: num(c.value ?? c.avg_prep_seconds ?? c.orders),
+      label: String(c.label ?? ""),
+    }));
+
+    return {
+      data: records,
+      stats,
+      heatmap: heatCells.length ? [heatCells] : [],
+      current_page: num(inner.current_page ?? root.current_page) || 1,
+      last_page: num(inner.last_page ?? root.last_page) || 1,
+      per_page: num(inner.per_page ?? root.per_page) || records.length,
+      total: num(inner.total ?? root.total) || records.length,
+    };
+  },
 
   // Footfall vs Revenue
-  getFootfall: (params?: FoodicsDateBranchFilter) =>
-    api
-      .get<{
-        data: FoodicsFootfallResponse;
-      }>(endpoints.foodics.footfall, { query: params as never })
-      .then((r) => r.data),
+  //
+  // The page expects a single { data, hourly_breakdown, stats } object, but the
+  // backend exposes three separate conversion feeds (parity with the OLD app's
+  // conversion page). We fetch all three in parallel and adapt their fields
+  // (footfall_in / total_footfall_in / avg_conversion_rate → the page's names).
+  getFootfall: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<FoodicsFootfallResponse> => {
+    const query = params as never;
+    const [dailyRes, hourlyRes, summaryRes] = await Promise.all([
+      api
+        .get<{
+          data: ConversionDailySummary[];
+        }>(endpoints.foodics.conversionDaily, { query })
+        .catch(() => ({ data: [] as ConversionDailySummary[] })),
+      api
+        .get<{
+          data: ConversionHourlyStat[];
+        }>(endpoints.foodics.conversionHourly, { query })
+        .catch(() => ({ data: [] as ConversionHourlyStat[] })),
+      api
+        .get<{
+          data: ConversionSummary | null;
+        }>(endpoints.foodics.conversionSummary, { query })
+        .catch(() => ({ data: null as ConversionSummary | null })),
+    ]);
+
+    const dailyRows = dailyRes?.data ?? [];
+    const data: FoodicsFootfallRecord[] = dailyRows.map((row) => ({
+      date: row.stat_date,
+      footfall: row.total_footfall_in ?? 0,
+      orders: row.total_orders ?? 0,
+      conversion_rate: row.avg_conversion_rate ?? 0,
+      revenue: row.total_revenue ?? 0,
+      revenue_per_visitor: row.revenue_per_visitor ?? 0,
+      branch_id: String(row.branch_id ?? ""),
+      branch_name: "",
+    }));
+
+    // Collapse hourly rows into per-hour averages for the heatmap/table.
+    const hourlyRows = hourlyRes?.data ?? [];
+    const byHour = new Map<
+      number,
+      { footfall: number; orders: number; conv: number; n: number }
+    >();
+    for (const h of hourlyRows) {
+      const cur = byHour.get(h.hour) ?? {
+        footfall: 0,
+        orders: 0,
+        conv: 0,
+        n: 0,
+      };
+      cur.footfall += h.footfall_in ?? 0;
+      cur.orders += h.orders_count ?? 0;
+      cur.conv += h.conversion_rate ?? 0;
+      cur.n += 1;
+      byHour.set(h.hour, cur);
+    }
+    const hourly_breakdown: HourlyBreakdown[] = Array.from(byHour.entries())
+      .map(([hour, v]) => ({
+        hour,
+        avg_footfall: v.n ? Math.round(v.footfall / v.n) : 0,
+        avg_orders: v.n ? Math.round(v.orders / v.n) : 0,
+        avg_conversion: v.n ? Math.round((v.conv / v.n) * 10) / 10 : 0,
+      }))
+      .sort((a, b) => a.hour - b.hour);
+
+    const sum = summaryRes?.data ?? null;
+    const stats: FoodicsFootfallStats = {
+      total_footfall: sum?.total_footfall ?? 0,
+      total_orders: sum?.total_orders ?? 0,
+      conversion_rate: sum?.avg_conversion_rate ?? null,
+      total_revenue: sum?.total_revenue ?? 0,
+      revenue_per_visitor: sum?.avg_revenue_per_visitor ?? null,
+      avg_daily_footfall: sum?.avg_daily_footfall ?? 0,
+    };
+
+    return { data, hourly_breakdown, stats };
+  },
 
   // Inventory Audit
   getInventoryZones: (branch_id?: string) =>
@@ -377,6 +827,12 @@ export const foodicsService = {
     api.post(endpoints.foodics.inventoryZoneUpdate(id), data),
   deleteInventoryZone: (id: string) =>
     api.post(endpoints.foodics.inventoryZoneDelete(id)),
+  /**
+   * Trigger an inventory audit for a zone (parity with the OLD "Run Audit"
+   * action). POST /customer/foodics/inventory/audit { zone_id }.
+   */
+  runInventoryAudit: (zoneId: string) =>
+    api.post(endpoints.foodics.inventoryAudit, { zone_id: zoneId }),
   getInventoryAuditHistory: (params?: FoodicsDateBranchFilter) =>
     api.get<{ data: FoodicsInventoryAudit[] }>(
       endpoints.foodics.inventoryAuditHistory,
@@ -388,5 +844,7 @@ export const foodicsService = {
   // Branches
   importBranches: () => api.post(endpoints.foodics.importBranches),
   getBranches: () =>
-    api.get<{ data: { id: string; name: string }[] }>(endpoints.organization.branches),
+    api.get<{ data: { id: string; name: string }[] }>(
+      endpoints.organization.branches
+    ),
 };

@@ -28,11 +28,14 @@ export interface TaskItem {
   type: string;
   priority: "low" | "medium" | "high" | "urgent" | string;
   status:
+    | "new"
     | "pending"
     | "assigned"
     | "in_progress"
-    | "pending_review"
+    | "pending_verification"
     | "completed"
+    | "closed"
+    | "on_hold"
     | "cancelled"
     | string;
   assignedTo: { id?: string; name: string } | null;

@@ -70,7 +70,9 @@ export default function BranchesView() {
   const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
 
   // Reset page on search change
-  React.useEffect(() => { setPage(1); }, [debouncedSearch]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   const {
     data: branchPage,
@@ -78,12 +80,26 @@ export default function BranchesView() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["org", "branches", { page, per_page: PER_PAGE, keyword: debouncedSearch }],
-    queryFn: () => fetchBranches({ page, per_page: PER_PAGE, keyword: debouncedSearch || undefined }),
+    queryKey: [
+      "org",
+      "branches",
+      { page, per_page: PER_PAGE, keyword: debouncedSearch },
+    ],
+    queryFn: () =>
+      fetchBranches({
+        page,
+        per_page: PER_PAGE,
+        keyword: debouncedSearch || undefined,
+      }),
   });
 
-  const branches = (branchPage as unknown as PaginatedResult<Branch>)?.items ?? (branchPage as Branch[] ?? []);
-  const total = (branchPage as unknown as PaginatedResult<Branch>)?.total ?? (branches as Branch[]).length;
+  const branches =
+    (branchPage as unknown as PaginatedResult<Branch>)?.items ??
+    (branchPage as Branch[]) ??
+    [];
+  const total =
+    (branchPage as unknown as PaginatedResult<Branch>)?.total ??
+    (branches as Branch[]).length;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   // all=1 for dropdown inside form (active only, no pagination)
@@ -109,8 +125,15 @@ export default function BranchesView() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
         <ShieldAlert className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
-        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+        <p className="text-lg font-semibold">
+          {t("errors.unauthorized", "Access Denied")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "common.noPermission",
+            "You don't have permission to view this page."
+          )}
+        </p>
       </div>
     );
   }
@@ -132,17 +155,17 @@ export default function BranchesView() {
           </div>
         </div>
         {can.create && (
-        <Button
-          className="gap-2 shadow-sm shadow-primary/20"
-          data-tour="add-branch"
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          {t("branches.new", "Add New Branch")}
-        </Button>
+          <Button
+            className="gap-2 shadow-sm shadow-primary/20"
+            data-tour="add-branch"
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            {t("branches.new", "Add New Branch")}
+          </Button>
         )}
       </header>
 
@@ -150,7 +173,11 @@ export default function BranchesView() {
         data={filtered as (Branch & { id: string | number })[]}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : t("errors.loadFailed", "Failed to load")}
+        errorMessage={
+          error instanceof Error
+            ? error.message
+            : t("errors.loadFailed", "Failed to load")
+        }
         emptyMessage={t("branches.empty", "No branches yet")}
         searchValue={search}
         onSearchChange={handleSearchChange}
@@ -250,24 +277,24 @@ export default function BranchesView() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {can.update && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setEditing(b);
-                      setOpen(true);
-                    }}
-                  >
-                    <Pencil className="me-2 h-4 w-4" />{" "}
-                    {t("common.edit", "Edit")}
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditing(b);
+                        setOpen(true);
+                      }}
+                    >
+                      <Pencil className="me-2 h-4 w-4" />{" "}
+                      {t("common.edit", "Edit")}
+                    </DropdownMenuItem>
                   )}
                   {can.delete && (
-                  <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
-                    onClick={() => setDeleteTarget(b)}
-                  >
-                    <Trash2 className="me-2 h-4 w-4" />{" "}
-                    {t("common.delete", "Delete")}
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => setDeleteTarget(b)}
+                    >
+                      <Trash2 className="me-2 h-4 w-4" />{" "}
+                      {t("common.delete", "Delete")}
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -279,13 +306,33 @@ export default function BranchesView() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2 py-3 text-sm text-muted-foreground">
-          <span>{t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", { start: (page-1)*PER_PAGE+1, end: Math.min(page*PER_PAGE, total), total })}</span>
+          <span>
+            {t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", {
+              start: (page - 1) * PER_PAGE + 1,
+              end: Math.min(page * PER_PAGE, total),
+              total,
+            })}
+          </span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p-1)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-2">{page} / {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p+1)}>
+            <span className="px-2">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -356,9 +403,9 @@ function BranchDrawer({
         phone: branch?.phone ?? "",
         address: branch?.address ?? "",
         active: branch?.active ?? true,
-        permit_number: "",
-        permit_activity_type: "",
-        permit_end_date: "",
+        permit_number: branch?.permitNumber ?? "",
+        permit_activity_type: branch?.permitActivityType ?? "",
+        permit_end_date: branch?.permitEndDate ?? "",
         permit_image: null,
       });
     }
@@ -372,6 +419,10 @@ function BranchDrawer({
         phone: form.phone,
         address: form.address,
         active: form.active,
+        permit_number: form.permit_number,
+        permit_activity_type: form.permit_activity_type,
+        permit_end_date: form.permit_end_date,
+        permit_image: form.permit_image,
       };
       return branch ? updateBranch(branch.id, payload) : createBranch(payload);
     },
@@ -419,7 +470,10 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.name", "Branch Name")}</Label>
               <Input
-                placeholder={t("branches.placeholder_name", "Enter branch name")}
+                placeholder={t(
+                  "branches.placeholder_name",
+                  "Enter branch name"
+                )}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
@@ -427,7 +481,10 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.phone", "Phone")}</Label>
               <Input
-                placeholder={t("branches.placeholder_phone", "Enter phone number")}
+                placeholder={t(
+                  "branches.placeholder_phone",
+                  "Enter phone number"
+                )}
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
@@ -436,7 +493,10 @@ function BranchDrawer({
               <Label>{t("branches.address", "Address")}</Label>
               <textarea
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px] resize-none"
-                placeholder={t("branches.placeholder_address", "Enter branch address")}
+                placeholder={t(
+                  "branches.placeholder_address",
+                  "Enter branch address"
+                )}
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
               />
@@ -478,7 +538,10 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.permitNumber", "Permit Number")}</Label>
               <Input
-                placeholder={t("branches.placeholder_permit", "Enter municipality permit number")}
+                placeholder={t(
+                  "branches.placeholder_permit",
+                  "Enter municipality permit number"
+                )}
                 value={form.permit_number}
                 onChange={(e) =>
                   setForm({ ...form, permit_number: e.target.value })
@@ -488,7 +551,10 @@ function BranchDrawer({
             <div className="space-y-1.5">
               <Label>{t("branches.activityType", "Activity Type")}</Label>
               <Input
-                placeholder={t("branches.placeholder_activity", "Enter type of activity")}
+                placeholder={t(
+                  "branches.placeholder_activity",
+                  "Enter type of activity"
+                )}
                 value={form.permit_activity_type}
                 onChange={(e) =>
                   setForm({ ...form, permit_activity_type: e.target.value })
@@ -500,9 +566,7 @@ function BranchDrawer({
               <SharedDateRangePicker
                 single
                 date={form.permit_end_date}
-                onDateChange={(v) =>
-                  setForm({ ...form, permit_end_date: v })
-                }
+                onDateChange={(v) => setForm({ ...form, permit_end_date: v })}
               />
             </div>
 
@@ -546,7 +610,12 @@ function BranchDrawer({
           </Button>
           <Button
             className="flex-1 gap-2"
-            disabled={!form.name || mut.isPending}
+            disabled={
+              !form.name.trim() ||
+              !form.phone?.trim() ||
+              !form.address?.trim() ||
+              mut.isPending
+            }
             onClick={() => mut.mutate()}
           >
             {mut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

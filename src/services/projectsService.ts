@@ -9,9 +9,20 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { pickArray, pickObject, str, num, type RawObject } from "@/lib/raw-response";
+import {
+  pickArray,
+  pickObject,
+  str,
+  num,
+  type RawObject,
+} from "@/lib/raw-response";
 
-export type ProjectStatus = "active" | "pending" | "completed" | "cancelled" | string;
+export type ProjectStatus =
+  | "active"
+  | "pending"
+  | "completed"
+  | "cancelled"
+  | string;
 
 export interface Project {
   id: string;
@@ -21,6 +32,8 @@ export interface Project {
   branchId?: string;
   branchName?: string;
   branchIds?: string[];
+  /** Full id+name list for multi-select edit pre-fill. */
+  branches?: { id: string; name: string }[];
   managerId?: string;
   managerName?: string;
   startDate?: string;
@@ -47,49 +60,62 @@ export interface ProjectInput {
 // ─── Mapper ───────────────────────────────────────────────────────────────────
 
 function mapProject(r: RawObject): Project {
-  const branch  = r.branch  as RawObject | undefined;
+  const branch = r.branch as RawObject | undefined;
   const manager = r.manager as RawObject | undefined;
-  const total   = Number(r.tasks_count ?? (Array.isArray(r.tasks) ? (r.tasks as unknown[]).length : 0));
-  const done    = Number(r.completed_tasks_count ?? r.completed_tasks ?? 0);
-  const progress = total > 0 ? Math.round((done / total) * 100) : Number(r.progress ?? 0);
+  const total = Number(
+    r.tasks_count ??
+      (Array.isArray(r.tasks) ? (r.tasks as unknown[]).length : 0)
+  );
+  const done = Number(r.completed_tasks_count ?? r.completed_tasks ?? 0);
+  const progress =
+    total > 0 ? Math.round((done / total) * 100) : Number(r.progress ?? 0);
 
   // branch_ids from nested branches array
-  const rawBranches = Array.isArray(r.branches) ? (r.branches as RawObject[]) : [];
+  const rawBranches = Array.isArray(r.branches)
+    ? (r.branches as RawObject[])
+    : [];
   const branchIds = rawBranches.map((b) => String(b.id ?? "")).filter(Boolean);
+  const branchPairs = rawBranches
+    .map((b) => ({
+      id: String(b.id ?? ""),
+      name: String(b.name ?? b.name_en ?? ""),
+    }))
+    .filter((b) => b.id);
 
   return {
-    id:                   String(r.id ?? ""),
-    name:                 str(r, "name", "title") ?? "Project",
-    description:          str(r, "description"),
-    status:               (str(r, "status") ?? "pending") as ProjectStatus,
-    branchId:             str(r, "branch_id") ?? (branch && str(branch, "id")),
-    branchName:           (branch && str(branch, "name")) ?? str(r, "branch_name"),
-    branchIds:            branchIds.length ? branchIds : undefined,
-    managerId:            str(r, "manager_id") ?? (manager && str(manager, "id")),
-    managerName:          (manager && (str(manager, "name") ?? str(manager, "name_en"))) ?? str(r, "manager_name"),
-    startDate:            str(r, "start_date"),
-    endDate:              str(r, "end_date", "due_date"),
-    tasksCount:           total || undefined,
-    completedTasksCount:  done  || undefined,
+    id: String(r.id ?? ""),
+    name: str(r, "name", "title") ?? "Project",
+    description: str(r, "description"),
+    status: (str(r, "status") ?? "pending") as ProjectStatus,
+    branchId: str(r, "branch_id") ?? (branch && str(branch, "id")),
+    branchName: (branch && str(branch, "name")) ?? str(r, "branch_name"),
+    branchIds: branchIds.length ? branchIds : undefined,
+    branches: branchPairs.length ? branchPairs : undefined,
+    managerId: str(r, "manager_id") ?? (manager && str(manager, "id")),
+    managerName:
+      (manager && (str(manager, "name") ?? str(manager, "name_en"))) ??
+      str(r, "manager_name"),
+    startDate: str(r, "start_date"),
+    endDate: str(r, "end_date", "due_date"),
+    tasksCount: total || undefined,
+    completedTasksCount: done || undefined,
     progress,
-    createdAt:            str(r, "created_at"),
-    updatedAt:            str(r, "updated_at"),
+    createdAt: str(r, "created_at"),
+    updatedAt: str(r, "updated_at"),
   };
 }
 
 // ─── FormData builder ─────────────────────────────────────────────────────────
 
-function buildProjectFormData(
-  input: ProjectInput & { id?: string }
-): FormData {
+function buildProjectFormData(input: ProjectInput & { id?: string }): FormData {
   const fd = new FormData();
-  if (input.id)          fd.append("id",          input.id);
+  if (input.id) fd.append("id", input.id);
   fd.append("name", input.name ?? "");
   if (input.description) fd.append("description", input.description);
-  if (input.start_date)  fd.append("start_date",  input.start_date);
-  if (input.end_date)    fd.append("end_date",     input.end_date);
-  if (input.status)      fd.append("status",       input.status);
-  if (input.manager_id)  fd.append("manager_id",   input.manager_id);
+  if (input.start_date) fd.append("start_date", input.start_date);
+  if (input.end_date) fd.append("end_date", input.end_date);
+  if (input.status) fd.append("status", input.status);
+  if (input.manager_id) fd.append("manager_id", input.manager_id);
   // branch_ids[] — Postman uses array notation
   (input.branch_ids ?? []).forEach((bid) => fd.append("branch_ids[]", bid));
   return fd;

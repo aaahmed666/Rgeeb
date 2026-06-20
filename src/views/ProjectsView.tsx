@@ -70,7 +70,15 @@ import {
 } from "@/services/projectsService";
 import { useTranslation } from "react-i18next";
 
-const EMPTY: ProjectInput = { name: "", description: "", status: "pending", start_date: "", end_date: "", manager_id: "", branch_ids: [] };
+const EMPTY: ProjectInput = {
+  name: "",
+  description: "",
+  status: "pending",
+  start_date: "",
+  end_date: "",
+  manager_id: "",
+  branch_ids: [],
+};
 const STATUSES = ["pending", "active", "completed", "cancelled"] as const;
 
 function statusBadge(status: string) {
@@ -106,6 +114,14 @@ export default function ProjectsView() {
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Project | null>(null);
   const [form, setForm] = React.useState<ProjectInput>(EMPTY);
+  // Pre-resolved id+label options so the multi-select renders branch chips
+  // immediately on edit (before the async option list loads).
+  const [branchOptions, setBranchOptions] = React.useState<
+    { value: string; label: string }[]
+  >([]);
+  const [managerOption, setManagerOption] = React.useState<
+    { value: string; label: string } | undefined
+  >(undefined);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
   const [cancelId, setCancelId] = React.useState<string | null>(null);
 
@@ -147,10 +163,17 @@ export default function ProjectsView() {
       : createProject,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success(editing ? t("projects.updateSuccess", "Project updated") : t("projects.createSuccess", "Project created"));
+      toast.success(
+        editing
+          ? t("projects.updateSuccess", "Project updated")
+          : t("projects.createSuccess", "Project created")
+      );
       setOpen(false);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : t("projects.saveFailed", "Save failed")),
+    onError: (e) =>
+      toast.error(
+        e instanceof Error ? e.message : t("projects.saveFailed", "Save failed")
+      ),
   });
   const cancelMut = useMutation({
     mutationFn: cancelProject,
@@ -174,6 +197,8 @@ export default function ProjectsView() {
   function openCreate() {
     setEditing(null);
     setForm(EMPTY);
+    setBranchOptions([]);
+    setManagerOption(undefined);
     setOpen(true);
   }
   function openEdit(p: Project) {
@@ -185,7 +210,21 @@ export default function ProjectsView() {
       branch_ids: p.branchIds ?? (p.branchId ? [p.branchId] : []),
       start_date: p.startDate,
       end_date: p.endDate,
+      manager_id: p.managerId ?? "",
     });
+    // Seed chip/selection labels from the project so they show before the
+    // async lists load.
+    setBranchOptions(
+      p.branches?.map((b) => ({ value: b.id, label: b.name })) ??
+        (p.branchId && p.branchName
+          ? [{ value: p.branchId, label: p.branchName }]
+          : [])
+    );
+    setManagerOption(
+      p.managerId && p.managerName
+        ? { value: p.managerId, label: p.managerName }
+        : undefined
+    );
     setOpen(true);
   }
 
@@ -442,9 +481,7 @@ export default function ProjectsView() {
               <SharedDateRangePicker
                 from={form.start_date ?? ""}
                 to={form.end_date ?? ""}
-                onFromChange={(v) =>
-                  setForm((f) => ({ ...f, start_date: v }))
-                }
+                onFromChange={(v) => setForm((f) => ({ ...f, start_date: v }))}
                 onToChange={(v) => setForm((f) => ({ ...f, end_date: v }))}
               />
             </div>
@@ -472,31 +509,47 @@ export default function ProjectsView() {
             </div>
             {/* Manager */}
             <div className="grid gap-1.5">
-              <Label>{t("projects.manager", "Project Manager")} <span className="text-destructive">*</span></Label>
+              <Label>
+                {t("projects.manager", "Project Manager")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <AsyncPaginatedSelect
                 endpoint="/customer/employees"
                 labelKey="name_en"
                 valueKey="id"
                 value={form.manager_id ?? null}
-                onChange={(v) => setForm((f) => ({ ...f, manager_id: v ?? "" }))}
+                defaultOption={managerOption}
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, manager_id: v ?? "" }))
+                }
                 placeholder={t("projects.selectManager", "Select manager")}
                 isClearable
               />
             </div>
-            {/* Branches */}
+            {/* Branches — multi-select (parity with OLD AddProjectDrawer,
+                which required at least one and allowed many). */}
             <div className="grid gap-1.5">
-              <Label>{t("projects.branches", "Branches")}</Label>
+              <Label>
+                {t("projects.branches", "Branches")}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
               <AsyncPaginatedSelect
                 endpoint="/customer/branches"
                 labelKey="name"
                 valueKey="id"
                 extraParams={{ active: 1 }}
-                value={(form.branch_ids ?? [])[0] ?? null}
-                onChange={(v) => setForm((f) => ({ ...f, branch_ids: v ? [v] : [] }))}
-                placeholder={t("common.selectBranch", "Select branch")}
+                isMulti
+                values={form.branch_ids ?? []}
+                defaultSelectedOptions={branchOptions}
+                onValuesChange={(vals) =>
+                  setForm((f) => ({ ...f, branch_ids: vals }))
+                }
+                placeholder={t("common.selectBranches", "Select branches")}
                 isClearable
               />
-              <p className="text-[10px] text-muted-foreground">{t("projects.branchNote", "Select a branch (multi-branch support via API)")}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {t("projects.branchNote", "Select one or more branches")}
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -508,7 +561,14 @@ export default function ProjectsView() {
             </Button>
             <Button
               onClick={() => saveMut.mutate(form)}
-              disabled={saveMut.isPending || !form.name.trim()}
+              disabled={
+                saveMut.isPending ||
+                !form.name.trim() ||
+                !form.start_date ||
+                !form.end_date ||
+                !form.manager_id ||
+                (form.branch_ids ?? []).length === 0
+              }
             >
               {saveMut.isPending ? t("validation.saving") : t("common.save")}
             </Button>

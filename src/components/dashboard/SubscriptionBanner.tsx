@@ -20,8 +20,13 @@ import { cn } from "@/lib/utils";
 import { fetchSubscription } from "@/services/subscriptionService";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
-/** Show the amber "expiring soon" treatment at or below this many days. */
-const EXPIRING_SOON_DAYS = 14;
+/**
+ * Thresholds mirrored from the OLD project's SubscriptionBanner:
+ *   warning  → amber treatment at or below 30 days
+ *   critical → red treatment at or below 7 days
+ */
+const WARN_DAYS = 30;
+const CRITICAL_DAYS = 7;
 
 function parseDate(value?: string): Date | null {
   if (!value) return null;
@@ -132,26 +137,37 @@ export function SubscriptionBanner() {
       : totalMs - daysRemaining * DAY_MS;
   const pctUsed = totalMs > 0 ? clampPct((usedMs / totalMs) * 100) : 0;
 
-  const isExpiringSoon = daysRemaining <= EXPIRING_SOON_DAYS;
+  const isCritical = daysRemaining <= CRITICAL_DAYS;
+  const isExpiringSoon = daysRemaining <= WARN_DAYS;
 
-  // Theming: amber when close to expiry, indigo/violet otherwise.
-  const accent = isExpiringSoon
+  // Theming: red when critical (≤7d), amber when expiring soon (≤30d),
+  // indigo/green otherwise — matching the OLD project's state tiers.
+  const accent = isCritical
     ? {
-        ring: "border-amber-300/50",
-        bg: "from-amber-500/12 via-amber-500/5 to-transparent",
-        icon: "bg-amber-500/15 text-amber-600",
-        bar: "[&>div]:bg-amber-500",
-        pill: "bg-amber-500/15 text-amber-600",
-        label: t("subscriptionBanner.statusExpiringSoon", "Expiring soon"),
+        ring: "border-rose-300/50",
+        bg: "from-rose-500/12 via-rose-500/5 to-transparent",
+        icon: "bg-rose-500/15 text-rose-600",
+        bar: "[&>div]:bg-rose-500",
+        pill: "bg-rose-500/15 text-rose-600",
+        label: t("subscriptionBanner.statusCritical", "Expiring very soon"),
       }
-    : {
-        ring: "border-indigo-300/40",
-        bg: "from-indigo-500/10 via-violet-500/5 to-transparent",
-        icon: "bg-indigo-500/15 text-indigo-600",
-        bar: "[&>div]:bg-indigo-500",
-        pill: "bg-emerald-500/15 text-emerald-600",
-        label: t("subscriptionBanner.statusActive", "Active"),
-      };
+    : isExpiringSoon
+      ? {
+          ring: "border-amber-300/50",
+          bg: "from-amber-500/12 via-amber-500/5 to-transparent",
+          icon: "bg-amber-500/15 text-amber-600",
+          bar: "[&>div]:bg-amber-500",
+          pill: "bg-amber-500/15 text-amber-600",
+          label: t("subscriptionBanner.statusExpiringSoon", "Expiring soon"),
+        }
+      : {
+          ring: "border-indigo-300/40",
+          bg: "from-indigo-500/10 via-violet-500/5 to-transparent",
+          icon: "bg-indigo-500/15 text-indigo-600",
+          bar: "[&>div]:bg-indigo-500",
+          pill: "bg-emerald-500/15 text-emerald-600",
+          label: t("subscriptionBanner.statusActive", "Active"),
+        };
 
   return (
     <section
@@ -243,13 +259,15 @@ export function SubscriptionBanner() {
             size="sm"
             className={cn(
               "gap-1.5 text-white",
-              isExpiringSoon
-                ? "bg-amber-500 hover:bg-amber-600"
-                : "bg-indigo-500 hover:bg-indigo-600"
+              isCritical
+                ? "bg-rose-500 hover:bg-rose-600"
+                : isExpiringSoon
+                  ? "bg-amber-500 hover:bg-amber-600"
+                  : "bg-indigo-500 hover:bg-indigo-600"
             )}
           >
             <Link href="/dashboard/subscription">
-              {isExpiringSoon
+              {isCritical
                 ? t("subscriptionBanner.renew", "Renew")
                 : t("subscriptionBanner.upgrade", "Upgrade")}
               <ArrowUpRight className="h-4 w-4" />

@@ -12,6 +12,7 @@ import {
   History,
   Package,
   AlertCircle,
+  PlayCircle,
 } from "lucide-react";
 import {
   foodicsService,
@@ -48,6 +49,8 @@ export default function FoodicsInventoryAuditPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editLoading, setEditLoading] = useState(false);
+  // Run-audit (parity with OLD "Run Audit" per-zone action)
+  const [runningAuditId, setRunningAuditId] = useState<string | null>(null);
 
   const fetchZones = useCallback(async () => {
     setLoading(true);
@@ -134,6 +137,19 @@ export default function FoodicsInventoryAuditPage() {
       await fetchZones();
     } catch {
       // ignore
+    }
+  };
+
+  const handleRunAudit = async (zoneId: string) => {
+    setRunningAuditId(zoneId);
+    try {
+      await foodicsService.runInventoryAudit(zoneId);
+      // A fresh audit changes zone status and adds a history row.
+      await Promise.all([fetchZones(), fetchHistory()]);
+    } catch {
+      // ignore — surface handled by reload showing unchanged state
+    } finally {
+      setRunningAuditId(null);
     }
   };
 
@@ -314,6 +330,25 @@ export default function FoodicsInventoryAuditPage() {
                         <p className="text-xs text-muted-foreground mt-1">
                           Last audit: {zone.last_audit}
                         </p>
+                      )}
+                      {can.update && (
+                        <button
+                          disabled={runningAuditId === zone.id}
+                          onClick={() => handleRunAudit(zone.id)}
+                          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/10 disabled:opacity-60"
+                        >
+                          {runningAuditId === zone.id ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              {t("foodics.runningAudit", "Running…")}
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="h-3.5 w-3.5" />
+                              {t("foodics.runAudit", "Run Audit")}
+                            </>
+                          )}
+                        </button>
                       )}
                     </div>
                   ))}
