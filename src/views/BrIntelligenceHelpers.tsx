@@ -45,6 +45,7 @@ import type {
   PeriodComparisonPayload,
 } from "@/services/intelligenceService";
 import { useTranslation } from "react-i18next";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 /* ---------------- helpers ---------------- */
 
@@ -750,44 +751,36 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-indigo-500" />
-          <select
-            value={selectedA}
-            onChange={(e) => setSelectedA(e.target.value)}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          >
-            <option value="">
-              {t("intel.selectBranchA", "Select Branch A")}
-            </option>
-            {rows.map((r) => (
-              <option
-                key={r.branch}
-                value={r.branch}
-              >
-                {r.branch}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[200px]">
+            <AsyncPaginatedSelect
+              options={rows.map((r) => ({
+                value: r.branch,
+                label: r.branch,
+              }))}
+              value={selectedA || null}
+              onChange={(v) => setSelectedA(v ?? "")}
+              placeholder={t("intel.selectBranchA", "Select Branch A")}
+              height={34}
+              isClearable
+            />
+          </div>
         </div>
         <span className="font-semibold text-slate-400">vs</span>
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-teal-500" />
-          <select
-            value={selectedB}
-            onChange={(e) => setSelectedB(e.target.value)}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
-          >
-            <option value="">
-              {t("intel.selectBranchB", "Select Branch B")}
-            </option>
-            {rows.map((r) => (
-              <option
-                key={r.branch}
-                value={r.branch}
-              >
-                {r.branch}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[200px]">
+            <AsyncPaginatedSelect
+              options={rows.map((r) => ({
+                value: r.branch,
+                label: r.branch,
+              }))}
+              value={selectedB || null}
+              onChange={(v) => setSelectedB(v ?? "")}
+              placeholder={t("intel.selectBranchB", "Select Branch B")}
+              height={34}
+              isClearable
+            />
+          </div>
         </div>
       </div>
 

@@ -14,6 +14,8 @@
  *  - employee, branch, detected_at, duration columns; snapshot link
  */
 import * as React from "react";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
+import { DataTable } from "@/components/ui/data-table";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Camera, ImageOff } from "lucide-react";
@@ -112,12 +114,11 @@ export function IslandHeatmapView() {
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 {t("island.heatmap.date", "Date")}
               </label>
-              <input
-                type="date"
-                value={date}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setQuery({ date: e.target.value })}
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+              <SharedDateRangePicker
+                single
+                date={date}
+                onDateChange={(v) => setQuery({ date: v })}
+                placeholder={t("island.heatmap.date", "Date")}
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -276,59 +277,72 @@ export function IslandViolationsView() {
             {loading ? (
               <Skeleton className="h-72 w-full" />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-start text-xs uppercase text-muted-foreground">
-                      <th className="px-3 py-2 text-start">{t("island.violations.type", "Violation")}</th>
-                      <th className="px-3 py-2 text-start">{t("island.violations.employee", "Employee")}</th>
-                      <th className="px-3 py-2 text-start">{t("island.violations.branch", "Branch")}</th>
-                      <th className="px-3 py-2 text-start">{t("island.violations.detectedAt", "Detected At")}</th>
-                      <th className="px-3 py-2 text-start">{t("island.violations.duration", "Duration")}</th>
-                      <th className="px-3 py-2 text-start">{t("island.violations.status", "Status")}</th>
-                      <th className="px-3 py-2 text-start">{t("island.violations.snapshot", "Snapshot")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
-                          {t("island.violations.empty", "No violations recorded for the selected period.")}
-                        </td>
-                      </tr>
-                    ) : (
-                      rows.map((v) => (
-                        <tr key={v.id} className="border-b last:border-0 hover:bg-muted/40">
-                          <td className="px-3 py-2 font-medium">{v.violation_type}</td>
-                          <td className="px-3 py-2">{v.employee?.name ?? "—"}</td>
-                          <td className="px-3 py-2">{v.branch?.name ?? "—"}</td>
-                          <td className="px-3 py-2 tabular-nums">{v.detected_at}</td>
-                          <td className="px-3 py-2 tabular-nums">{formatResponseTime(v.duration)}</td>
-                          <td className="px-3 py-2">
-                            <Badge className={STATUS_STYLE[v.status] ?? ""} variant="outline">
-                              {t(`island.violations.statuses.${v.status}`, v.status)}
-                            </Badge>
-                          </td>
-                          <td className="px-3 py-2">
-                            {v.snapshot_path ? (
-                              <a
-                                href={v.snapshot_path}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary underline"
-                              >
-                                {t("island.violations.view", "View")}
-                              </a>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable<IslandViolation>
+                data={rows}
+                emptyMessage={t(
+                  "island.violations.empty",
+                  "No violations recorded for the selected period."
+                )}
+                columns={[
+                  {
+                    key: "violation_type",
+                    header: t("island.violations.type", "Violation"),
+                    cellClassName: "font-medium",
+                    render: (v) => v.violation_type,
+                  },
+                  {
+                    key: "employee",
+                    header: t("island.violations.employee", "Employee"),
+                    render: (v) => v.employee?.name ?? "—",
+                  },
+                  {
+                    key: "branch",
+                    header: t("island.violations.branch", "Branch"),
+                    render: (v) => v.branch?.name ?? "—",
+                  },
+                  {
+                    key: "detected_at",
+                    header: t("island.violations.detectedAt", "Detected At"),
+                    cellClassName: "tabular-nums",
+                    render: (v) => v.detected_at,
+                  },
+                  {
+                    key: "duration",
+                    header: t("island.violations.duration", "Duration"),
+                    cellClassName: "tabular-nums",
+                    render: (v) => formatResponseTime(v.duration),
+                  },
+                  {
+                    key: "status",
+                    header: t("island.violations.status", "Status"),
+                    render: (v) => (
+                      <Badge
+                        className={STATUS_STYLE[v.status] ?? ""}
+                        variant="outline"
+                      >
+                        {t(`island.violations.statuses.${v.status}`, v.status)}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: "snapshot",
+                    header: t("island.violations.snapshot", "Snapshot"),
+                    render: (v) =>
+                      v.snapshot_path ? (
+                        <a
+                          href={v.snapshot_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline"
+                        >
+                          {t("island.violations.view", "View")}
+                        </a>
+                      ) : (
+                        "—"
+                      ),
+                  },
+                ]}
+              />
             )}
 
             {/* Pagination — parity with old DataGrid (10/25/50, page nav) */}
@@ -337,20 +351,21 @@ export function IslandViolationsView() {
                 <span className="text-muted-foreground">
                   {t("island.violations.rowsPerPage", "Rows per page:")}
                 </span>
-                <select
-                  value={perPage}
-                  onChange={(e) => {
-                    setPerPage(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="h-8 rounded-md border bg-background px-2"
-                >
-                  {PAGE_SIZES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-[90px]">
+                  <AsyncPaginatedSelect
+                    options={PAGE_SIZES.map((s) => ({
+                      value: String(s),
+                      label: String(s),
+                    }))}
+                    value={String(perPage)}
+                    onChange={(v) => {
+                      setPerPage(Number(v ?? PAGE_SIZES[0]));
+                      setPage(1);
+                    }}
+                    isClearable={false}
+                    height={32}
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button

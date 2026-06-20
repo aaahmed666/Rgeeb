@@ -48,6 +48,8 @@ interface MonitorDashboard {
   detections_per_hour?: Array<{ hour: number | string; count: number }>;
   recent_detections?: Array<{
     id?: string | number;
+    detection_id?: string | number;
+    _id?: string | number;
     image?: string;
     type?: string;
     camera?: string;
@@ -171,10 +173,16 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
         // chart) on every AI-service page.
         from,
         to,
-        page: DEFAULT_PAGE,
-        per_page: DEFAULT_PER_PAGE,
       };
       if (branchId !== "all") q.branch_id = branchId;
+      // Pagination params are MANDATORY: without `page` / `per_page` the backend
+      // returns an empty / differently-shaped payload (no recent_detections, no
+      // detections_per_hour buckets). They are appended last and as strings so
+      // they can never be dropped — buildUrl() skips empty/null/undefined values,
+      // and a numeric 0 would also be skipped, so we always send the literal
+      // contract values "1" / "15".
+      q.page = String(DEFAULT_PAGE);
+      q.per_page = String(DEFAULT_PER_PAGE);
       const cacheKey = serviceMonitorKey(serviceApiId, from, to, branchId);
       const res = await serviceMonitorCache.get(cacheKey, () =>
         apiFetch<{ data?: MonitorDashboard } | MonitorDashboard>(
@@ -185,7 +193,10 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       const d =
         (res as { data?: MonitorDashboard }).data ?? (res as MonitorDashboard);
       setData(d);
-      // Fresh payload — clear any optimistic deletions from the prior view.
+      // Clear optimistic deletions: this payload is the post-delete source of
+      // truth (confirmDelete awaits load() right after the server confirms the
+      // delete). A genuinely-deleted row is simply absent here, so it won't
+      // reappear; a row the server kept is present and correctly shown again.
       setDeletedIds(new Set());
     } catch {
       setData(null);
@@ -347,11 +358,37 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   );
 
   // Rows actually rendered — drop any optimistically-deleted ids.
+  // The backend exposes the primary key under different names across payloads
+  // (`id`, `detection_id`, or `_id`). The previous `d.id ?? i` fallback used the
+  // array INDEX when none matched, so deleting a row POSTed a meaningless id
+  // (e.g. 0,1,2…) — hitting the delete endpoint with the wrong/non-existent
+  // record. We resolve the *real* backend id into `_deletableId` (null when the
+  // record has none) and use that for deletion. The row's own `id` is kept as a
+  // stable, non-null value purely for DataTable's row key (its type requires
+  // `id: string | number`), so it must never be used as the delete identifier.
+  const resolveDetId = (d: {
+    id?: string | number;
+    detection_id?: string | number;
+    _id?: string | number;
+  }): string | number | null => d.id ?? d.detection_id ?? d._id ?? null;
+
   const visibleDetections = React.useMemo(
     () =>
       detections
-        .map((d, i) => ({ ...d, id: d.id ?? i }))
-        .filter((d) => !deletedIds.has(d.id)),
+        .map((d, i) => {
+          const deletableId = resolveDetId(d);
+          return {
+            ...d,
+            // Stable React/table key — falls back to a synthetic key when the
+            // record carries no usable id. Never sent to the delete endpoint.
+            id: deletableId ?? `row-${i}`,
+            // The only value allowed to drive deletion; null = not deletable.
+            _deletableId: deletableId,
+          };
+        })
+        .filter(
+          (d) => d._deletableId == null || !deletedIds.has(d._deletableId)
+        ),
     [detections, deletedIds]
   );
 
@@ -371,16 +408,22 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
         method: "POST",
         body: { id: deleteTarget },
       });
+      // Optimistically hide the row immediately…
       setDeletedIds((prev) => {
         const next = new Set(prev);
         next.add(deleteTarget);
         return next;
       });
-      invalidateService(serviceApiId);
       toast.success(
         t("detectionFeed.detectionDeleted", "Detection deleted successfully")
       );
       setDeleteTarget(null);
+      // …then evict the shared cache AND refetch so the grid reflects the real
+      // server state. Previously we only evicted the cache and never reloaded,
+      // so the list never refreshed after a delete (the item appeared to stay
+      // active). load() reconciles the optimistic set against the fresh payload.
+      invalidateService(serviceApiId);
+      await load();
     } catch (err) {
       toast.error(
         err instanceof Error
@@ -390,7 +433,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     } finally {
       setDeleting(false);
     }
-  }, [deleteTarget, serviceApiId, t]);
+  }, [deleteTarget, serviceApiId, t, load]);
 
   const statCards: StatCardProps[] = [
     {
@@ -548,10 +591,14 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             y2="10"
           />
         </svg>
-        {t("serviceMonitor.viewingRange", "Showing data from {{from}} to {{to}}", {
-          from,
-          to,
-        })}
+        {t(
+          "serviceMonitor.viewingRange",
+          "Showing data from {{from}} to {{to}}",
+          {
+            from,
+            to,
+          }
+        )}
       </div>
 
       {/* ── Stat Cards ──────────────────────────────────────────────────── */}
@@ -868,9 +915,20 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
             render: (det) => (
               <button
                 type="button"
-                onClick={() => setDeleteTarget(det.id)}
+                onClick={() =>
+                  det._deletableId != null && setDeleteTarget(det._deletableId)
+                }
+                disabled={det._deletableId == null}
                 aria-label={t("common.delete", "Delete")}
-                className="rounded p-1 text-muted-foreground hover:text-red-500 transition-colors"
+                title={
+                  det._deletableId == null
+                    ? t(
+                        "serviceMonitor.deleteUnavailable",
+                        "This record can't be deleted (no id)."
+                      )
+                    : t("common.delete", "Delete")
+                }
+                className="rounded p-1 text-muted-foreground transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-muted-foreground"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

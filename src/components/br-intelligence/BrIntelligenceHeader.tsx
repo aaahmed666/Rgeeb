@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 import type {
   HourlyPeak,
   EfficiencyRow,
@@ -546,38 +547,34 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-indigo-500" />
-          <select
-            value={resolvedA}
-            onChange={(e) => setSelectedA(e.target.value)}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          >
-            {rows.map((r) => (
-              <option
-                key={r.branch}
-                value={r.branch}
-              >
-                {r.branch}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[200px]">
+            <AsyncPaginatedSelect
+              options={rows.map((r) => ({
+                value: r.branch,
+                label: r.branch,
+              }))}
+              value={resolvedA || null}
+              onChange={(v) => setSelectedA(v ?? "")}
+              isClearable={false}
+              height={34}
+            />
+          </div>
         </div>
         <span className="font-semibold text-slate-400">vs</span>
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-teal-500" />
-          <select
-            value={resolvedB}
-            onChange={(e) => setSelectedB(e.target.value)}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
-          >
-            {rows.map((r) => (
-              <option
-                key={r.branch}
-                value={r.branch}
-              >
-                {r.branch}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[200px]">
+            <AsyncPaginatedSelect
+              options={rows.map((r) => ({
+                value: r.branch,
+                label: r.branch,
+              }))}
+              value={resolvedB || null}
+              onChange={(v) => setSelectedB(v ?? "")}
+              isClearable={false}
+              height={34}
+            />
+          </div>
         </div>
       </div>
 

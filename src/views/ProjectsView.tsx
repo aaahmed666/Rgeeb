@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FolderKanban,
@@ -434,27 +435,18 @@ export default function ProjectsView() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>{t("projects.startDate")}</Label>
-                <Input
-                  type="date"
-                  value={form.start_date ?? ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, start_date: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{t("projects.endDate")}</Label>
-                <Input
-                  type="date"
-                  value={form.end_date ?? ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, end_date: e.target.value }))
-                  }
-                />
-              </div>
+            <div className="grid gap-1.5">
+              <Label>
+                {t("projects.startDate")} – {t("projects.endDate")}
+              </Label>
+              <SharedDateRangePicker
+                from={form.start_date ?? ""}
+                to={form.end_date ?? ""}
+                onFromChange={(v) =>
+                  setForm((f) => ({ ...f, start_date: v }))
+                }
+                onToChange={(v) => setForm((f) => ({ ...f, end_date: v }))}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>{t("projects.status")}</Label>

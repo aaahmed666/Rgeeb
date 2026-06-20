@@ -89,6 +89,8 @@ export interface LookupOption {
 export interface TaskPayload {
   id?: string | number; // required for update
   name: string;
+  /** Backend-required title. When omitted, buildTaskBody mirrors `name`. */
+  title?: string;
   description?: string;
   type?: "manual" | "recurring" | string;
   project_id?: string | number;
@@ -117,28 +119,42 @@ export interface TaskPayload {
 function buildTaskBody(
   payload: TaskPayload
 ): FormData | Record<string, unknown> {
-  const hasFiles = !!(payload.main_image || (payload.images && payload.images.length));
+  const hasFiles = !!(
+    payload.main_image ||
+    (payload.images && payload.images.length)
+  );
 
   if (!hasFiles) {
     // Plain object — branch_ids and assigned_user_ids are arrays but
     // apiFetch handles JSON serialisation correctly.
     const { main_image, images, ...rest } = payload;
-    return rest as Record<string, unknown>;
+    // The backend validates `title` (returns 400 "The title field is
+    // required." otherwise). The form only has one name input, so mirror it
+    // into `title` while keeping `name` for backward compatibility.
+    return { ...rest, title: rest.title ?? rest.name } as Record<
+      string,
+      unknown
+    >;
   }
 
   const fd = new FormData();
   if (payload.id !== undefined) fd.append("id", String(payload.id));
   fd.append("name", payload.name);
-  if (payload.description)         fd.append("description", payload.description);
-  if (payload.type)                fd.append("type", payload.type);
-  if (payload.project_id)          fd.append("project_id", String(payload.project_id));
-  if (payload.department_id)       fd.append("department_id", String(payload.department_id));
-  if (payload.priority)            fd.append("priority", payload.priority);
-  if (payload.status)              fd.append("status", payload.status);
-  if (payload.time)                fd.append("time", payload.time);
-  if (payload.scheduled_date)      fd.append("scheduled_date", payload.scheduled_date);
-  if (payload.start_date)          fd.append("start_date", payload.start_date);
-  if (payload.end_date)            fd.append("end_date", payload.end_date);
+  // Backend validates `title` (400 "The title field is required." otherwise).
+  // Mirror the single name input into `title` as well.
+  fd.append("title", String(payload.title ?? payload.name));
+  if (payload.description) fd.append("description", payload.description);
+  if (payload.type) fd.append("type", payload.type);
+  if (payload.project_id) fd.append("project_id", String(payload.project_id));
+  if (payload.department_id)
+    fd.append("department_id", String(payload.department_id));
+  if (payload.priority) fd.append("priority", payload.priority);
+  if (payload.status) fd.append("status", payload.status);
+  if (payload.time) fd.append("time", payload.time);
+  if (payload.scheduled_date)
+    fd.append("scheduled_date", payload.scheduled_date);
+  if (payload.start_date) fd.append("start_date", payload.start_date);
+  if (payload.end_date) fd.append("end_date", payload.end_date);
   if (payload.recurring_every_days !== undefined)
     fd.append("recurring_every_days", String(payload.recurring_every_days));
   if (payload.is_draft !== undefined)
@@ -427,17 +443,14 @@ export const tasksService = {
     };
     try {
       // /customer/tasks/board → 404; use /customer/tasks list endpoint instead
-      const raw = await api.get<Record<string, unknown>>(
-        endpoints.tasks.list,
-        {
-          query: {
-            page,
-            per_page: perPage,
-            status: extra?.status,
-            branch_id: extra?.branchId,
-          },
-        }
-      );
+      const raw = await api.get<Record<string, unknown>>(endpoints.tasks.list, {
+        query: {
+          page,
+          per_page: perPage,
+          status: extra?.status,
+          branch_id: extra?.branchId,
+        },
+      });
       const list = unwrapList(raw);
       const items = list.map(mapTask);
       const meta = (raw?.meta as Record<string, unknown>) ?? {};
@@ -466,7 +479,10 @@ export const tasksService = {
       };
       // Build byStatus client-side from items (API list doesn't return by_status)
       const byStatusRaw =
-        ((raw as Record<string, unknown>)?.by_status as Record<string, unknown>) ??
+        ((raw as Record<string, unknown>)?.by_status as Record<
+          string,
+          unknown
+        >) ??
         (meta.by_status as Record<string, unknown>) ??
         (dataMeta.by_status as Record<string, unknown>) ??
         null;
@@ -576,7 +592,10 @@ export const tasksService = {
   },
 
   /** Activity log for a task. OLD contract: GET ?id=&per_page=50. */
-  logs: async (id: string, perPage = 50): Promise<Record<string, unknown>[]> => {
+  logs: async (
+    id: string,
+    perPage = 50
+  ): Promise<Record<string, unknown>[]> => {
     const raw = await api.get<unknown>(endpoints.tasks.logs, {
       query: { id, per_page: perPage },
     });

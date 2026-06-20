@@ -70,7 +70,8 @@
     "type": "النوع",
     "prev": "السابق",
     "page": "الصفحة",
-    "previous": "السابق"
+    "previous": "السابق",
+    "id": "المعرّف"
   },
   "sidebar": {
     "statistics": "الإحصائيات",
@@ -429,7 +430,8 @@
     "secsAgo": "منذ {{n}} ث",
     "excellent": "ممتاز",
     "good": "جيد",
-    "critical": "حرج"
+    "critical": "حرج",
+    "selectDate": "اختر التاريخ"
   },
   "statistics": {
     "title": "الإحصائيات",
@@ -2225,7 +2227,33 @@
     "reviewNotesPlaceholder": "ملاحظات اختيارية حول هذه المراجعة…",
     "submitReview": "إرسال المراجعة",
     "reviewSubmitted": "تم إرسال المراجعة",
-    "reviewFailed": "فشلت المراجعة"
+    "reviewFailed": "فشلت المراجعة",
+    "orderStatus": {
+      "all": "كل الحالات",
+      "completed": "مكتمل",
+      "pending": "قيد الانتظار",
+      "cancelled": "ملغي",
+      "refunded": "مُسترد"
+    },
+    "drawerStatus": {
+      "all": "كل الحالات",
+      "matched": "مطابق",
+      "unmatched": "غير مطابق",
+      "suspicious": "مشبوه",
+      "critical": "حرج"
+    },
+    "refundStatusFilter": {
+      "all": "كل الحالات",
+      "clear": "سليم",
+      "suspicious": "مشبوه",
+      "critical": "حرج"
+    },
+    "selectBranch": "اختر الفرع",
+    "footfallHour": "الساعة",
+    "employeeId": "معرّف الموظف",
+    "matchedOrder": "الطلب المطابق",
+    "patterns": "الأنماط",
+    "confidence": "الثقة"
   },
   "paginatedSelect": {
     "loading": "جارٍ تحميل الخيارات…",

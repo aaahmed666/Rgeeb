@@ -503,14 +503,18 @@ export default function CamerasView() {
             {/* Direction In */}
             <div className="grid gap-1.5">
               <Label>{t("cameras.directionIn", "Direction (People Counting)")}</Label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              <AsyncPaginatedSelect
+                options={[
+                  { value: "in", label: t("cameras.directionInOption", "In → Out") },
+                  { value: "out", label: t("cameras.directionOutOption", "Out → In") },
+                ]}
                 value={form.direction_in ?? "in"}
-                onChange={(e) => setForm((f) => ({ ...f, direction_in: e.target.value }))}
-              >
-                <option value="in">{t("cameras.directionInOption", "In → Out")}</option>
-                <option value="out">{t("cameras.directionOutOption", "Out → In")}</option>
-              </select>
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, direction_in: v ?? "in" }))
+                }
+                isClearable={false}
+                height={36}
+              />
             </div>
 
             {/* Toggle row */}

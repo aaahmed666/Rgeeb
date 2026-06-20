@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -496,11 +497,11 @@ function BranchDrawer({
             </div>
             <div className="space-y-1.5">
               <Label>{t("branches.permitEndDate", "Permit End Date")}</Label>
-              <Input
-                type="date"
-                value={form.permit_end_date}
-                onChange={(e) =>
-                  setForm({ ...form, permit_end_date: e.target.value })
+              <SharedDateRangePicker
+                single
+                date={form.permit_end_date}
+                onDateChange={(v) =>
+                  setForm({ ...form, permit_end_date: v })
                 }
               />
             </div>

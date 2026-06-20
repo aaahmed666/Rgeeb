@@ -194,8 +194,10 @@ function pickArr(
 function buildDashboardQuery(f: DashboardFilters & { assignedToMe?: boolean }) {
   const today = toLocalISODate(new Date());
   return {
-    date_from: f.from ?? today,
-    date_to: f.to ?? today,
+    // Backend contract (Postman: /customer/dashboard) expects `from` / `to`.
+    // Sending `date_from` / `date_to` made the backend ignore the range.
+    from: f.from ?? today,
+    to: f.to ?? today,
     branch_id: f.branchId,
     assigned_to_me: f.assignedToMe ? true : undefined,
   } as Record<string, string | number | boolean | undefined>;
@@ -419,7 +421,9 @@ export const dashboardService = {
     });
   },
 
-  getAttendance: async (f: DashboardFilters = {}): Promise<AttendanceData | null> => {
+  getAttendance: async (
+    f: DashboardFilters = {}
+  ): Promise<AttendanceData | null> => {
     const d = await fetchDashboard(f);
     const a = (d?.attendance as Record<string, unknown>) ?? null;
     if (!a) return null;
@@ -432,7 +436,9 @@ export const dashboardService = {
     };
   },
 
-  getCompliance: async (f: DashboardFilters = {}): Promise<ComplianceData | null> => {
+  getCompliance: async (
+    f: DashboardFilters = {}
+  ): Promise<ComplianceData | null> => {
     const d = await fetchDashboard(f);
     const c = (d?.compliance as Record<string, unknown>) ?? null;
     if (!c) return null;
@@ -442,7 +448,9 @@ export const dashboardService = {
     // Parity with OLD production: when the backend omits `score`, derive it
     // as 100 - (violations / max(total, 1)) * 100.
     if (!score && totalDetections > 0) {
-      score = Math.round(100 - (violations / Math.max(totalDetections, 1)) * 100);
+      score = Math.round(
+        100 - (violations / Math.max(totalDetections, 1)) * 100
+      );
     }
     return {
       score,

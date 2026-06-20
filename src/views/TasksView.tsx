@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -856,7 +857,7 @@ export default function TasksView() {
               </div>
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.scheduledDate", "Scheduled Date")}</Label>
-                <Input type="date" value={taskForm.scheduled_date} onChange={(e) => setTaskForm((f) => ({ ...f, scheduled_date: e.target.value }))} />
+                <SharedDateRangePicker single date={taskForm.scheduled_date} onDateChange={(v) => setTaskForm((f) => ({ ...f, scheduled_date: v }))} />
               </div>
             </div>
 
@@ -875,13 +876,14 @@ export default function TasksView() {
                     <Label className="text-xs">{t("tasks.form.everyDays", "Every (days)")}</Label>
                     <Input type="number" min={1} value={taskForm.recurring_every_days} onChange={(e) => setTaskForm((f) => ({ ...f, recurring_every_days: e.target.value }))} placeholder="7" />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{t("tasks.form.startDate", "Start Date")}</Label>
-                    <Input type="date" value={taskForm.start_date} onChange={(e) => setTaskForm((f) => ({ ...f, start_date: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{t("tasks.form.endDate", "End Date")}</Label>
-                    <Input type="date" value={taskForm.end_date} onChange={(e) => setTaskForm((f) => ({ ...f, end_date: e.target.value }))} />
+                <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">{t("tasks.form.startDate", "Start Date")} – {t("tasks.form.endDate", "End Date")}</Label>
+                    <SharedDateRangePicker
+                      from={taskForm.start_date}
+                      to={taskForm.end_date}
+                      onFromChange={(v) => setTaskForm((f) => ({ ...f, start_date: v }))}
+                      onToChange={(v) => setTaskForm((f) => ({ ...f, end_date: v }))}
+                    />
                   </div>
                 </div>
               </div>

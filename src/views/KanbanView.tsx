@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { useTranslation } from "react-i18next";
 import {
   useInfiniteQuery,
@@ -48,6 +49,8 @@ const PER_PAGE = 15;
 interface BoardColumn {
   id: string;
   label: string;
+  /** i18n key; falls back to `label` (English) when missing. */
+  labelKey: string;
   tone: string;
   badgeTone: string;
   icon: React.ReactNode;
@@ -57,6 +60,7 @@ const COLUMNS: BoardColumn[] = [
   {
     id: "pending",
     label: "New",
+    labelKey: "kanban.status.pending",
     tone: "bg-slate-500/5 border-slate-500/20",
     badgeTone: "bg-slate-700 text-white",
     icon: <Inbox className="h-4 w-4" />,
@@ -64,6 +68,7 @@ const COLUMNS: BoardColumn[] = [
   {
     id: "assigned",
     label: "Assigned",
+    labelKey: "kanban.status.assigned",
     tone: "bg-blue-500/5 border-blue-500/20",
     badgeTone: "bg-blue-500 text-white",
     icon: <UserCheck className="h-4 w-4" />,
@@ -71,6 +76,7 @@ const COLUMNS: BoardColumn[] = [
   {
     id: "in_progress",
     label: "In Progress",
+    labelKey: "kanban.status.in_progress",
     tone: "bg-orange-500/5 border-orange-500/20",
     badgeTone: "bg-orange-500 text-white",
     icon: <Play className="h-4 w-4" />,
@@ -78,6 +84,7 @@ const COLUMNS: BoardColumn[] = [
   {
     id: "pending_review",
     label: "Pending Review",
+    labelKey: "kanban.status.pending_review",
     tone: "bg-violet-500/5 border-violet-500/20",
     badgeTone: "bg-violet-500 text-white",
     icon: <Eye className="h-4 w-4" />,
@@ -85,6 +92,7 @@ const COLUMNS: BoardColumn[] = [
   {
     id: "completed",
     label: "Completed",
+    labelKey: "kanban.status.completed",
     tone: "bg-emerald-500/5 border-emerald-500/20",
     badgeTone: "bg-emerald-500 text-white",
     icon: <CheckCircle2 className="h-4 w-4" />,
@@ -93,7 +101,11 @@ const COLUMNS: BoardColumn[] = [
 
 const PRIORITIES = ["low", "medium", "high", "urgent"];
 const TASK_TYPES = ["manual", "recurring"];
-const STATUSES = COLUMNS.map((c) => ({ value: c.id, label: c.label }));
+const STATUSES = COLUMNS.map((c) => ({
+  value: c.id,
+  label: c.label,
+  labelKey: c.labelKey,
+}));
 
 // ---------------------------------------------------------------------------
 // Task Form Modal (Create & Edit)
@@ -216,7 +228,7 @@ function TaskForm({
                 id="task-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter task name"
+                placeholder={t("tasks.form.namePlaceholder", "Enter task name")}
                 required
               />
             </div>
@@ -228,7 +240,10 @@ function TaskForm({
                 id="task-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional description…"
+                placeholder={t(
+                  "tasks.form.descriptionPlaceholder",
+                  "Optional description…"
+                )}
                 rows={2}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               />
@@ -238,56 +253,42 @@ function TaskForm({
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("tasks.col.type")}</Label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {TASK_TYPES.map((t) => (
-                    <option
-                      key={t}
-                      value={t}
-                      className="capitalize"
-                    >
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                <AsyncPaginatedSelect
+                  options={TASK_TYPES.map((ty) => ({
+                    value: ty,
+                    label: t(`tasks.type.${ty}`, ty.replace(/_/g, " ")),
+                  }))}
+                  value={type || null}
+                  onChange={(v) => setType(v ?? "")}
+                  isClearable={false}
+                  height={38}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>{t("tasks.col.priority")}</Label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {PRIORITIES.map((p) => (
-                    <option
-                      key={p}
-                      value={p}
-                      className="capitalize"
-                    >
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                <AsyncPaginatedSelect
+                  options={PRIORITIES.map((p) => ({
+                    value: p,
+                    label: t(`tasks.priority.${p}`, p),
+                  }))}
+                  value={priority || null}
+                  onChange={(v) => setPriority(v ?? "")}
+                  isClearable={false}
+                  height={38}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>{t("tasks.col.status")}</Label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {STATUSES.map((s) => (
-                    <option
-                      key={s.value}
-                      value={s.value}
-                    >
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
+                <AsyncPaginatedSelect
+                  options={STATUSES.map((s) => ({
+                    value: s.value,
+                    label: t(s.labelKey, s.label),
+                  }))}
+                  value={status || null}
+                  onChange={(v) => setStatus(v ?? "")}
+                  isClearable={false}
+                  height={38}
+                />
               </div>
             </div>
 
@@ -324,10 +325,10 @@ function TaskForm({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("tasks.form.scheduledDate")}</Label>
-                <Input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
+                <SharedDateRangePicker
+                  single
+                  date={scheduledDate}
+                  onDateChange={setScheduledDate}
                 />
               </div>
               <div className="space-y-1.5">
@@ -343,20 +344,13 @@ function TaskForm({
             {/* Recurring */}
             {type === "recurring" && (
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label>{t("projects.startDate")}</Label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>{t("projects.endDate")}</Label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                <div className="space-y-1.5 col-span-2">
+                  <Label>{t("projects.startDate")} – {t("projects.endDate")}</Label>
+                  <SharedDateRangePicker
+                    from={startDate}
+                    to={endDate}
+                    onFromChange={setStartDate}
+                    onToChange={setEndDate}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -436,7 +430,7 @@ function TaskForm({
                 onChange={(e) => setIsDraft(e.target.checked)}
                 className="h-4 w-4 rounded border-input accent-primary"
               />
-              {t("common.save")} draft
+              {t("tasks.saveAsDraft", "Save as draft")}
             </label>
           </div>
 
@@ -536,12 +530,17 @@ function KanbanPageRoute() {
   const [editTask, setEditTask] = React.useState<TaskItem | null>(null);
   const [deleteTask, setDeleteTask] = React.useState<TaskItem | null>(null);
   const [dragOver, setDragOver] = React.useState<string | null>(null);
+  // Board-level branch filter. The kanban() service already accepts a
+  // branchId, so wire it through the query and refetch when it changes.
+  const [branchFilter, setBranchFilter] = React.useState<string>("all");
 
   // Board data
   const q = useInfiniteQuery({
-    queryKey: ["kanban", "tasks"],
+    queryKey: ["kanban", "tasks", { branch: branchFilter }],
     queryFn: ({ pageParam = 1 }) =>
-      tasksService.kanban(pageParam as number, PER_PAGE),
+      tasksService.kanban(pageParam as number, PER_PAGE, {
+        branchId: branchFilter !== "all" ? branchFilter : undefined,
+      }),
     initialPageParam: 1,
     getNextPageParam: (last: KanbanPage) =>
       last.currentPage < last.totalPages ? last.currentPage + 1 : undefined,
@@ -685,6 +684,18 @@ function KanbanPageRoute() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="w-44">
+            <AsyncPaginatedSelect
+              endpoint="/customer/branches"
+              labelKey="name"
+              valueKey="id"
+              value={branchFilter !== "all" ? branchFilter : null}
+              onChange={(v) => setBranchFilter(v ?? "all")}
+              placeholder={t("kanban.allBranches", "All Branches")}
+              height={36}
+              isClearable
+            />
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -735,7 +746,9 @@ function KanbanPageRoute() {
                   variant="outline"
                   className="gap-1"
                 >
-                  <span className="font-medium capitalize">{c.label}</span>
+                  <span className="font-medium capitalize">
+                    {t(c.labelKey, c.label)}
+                  </span>
                   <span className="opacity-70">{remain}</span>
                 </Badge>
               );
@@ -768,7 +781,7 @@ function KanbanPageRoute() {
               <div className="flex items-center justify-between gap-2 rounded-t-xl bg-background/60 px-3 py-2.5 backdrop-blur">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   {col.icon}
-                  <span>{col.label}</span>
+                  <span>{t(col.labelKey, col.label)}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <span
@@ -897,6 +910,7 @@ function BoardCard({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
+  const { t } = useTranslation();
   const priorityTone =
     task.priority === "urgent"
       ? "bg-destructive text-destructive-foreground"
@@ -917,6 +931,10 @@ function BoardCard({
       onDragStart={(e) => {
         e.dataTransfer.setData("text/task-id", task.id);
         e.dataTransfer.setData("text/from-status", task.status);
+        // Some browsers refuse to begin a drag unless a standard MIME type
+        // ("text/plain") is also present on the dataTransfer. Setting it makes
+        // drag-start reliable across Chromium/Firefox/Safari.
+        e.dataTransfer.setData("text/plain", task.id);
         e.dataTransfer.effectAllowed = "move";
       }}
       className="group cursor-grab overflow-hidden rounded-lg border bg-card shadow-sm transition hover:shadow-md active:cursor-grabbing"
@@ -927,7 +945,13 @@ function BoardCard({
             src={task.image}
             alt=""
             loading="lazy"
-            className="h-full w-full object-cover"
+            // Native images are draggable by default. Without this, grabbing a
+            // card starts an *image* drag (ghosting the photo) instead of the
+            // card drag, so the column drop never receives the task payload and
+            // drag-and-drop appears broken. `draggable={false}` + the CSS rule
+            // hand the gesture back to the <article>.
+            draggable={false}
+            className="pointer-events-none h-full w-full select-none object-cover [user-drag:none] [-webkit-user-drag:none]"
           />
         </div>
       ) : null}
@@ -937,20 +961,24 @@ function BoardCard({
             variant="outline"
             className={cn("h-5 px-1.5 text-[10px] capitalize", priorityTone)}
           >
-            {task.priority}
+            {task.priority
+              ? t(`tasks.priority.${task.priority}`, task.priority)
+              : ""}
           </Badge>
           <Badge
             variant="outline"
             className="h-5 px-1.5 text-[10px] font-mono lowercase"
           >
-            {task.type}
+            {task.type
+              ? t(`tasks.type.${task.type}`, task.type.replace(/_/g, " "))
+              : ""}
           </Badge>
           {task.isDraft && (
             <Badge
               variant="outline"
               className="h-5 px-1.5 text-[10px] border-amber-400/40 bg-amber-400/10 text-amber-600"
             >
-              draft
+              {t("tasks.draft", "draft")}
             </Badge>
           )}
           {isOverdue ? (
@@ -959,7 +987,7 @@ function BoardCard({
               className="ms-auto h-5 gap-1 border-destructive/30 bg-destructive/10 px-1.5 text-[10px] text-destructive"
             >
               <AlertTriangle className="h-3 w-3" />
-              Overdue
+              {t("tasks.overdue", "Overdue")}
             </Badge>
           ) : null}
         </div>
@@ -996,8 +1024,13 @@ function BoardCard({
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
           )}
-          {/* Edit + Delete buttons — visible on hover */}
-          <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+          {/* Edit + Delete buttons — visible on hover. draggable={false} keeps
+              these from starting a card drag when clicked. */}
+          <div
+            className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100"
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+          >
             {onEdit && (
               <Button
                 variant="ghost"

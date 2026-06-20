@@ -70,7 +70,8 @@
     "type": "Type",
     "prev": "Previous",
     "page": "Page",
-    "previous": "Previous"
+    "previous": "Previous",
+    "id": "ID"
   },
   "sidebar": {
     "statistics": "Statistics",
@@ -429,7 +430,8 @@
     "secsAgo": "{{n}}s ago",
     "excellent": "Excellent",
     "good": "Good",
-    "critical": "Critical"
+    "critical": "Critical",
+    "selectDate": "Select Date"
   },
   "statistics": {
     "title": "Statistics",
@@ -2225,7 +2227,33 @@
     "reviewNotesPlaceholder": "Optional notes about this review…",
     "submitReview": "Submit Review",
     "reviewSubmitted": "Review submitted",
-    "reviewFailed": "Review failed"
+    "reviewFailed": "Review failed",
+    "orderStatus": {
+      "all": "All Statuses",
+      "completed": "Completed",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "drawerStatus": {
+      "all": "All Statuses",
+      "matched": "Matched",
+      "unmatched": "Unmatched",
+      "suspicious": "Suspicious",
+      "critical": "Critical"
+    },
+    "refundStatusFilter": {
+      "all": "All Statuses",
+      "clear": "Clear",
+      "suspicious": "Suspicious",
+      "critical": "Critical"
+    },
+    "selectBranch": "Select branch",
+    "footfallHour": "Hour",
+    "employeeId": "Employee ID",
+    "matchedOrder": "Matched Order",
+    "patterns": "Patterns",
+    "confidence": "Conf."
   },
   "paginatedSelect": {
     "loading": "Loading options…",

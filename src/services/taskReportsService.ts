@@ -13,20 +13,25 @@ export interface ReportDateRange {
 }
 
 const PATHS: Record<TaskReportType, { path: string; ext: "pdf" | "csv" }> = {
-  performance:           { path: endpoints.taskReports.performance,          ext: "pdf" },
-  "sla-compliance":     { path: endpoints.taskReports.slaCompliance,         ext: "pdf" },
-  "verification-accuracy": { path: endpoints.taskReports.verificationAccuracy, ext: "pdf" },
-  "export-csv":         { path: endpoints.taskReports.exportCsv,             ext: "csv" },
+  performance: { path: endpoints.taskReports.performance, ext: "pdf" },
+  "sla-compliance": { path: endpoints.taskReports.slaCompliance, ext: "pdf" },
+  "verification-accuracy": {
+    path: endpoints.taskReports.verificationAccuracy,
+    ext: "pdf",
+  },
+  "export-csv": { path: endpoints.taskReports.exportCsv, ext: "csv" },
 };
 
 export async function downloadTaskReport(
   type: TaskReportType,
-  range: ReportDateRange,
+  range: ReportDateRange
 ): Promise<void> {
   const cfg = PATHS[type];
   const url = new URL(`${API_BASE_URL}${cfg.path}`);
-  url.searchParams.set("date_from", range.dateFrom);
-  url.searchParams.set("date_to", range.dateTo);
+  // Backend contract (Postman: /customer/task-reports/*) expects `from` / `to`.
+  // Sending `date_from` / `date_to` made the backend ignore the range.
+  url.searchParams.set("from", range.dateFrom);
+  url.searchParams.set("to", range.dateTo);
   url.searchParams.set("format", cfg.ext);
 
   const token = getAuthToken();

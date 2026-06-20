@@ -1,6 +1,6 @@
 "use client";
 
-import { DateRangePicker } from "rsuite";
+import { DateRangePicker, DatePicker } from "rsuite";
 import type { DateRange } from "rsuite/DateRangePicker";
 import { useTranslation } from "react-i18next";
 import { clampToToday, toLocalISODate } from "@/lib/utils";
@@ -51,6 +51,17 @@ interface SharedDateRangePickerProps {
   to?: string;
   onFromChange?: (v: string) => void;
   onToChange?: (v: string) => void;
+  /**
+   * Single-date mode ("one tab"). When true, renders a single rsuite DatePicker
+   * instead of a range picker. Bind with `date` / `onDateChange` (ISO string)
+   * or `singleValue` / `onSingleChange` (Date). Use the range props above for
+   * the two-date ("two tab") case.
+   */
+  single?: boolean;
+  date?: string;
+  onDateChange?: (v: string) => void;
+  singleValue?: Date | null;
+  onSingleChange?: (v: Date | null) => void;
   label?: string;
   placeholder?: string;
   rtl?: boolean;
@@ -64,6 +75,11 @@ const SharedDateRangePicker = ({
   to,
   onFromChange,
   onToChange,
+  single = false,
+  date,
+  onDateChange,
+  singleValue,
+  onSingleChange,
   label,
   placeholder,
   rtl,
@@ -111,20 +127,44 @@ const SharedDateRangePicker = ({
           {label}
         </label>
       )}
-      <DateRangePicker
-        format="MM/dd/yyyy"
-        placeholder={placeholder || t("dashboard.selectDateRange", "Select Date Range")}
-        value={resolvedValue}
-        onChange={handleChange}
-        ranges={ranges}
-        shouldDisableDate={(date) => date > new Date()}
-        showHeader
-        block
-        preventOverflow
-        showOneCalendar
-        placement="autoVerticalStart"
-        locale={{ ok: t("common.apply", "Apply") }}
-      />
+      {single ? (
+        <DatePicker
+          format="MM/dd/yyyy"
+          placeholder={placeholder || t("dashboard.selectDate", "Select Date")}
+          value={
+            singleValue !== undefined
+              ? (singleValue ?? null)
+              : date
+                ? new Date(date)
+                : null
+          }
+          onChange={(d: Date | null) => {
+            const clamped = d ? clampToToday(d) : null;
+            onSingleChange?.(clamped);
+            onDateChange?.(clamped ? toLocalISODate(clamped) : "");
+          }}
+          shouldDisableDate={(d) => d > new Date()}
+          block
+          preventOverflow
+          oneTap
+          placement="autoVerticalStart"
+        />
+      ) : (
+        <DateRangePicker
+          format="MM/dd/yyyy"
+          placeholder={placeholder || t("dashboard.selectDateRange", "Select Date Range")}
+          value={resolvedValue}
+          onChange={handleChange}
+          ranges={ranges}
+          shouldDisableDate={(date) => date > new Date()}
+          showHeader
+          block
+          preventOverflow
+          showOneCalendar
+          placement="autoVerticalStart"
+          locale={{ ok: t("common.apply", "Apply") }}
+        />
+      )}
     </div>
   );
 };

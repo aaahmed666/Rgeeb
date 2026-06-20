@@ -11,11 +11,15 @@ import {
   ChefHat,
   Hand,
   Clock,
-  BarChart3 } from "lucide-react";
+  BarChart3,
+} from "lucide-react";
 import {
   foodicsService,
   FoodicsPrepTimeRecord,
-  FoodicsPrepTimeStats } from "@/services/foodicsService";
+  FoodicsPrepTimeStats,
+} from "@/services/foodicsService";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
+import { DataTable } from "@/components/ui/data-table";
 import { useAuth } from "@/lib/auth";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
@@ -46,7 +50,6 @@ export default function FoodicsPrepTimePage() {
     avg_total_cycle: null,
   });
   const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [activeTab, setActiveTab] = useState<"records" | "heatmap">("records");
 
   const [branchId, setBranchId] = useState("");
@@ -97,13 +100,6 @@ export default function FoodicsPrepTimePage() {
       setLoading(false);
     }
   }, [branchId, from, to, page]);
-
-  useEffect(() => {
-    foodicsService
-      .getBranches()
-      .then((r) => setBranches(r.data ?? []))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     fetchData();
@@ -212,24 +208,21 @@ export default function FoodicsPrepTimePage() {
         <div className="p-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-4">
-            <select
-              value={branchId}
-              onChange={(e) => {
-                setBranchId(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
-            >
-              <option value="">{t("foodics.branch")}</option>
-              {branches.map((b) => (
-                <option
-                  key={b.id}
-                  value={b.id}
-                >
-                  {b.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-48">
+              <AsyncPaginatedSelect
+                endpoint="/customer/branches"
+                labelKey="name"
+                valueKey="id"
+                value={branchId || null}
+                onChange={(v) => {
+                  setBranchId(v ?? "");
+                  setPage(1);
+                }}
+                placeholder={t("foodics.branch")}
+                height={38}
+                isClearable
+              />
+            </div>
             <SharedDateRangePicker
               value={dateRange}
               onChange={setDateRange}
@@ -238,71 +231,63 @@ export default function FoodicsPrepTimePage() {
 
           {activeTab === "records" && (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground text-xs uppercase">
-                      <th className="text-left py-3 px-2">ID</th>
-                      <th className="text-left py-3 px-2">{t("foodics.date")}</th>
-                      <th className="text-left py-3 px-2">{t("foodics.orders")}</th>
-                      <th className="text-left py-3 px-2">{t("foodics.prepTime")}</th>
-                      <th className="text-right py-3 px-2">{t("foodics.avgPrepTime")}</th>
-                      <th className="text-right py-3 px-2">{t("foodics.minPrepTime")}</th>
-                      <th className="text-right py-3 px-2">{t("foodics.maxPrepTime")}</th>
-                      <th className="text-right py-3 px-2">Hour</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td
-                          colSpan={8}
-                          className="text-center py-12"
-                        >
-                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                        </td>
-                      </tr>
-                    ) : records.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={8}
-                          className="text-center py-12 text-muted-foreground"
-                        >
-                          {t("foodics.noPrepTime")}
-                        </td>
-                      </tr>
-                    ) : (
-                      records.map((r) => (
-                        <tr
-                          key={r.id}
-                          className="border-b border-border/50 hover:bg-muted/30 transition"
-                        >
-                          <td className="py-3 px-2 font-mono text-xs">
-                            {r.id}
-                          </td>
-                          <td className="py-3 px-2 text-muted-foreground">
-                            {r.date}
-                          </td>
-                          <td className="py-3 px-2">{r.order_placed}</td>
-                          <td className="py-3 px-2">{r.food_ready}</td>
-                          <td className="py-3 px-2 text-right">
-                            {formatTime(r.kitchen_prep)}
-                          </td>
-                          <td className="py-3 px-2 text-right">
-                            {formatTime(r.service)}
-                          </td>
-                          <td className="py-3 px-2 text-right font-medium">
-                            {formatTime(r.total_cycle)}
-                          </td>
-                          <td className="py-3 px-2 text-right text-muted-foreground">
-                            {r.hour}:00
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable<FoodicsPrepTimeRecord>
+                data={records}
+                isLoading={loading}
+                emptyMessage={t("foodics.noPrepTime")}
+                columns={[
+                  {
+                    key: "id",
+                    header: t("common.id", "ID"),
+                    cellClassName: "font-mono text-xs",
+                    render: (r) => r.id,
+                  },
+                  {
+                    key: "date",
+                    header: t("foodics.date"),
+                    cellClassName: "text-muted-foreground",
+                    render: (r) => r.date,
+                  },
+                  {
+                    key: "order_placed",
+                    header: t("foodics.orders"),
+                    render: (r) => r.order_placed,
+                  },
+                  {
+                    key: "food_ready",
+                    header: t("foodics.prepTime"),
+                    render: (r) => r.food_ready,
+                  },
+                  {
+                    key: "kitchen_prep",
+                    header: t("foodics.avgPrepTime"),
+                    headClassName: "text-right",
+                    cellClassName: "text-right",
+                    render: (r) => formatTime(r.kitchen_prep),
+                  },
+                  {
+                    key: "service",
+                    header: t("foodics.minPrepTime"),
+                    headClassName: "text-right",
+                    cellClassName: "text-right",
+                    render: (r) => formatTime(r.service),
+                  },
+                  {
+                    key: "total_cycle",
+                    header: t("foodics.maxPrepTime"),
+                    headClassName: "text-right",
+                    cellClassName: "text-right font-medium",
+                    render: (r) => formatTime(r.total_cycle),
+                  },
+                  {
+                    key: "hour",
+                    header: t("foodics.footfallHour", "Hour"),
+                    headClassName: "text-right",
+                    cellClassName: "text-right text-muted-foreground",
+                    render: (r) => `${r.hour}:00`,
+                  },
+                ]}
+              />
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
                   {total === 0

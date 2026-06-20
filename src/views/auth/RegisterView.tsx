@@ -14,6 +14,7 @@ import {
   // fetchPackages, // removed with package-selection step
 } from "@/services/lookupsService";
 import { sendOtpRequest } from "@/services/authService";
+import { AuthPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 // import { subscribeToPackage } from "@/services/subscriptionService"; // removed with payment step
 import { EmailSentIllustration, Icon } from "@/app/assets/icons/auth-icon";
 import "./auth-shared.css";
@@ -812,36 +813,29 @@ export default function RegisterView() {
                     {t("auth.register.country")}
                   </div>
                   <div style={{ position: "relative" }}>
-                    <span style={iconWrap}>
-                      <Icon.Globe />
-                    </span>
-                    <select
-                      value={basic.nationality}
-                      className={`register-input register-select${fieldErrors.nationality ? " register-input-err" : ""}`}
-                      onChange={(e) => {
+                    <AuthPaginatedSelect
+                      isDark={isDark}
+                      options={(countriesQ.data ?? []).map((c: any) => ({
+                        value: String(c.id),
+                        label: localised(c.name_en, c.name_ar, c.name),
+                      }))}
+                      value={basic.nationality || null}
+                      onChange={(v) => {
                         setBasic((b) => ({
                           ...b,
-                          nationality: e.target.value,
+                          nationality: v ?? "",
                           city_id: "",
                         }));
                         setFieldErrors((fe) => ({ ...fe, nationality: "" }));
                       }}
-                      style={{ ...inp("nationality"), paddingLeft: 44 }}
-                    >
-                      <option value="">
-                        {countriesQ.isLoading
+                      placeholder={
+                        countriesQ.isLoading
                           ? t("common.loading")
-                          : t("auth.register.selectCountry")}
-                      </option>
-                      {(countriesQ.data ?? []).map((c: any) => (
-                        <option
-                          key={c.id}
-                          value={String(c.id)}
-                        >
-                          {localised(c.name_en, c.name_ar, c.name)}
-                        </option>
-                      ))}
-                    </select>
+                          : t("auth.register.selectCountry")
+                      }
+                      hasError={!!fieldErrors.nationality}
+                      isClearable={false}
+                    />
                   </div>
                   {fieldErrors.nationality && (
                     <div className="register-field-error">
@@ -859,40 +853,28 @@ export default function RegisterView() {
                     {t("auth.register.city")}
                   </div>
                   <div style={{ position: "relative" }}>
-                    <span style={iconWrap}>
-                      <Icon.Location />
-                    </span>
-                    <select
-                      value={basic.city_id}
-                      disabled={!basic.nationality}
-                      className={`register-input register-select${fieldErrors.city_id ? " register-input-err" : ""}`}
-                      onChange={(e) => {
-                        setBasic((b) => ({ ...b, city_id: e.target.value }));
+                    <AuthPaginatedSelect
+                      isDark={isDark}
+                      isDisabled={!basic.nationality}
+                      options={(citiesQ.data ?? []).map((c: any) => ({
+                        value: String(c.id),
+                        label: localised(c.name_en, c.name_ar, c.name),
+                      }))}
+                      value={basic.city_id || null}
+                      onChange={(v) => {
+                        setBasic((b) => ({ ...b, city_id: v ?? "" }));
                         setFieldErrors((fe) => ({ ...fe, city_id: "" }));
                       }}
-                      style={{
-                        ...inp("city_id"),
-                        paddingLeft: 44,
-                        opacity: basic.nationality ? 1 : 0.6,
-                        cursor: basic.nationality ? "pointer" : "not-allowed",
-                      }}
-                    >
-                      <option value="">
-                        {!basic.nationality
+                      placeholder={
+                        !basic.nationality
                           ? t("auth.register.selectCountryFirst")
                           : citiesQ.isLoading
                             ? t("common.loading")
-                            : t("auth.register.selectCity")}
-                      </option>
-                      {(citiesQ.data ?? []).map((c: any) => (
-                        <option
-                          key={c.id}
-                          value={String(c.id)}
-                        >
-                          {localised(c.name_en, c.name_ar, c.name)}
-                        </option>
-                      ))}
-                    </select>
+                            : t("auth.register.selectCity")
+                      }
+                      hasError={!!fieldErrors.city_id}
+                      isClearable={false}
+                    />
                   </div>
                   {fieldErrors.city_id && (
                     <div className="register-field-error">

@@ -3,7 +3,14 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { pickArray, pickObject, str, num, bool, type RawObject } from "@/lib/raw-response";
+import {
+  pickArray,
+  pickObject,
+  str,
+  num,
+  bool,
+  type RawObject,
+} from "@/lib/raw-response";
 
 export interface AttendanceRecord {
   id: string;
@@ -35,7 +42,8 @@ function mapAttendance(r: RawObject): AttendanceRecord {
   return {
     id: String(r.id ?? ""),
     employeeId: str(r, "employee_id") ?? (employee && str(employee, "id")),
-    employeeName: (employee && str(employee, "name")) ?? str(r, "employee_name", "name"),
+    employeeName:
+      (employee && str(employee, "name")) ?? str(r, "employee_name", "name"),
     branchId: str(r, "branch_id") ?? (branch && str(branch, "id")),
     branchName: (branch && str(branch, "name")) ?? str(r, "branch_name"),
     checkIn: str(r, "check_in", "checked_in_at"),
@@ -44,7 +52,8 @@ function mapAttendance(r: RawObject): AttendanceRecord {
     status: str(r, "status"),
     date: str(r, "date"),
     notes: str(r, "notes"),
-    faceVerified: typeof r.face_verified === "boolean" ? r.face_verified : undefined,
+    faceVerified:
+      typeof r.face_verified === "boolean" ? r.face_verified : undefined,
   };
 }
 
@@ -59,10 +68,13 @@ export interface AttendanceFilters {
 }
 
 export async function fetchAttendances(
-  filters?: AttendanceFilters,
+  filters?: AttendanceFilters
 ): Promise<AttendanceRecord[]> {
   const raw = await api.get<unknown>(endpoints.attendance.list, {
-    query: filters as Record<string, string | number | boolean | undefined | null>,
+    query: filters as Record<
+      string,
+      string | number | boolean | undefined | null
+    >,
   });
   return pickArray(raw).map(mapAttendance);
 }
@@ -73,8 +85,18 @@ export async function fetchAttendanceDashboard(params?: {
   date_from?: string;
   date_to?: string;
 }): Promise<AttendanceDashboard> {
+  // Backend contract (Postman: /customer/attendances/dashboard) expects
+  // `from` / `to` (+ branch_id). Callers pass date_from/date_to for API
+  // consistency, so translate here — sending date_from/date_to made the
+  // backend ignore the range.
+  const query: Record<string, string | undefined> = {
+    branch_id: params?.branch_id,
+    date: params?.date,
+    from: params?.date_from,
+    to: params?.date_to,
+  };
   const raw = await api.get<unknown>(endpoints.attendance.dashboard, {
-    query: params as Record<string, string | undefined>,
+    query,
   });
   const d = pickObject(raw);
   return {
@@ -88,8 +110,8 @@ export async function fetchAttendanceDashboard(params?: {
 }
 
 export async function checkIn(data: {
-  user_id: string;           // Postman: user_id (not employee_id)
-  photo_file?: File | null;  // Postman: photo_file (FormData file upload)
+  user_id: string; // Postman: user_id (not employee_id)
+  photo_file?: File | null; // Postman: photo_file (FormData file upload)
   branch_id?: string;
   notes?: string;
 }): Promise<AttendanceRecord> {
@@ -103,14 +125,18 @@ export async function checkIn(data: {
     if (data.notes) fd.append("notes", data.notes);
     body = fd;
   } else {
-    body = { user_id: data.user_id, branch_id: data.branch_id, notes: data.notes };
+    body = {
+      user_id: data.user_id,
+      branch_id: data.branch_id,
+      notes: data.notes,
+    };
   }
   const raw = await api.post<unknown>(endpoints.attendance.checkIn, body);
   return mapAttendance(pickObject(raw));
 }
 
 export async function checkOut(data: {
-  attendance_id: string;  // Postman: attendance_id
+  attendance_id: string; // Postman: attendance_id
   notes?: string;
 }): Promise<AttendanceRecord> {
   const raw = await api.post<unknown>(endpoints.attendance.checkOut, data);

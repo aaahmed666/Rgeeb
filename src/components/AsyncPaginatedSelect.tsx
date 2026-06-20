@@ -71,7 +71,17 @@ function unwrapPagination(
 }
 
 export interface AuthPaginatedSelectProps {
-  endpoint: string;
+  /**
+   * Backend endpoint to load options from (async paginated mode).
+   * Optional when `options` is provided (static mode).
+   */
+  endpoint?: string;
+  /**
+   * Static options list. When provided, the select renders these locally
+   * (with client-side keyword filtering) instead of calling `endpoint`.
+   * Use this for fixed enum dropdowns (status filters, in/out, etc.).
+   */
+  options?: SelectOption[];
   labelKey?: string;
   valueKey?: string;
   /** Selected value (single-select mode). */
@@ -96,6 +106,8 @@ export interface AuthPaginatedSelectProps {
   isDark: boolean;
   hasError?: boolean;
   id?: string;
+  /** Optional class applied to the select's wrapper element. */
+  className?: string;
   /** Control height in px. Defaults to 52 for auth pages, use 36 for dashboard. */
   height?: number;
   /**
@@ -110,6 +122,7 @@ export interface AuthPaginatedSelectProps {
 
 export function AuthPaginatedSelect({
   endpoint,
+  options: staticOptions,
   labelKey = "name",
   valueKey = "id",
   value,
@@ -129,6 +142,7 @@ export function AuthPaginatedSelect({
   hasError = false,
   id,
   height = 52,
+  className,
   menuPortalTarget,
 }: AuthPaginatedSelectProps) {
   // Wrapper ref lets us find the nearest dialog ancestor so the portalled menu
@@ -150,6 +164,22 @@ export function AuthPaginatedSelect({
       ? (menuPortalTarget ?? undefined)
       : (autoPortalTarget ?? undefined);
 
+  // When the menu is portalled INTO a dialog, that dialog is centered with a
+  // CSS transform (translate(-50%,-50%)). Per spec, a `position: fixed` child
+  // of a transformed ancestor is positioned relative to that ancestor, not the
+  // viewport — react-select computes viewport-relative fixed coords, so the
+  // transform offsets them and the menu lands detached (bottom-right). Using
+  // `absolute` anchors the menu to its control inside the dialog instead.
+  // Portalling to document.body (no transform) keeps `fixed` so the menu can
+  // escape overflow-clipping containers.
+  const portalIsDialog =
+    effectivePortalTarget != null &&
+    effectivePortalTarget !==
+      (typeof document !== "undefined" ? document.body : null);
+  const menuPosition: "fixed" | "absolute" = portalIsDialog
+    ? "absolute"
+    : "fixed";
+
   const [resolvedOption, setResolvedOption] =
     React.useState<SelectOption | null>(
       value && defaultOption ? defaultOption : null
@@ -161,6 +191,62 @@ export function AuthPaginatedSelect({
   React.useEffect(() => {
     if (!value) setResolvedOption(null);
   }, [value]);
+
+  // Resolve the label for a pre-selected `value` when the parent didn't supply
+  // a `defaultOption`. Without this, edit forms that pass only an id (e.g.
+  // value={form.role_id}) show the placeholder instead of the selected item's
+  // name until the user opens the menu. We fetch the option once and cache it.
+  const resolveAbortRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (isMulti) return;
+    if (!value) return;
+    // Already showing the right option (from defaultOption or a prior pick).
+    if (resolvedOption && resolvedOption.value === String(value)) return;
+    // Static mode: resolve the label directly from the provided options list.
+    if (staticOptions) {
+      const match = staticOptions.find((o) => o.value === String(value));
+      if (match) setResolvedOption(match);
+      return;
+    }
+    if (!endpoint) return;
+    const ep = endpoint;
+    // Avoid duplicate fetches for the same value.
+    if (resolveAbortRef.current === String(value)) return;
+    resolveAbortRef.current = String(value);
+    let cancelled = false;
+    (async () => {
+      try {
+        // Try a direct lookup first (?id=), falling back to scanning page 1.
+        const raw = await apiFetch<unknown>(ep, {
+          query: { id: value, per_page: perPage, ...extraParams },
+        });
+        const list = unwrapList(raw);
+        const match =
+          list.find(
+            (it) => String(it[valueKey] ?? it.id ?? "") === String(value)
+          ) ?? list[0];
+        if (!cancelled && match) {
+          setResolvedOption({
+            value: String(match[valueKey] ?? match.id ?? value),
+            label: String(
+              match[labelKey] ??
+                match.name ??
+                match.name_en ??
+                match.title ??
+                value
+            ),
+            raw: match,
+          });
+        }
+      } catch {
+        /* leave placeholder; menu will still load options on open */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, isMulti, endpoint, labelKey, valueKey, perPage]);
 
   // Keep multi chips in sync when the parent clears or trims `values`
   React.useEffect(() => {
@@ -180,7 +266,18 @@ export function AuthPaginatedSelect({
     Additional
   > = React.useCallback(
     async (inputValue, _prev, additional) => {
+      // Static mode: filter the provided list locally, no network call.
+      if (staticOptions) {
+        const kw = inputValue.trim().toLowerCase();
+        const filtered = kw
+          ? staticOptions.filter((o) => o.label.toLowerCase().includes(kw))
+          : staticOptions;
+        return { options: filtered, hasMore: false, additional: { page: 1 } };
+      }
       const page = additional?.page ?? 1;
+      if (!endpoint) {
+        return { options: [], hasMore: false, additional: { page: 1 } };
+      }
       try {
         const raw = await apiFetch<unknown>(endpoint, {
           query: {
@@ -210,7 +307,7 @@ export function AuthPaginatedSelect({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [endpoint, labelKey, valueKey, perPage, JSON.stringify(extraParams)]
+    [endpoint, labelKey, valueKey, perPage, JSON.stringify(extraParams), staticOptions]
   );
 
   const handleChange = React.useCallback(
@@ -328,8 +425,17 @@ export function AuthPaginatedSelect({
         zIndex: 9999,
         marginTop: 6,
         overflow: "hidden",
+        // Radix Sheet/Dialog sets pointer-events:none on content outside its
+        // focus scope. When the menu is portalled into the sheet during its
+        // open animation it can inherit that, freezing clicks/scroll on the
+        // options. Force pointer events back on for the menu surface.
+        pointerEvents: "auto",
       }),
-      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+      menuPortal: (base) => ({
+        ...base,
+        zIndex: 9999,
+        pointerEvents: "auto",
+      }),
       menuList: (base) => ({
         ...base,
         padding: 6,
@@ -433,7 +539,7 @@ export function AuthPaginatedSelect({
   );
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} className={className}>
       <AsyncPaginate
         inputId={id}
         isMulti={isMulti}
@@ -450,7 +556,8 @@ export function AuthPaginatedSelect({
         styles={selectStyles}
         theme={selectTheme}
         menuPortalTarget={effectivePortalTarget}
-        menuPosition="fixed"
+        menuPosition={menuPosition}
+        menuShouldScrollIntoView={false}
         loadingMessage={() => loadingText}
         noOptionsMessage={({ inputValue }) =>
           inputValue ? `No results for "${inputValue}"` : "No options"

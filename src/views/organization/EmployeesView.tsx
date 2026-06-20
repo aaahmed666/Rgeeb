@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -872,11 +873,11 @@ function EmployeeDrawer({
                 <Label>
                   {t("employees.certificateEndDate", "Certificate End Date")}
                 </Label>
-                <Input
-                  type="date"
-                  value={form.certificate_end_date}
-                  onChange={(e) =>
-                    setForm({ ...form, certificate_end_date: e.target.value })
+                <SharedDateRangePicker
+                  single
+                  date={form.certificate_end_date}
+                  onDateChange={(v) =>
+                    setForm({ ...form, certificate_end_date: v })
                   }
                 />
               </div>
