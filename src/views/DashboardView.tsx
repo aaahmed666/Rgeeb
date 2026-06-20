@@ -21,6 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
+  BellOff,
+  Meh,
 } from "lucide-react";
 
 import {
@@ -77,6 +79,7 @@ import {
   dashboardService,
   invalidateDashboardCache,
 } from "@/services/dashboardService";
+import { tasksService } from "@/services/tasksService";
 import type {
   AIServiceItem,
   AttendanceData,
@@ -259,7 +262,9 @@ export default function DashboardView() {
   );
   const [branches, setBranches] = React.useState<BranchSummary[]>([]);
   const [unread, setUnread] = React.useState(0);
-  const [assignedToMe, setAssignedToMe] = React.useState(false);
+  // Task Intelligence shows the signed-in user's own tasks (parity with the
+  // old dashboard, which always passed assigned_to_me=true).
+  const [assignedToMe] = React.useState(true);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
@@ -288,7 +293,15 @@ export default function DashboardView() {
       const [s, ai, tk, vf, la, at, co, bd, br] = await Promise.all([
         dashboardService.getSummary(filters),
         dashboardService.listAIServices(filters),
-        dashboardService.getTaskSummary({ ...filters, assignedToMe }),
+        // Task Intelligence must come from the dedicated /customer/tasks/dashboard
+        // endpoint (same contract as the old dashboard) — the general dashboard
+        // payload does not carry task stats, which is why all counters read 0.
+        tasksService.dashboard({
+          assignedToMe,
+          branchId: branchId === "all" ? undefined : branchId,
+          from,
+          to,
+        }),
         dashboardService.getVisitorFlow(filters),
         dashboardService.getLiveActivity(filters),
         dashboardService.getAttendance(filters),
@@ -299,7 +312,25 @@ export default function DashboardView() {
       if (seq !== loadSeq.current) return; // a newer load superseded this one
       setSummary(s);
       setServices(ai);
-      setTasks(tk);
+      // Map the task-dashboard byStatus map into the dashboard KPI shape,
+      // matching the old project: open = new + assigned, completed = completed +
+      // closed, completionRate = completed / total.
+      {
+        const bs = tk.byStatus ?? {};
+        const open = (bs.new ?? 0) + (bs.assigned ?? 0);
+        const inProgress = bs.in_progress ?? tk.inProgress ?? 0;
+        const completed =
+          (bs.completed ?? tk.completed ?? 0) + (bs.closed ?? 0);
+        const completionRate =
+          tk.total > 0 ? Math.round((completed / tk.total) * 100) : 0;
+        setTasks({
+          total: tk.total,
+          open,
+          inProgress,
+          overdue: tk.overdue,
+          completionRate,
+        });
+      }
       setFlow(vf);
       setActivity(la);
       setAttendance(at);
@@ -647,12 +678,13 @@ export default function DashboardView() {
               </Button>
               <Button
                 size="sm"
-                variant={assignedToMe ? "default" : "outline"}
+                variant="outline"
                 className="gap-1.5"
-                aria-pressed={assignedToMe}
-                onClick={() => setAssignedToMe((v) => !v)}
+                asChild
               >
-                <UserCheck className="h-4 w-4" /> {t("dashboard.myTasks")}
+                <Link href="/dashboard/my-tasks">
+                  <UserCheck className="h-4 w-4" /> {t("dashboard.myTasks")}
+                </Link>
               </Button>
             </div>
           </div>
@@ -754,7 +786,23 @@ export default function DashboardView() {
               </Badge>
             </div>
             <ul className="max-h-72 space-y-2 overflow-y-auto pe-1">
-              {activity.map((a) => (
+              {activity.length === 0 ? (
+                <li className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/40">
+                    <BellOff className="h-6 w-6 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {t("dashboard.noRecentActivity", "No recent activity")}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    {t(
+                      "dashboard.eventsRealtime",
+                      "Events will appear here in real-time"
+                    )}
+                  </p>
+                </li>
+              ) : (
+                activity.map((a) => (
                 <li
                   key={a.id}
                   className={`flex items-center gap-3 rounded-lg border p-2.5 text-sm ${
@@ -787,7 +835,8 @@ export default function DashboardView() {
                     </p>
                   </div>
                 </li>
-              ))}
+                ))
+              )}
             </ul>
           </CardContent>
         </Card>
@@ -903,7 +952,15 @@ export default function DashboardView() {
               </h3>
             </div>
             <ul className="space-y-3">
-              {breakdown.map((b) => (
+              {breakdown.length === 0 ? (
+                <li className="flex flex-col items-center justify-center py-8 text-center">
+                  <Meh className="mb-2 h-10 w-10 text-muted-foreground/20" />
+                  <p className="text-sm text-muted-foreground">
+                    {t("dashboard.noDetectionsToday", "No detections today")}
+                  </p>
+                </li>
+              ) : (
+                breakdown.map((b) => (
                 <li
                   key={b.key}
                   className="space-y-1"
@@ -925,7 +982,8 @@ export default function DashboardView() {
                     className="h-1.5"
                   />
                 </li>
-              ))}
+                ))
+              )}
             </ul>
           </CardContent>
         </Card>

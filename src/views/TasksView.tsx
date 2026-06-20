@@ -102,13 +102,19 @@ const STATUSES = [
   "on_hold",
   "cancelled",
 ] as const;
-const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
-const TYPES = [
-  "violation_response",
-  "ai_generated",
-  "manual",
-  "maintenance",
-] as const;
+const PRIORITIES = ["low", "medium", "high", "critical"] as const;
+// Backend validation: type in:scheduled,recurring,manual,ai (parity with OLD
+// AddTaskDrawer + Postman contract). The previous values
+// (violation_response/ai_generated/maintenance) are rejected by the API.
+const TYPES = ["manual", "scheduled", "recurring", "ai"] as const;
+// Human-readable labels for the backend type codes (parity with OLD drawer's
+// "Manual / Scheduled / Recurring" + the AI type).
+const TYPE_LABELS: Record<string, string> = {
+  manual: "Manual",
+  scheduled: "Scheduled",
+  recurring: "Recurring",
+  ai: "AI Generated",
+};
 
 // ─── Numbered Pagination ──────────────────────────────────────────────────────
 
@@ -259,7 +265,7 @@ export default function TasksView() {
     description: "",
     priority: "medium",
     type: "manual",
-    status: "new",
+    status: "pending",
     scheduled_date: "",
     branch_id: "",
     department_id: "",
@@ -352,6 +358,22 @@ export default function TasksView() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Mirror the backend's create/update validation so the submit button only
+  // enables for a valid payload (parity with OLD AddTaskDrawer + Postman):
+  //   name                  → always required
+  //   scheduled_date        → required_if type === "scheduled"
+  //   recurring_every_days,
+  //   start_date, end_date  → required_if type === "recurring"
+  const canSubmitTask = React.useMemo(() => {
+    if (!taskForm.name.trim()) return false;
+    if (taskForm.type === "scheduled" && !taskForm.scheduled_date) return false;
+    if (taskForm.type === "recurring") {
+      if (!taskForm.recurring_every_days) return false;
+      if (!taskForm.start_date || !taskForm.end_date) return false;
+    }
+    return true;
+  }, [taskForm]);
 
   // The board needs every column populated at once, so in board view we request
   // a large page and ignore the single-status filter (each status maps to its
@@ -756,10 +778,7 @@ export default function TasksView() {
                 placeholder={t("tasks.allTypes", "All Types")}
                 options={TYPES.map((s) => ({
                   value: s,
-                  label: s
-                    .split("_")
-                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(" "),
+                  label: t(`tasks.typeLabel.${s}`, TYPE_LABELS[s] ?? s),
                 }))}
                 allLabel={t("tasks.allTypes", "All Types")}
               />
@@ -953,7 +972,7 @@ export default function TasksView() {
                         key={tp}
                         value={tp}
                       >
-                        {tp.replace(/_/g, " ")}
+                        {t(`tasks.typeLabel.${tp}`, TYPE_LABELS[tp] ?? tp)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -987,7 +1006,12 @@ export default function TasksView() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>{t("tasks.form.scheduledDate", "Scheduled Date")}</Label>
+                <Label>
+                  {t("tasks.form.scheduledDate", "Scheduled Date")}
+                  {taskForm.type === "scheduled" && (
+                    <span className="text-destructive"> *</span>
+                  )}
+                </Label>
                 <SharedDateRangePicker
                   single
                   date={taskForm.scheduled_date}
@@ -1125,7 +1149,7 @@ export default function TasksView() {
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}
-              disabled={!taskForm.name.trim() || saveMutation.isPending}
+              disabled={!canSubmitTask || saveMutation.isPending}
             >
               {saveMutation.isPending && (
                 <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -1144,7 +1168,7 @@ export default function TasksView() {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function priorityTone(p: string) {
-  if (p === "urgent") return "bg-destructive text-destructive-foreground";
+  if (p === "critical") return "bg-destructive text-destructive-foreground";
   if (p === "high")
     return "bg-orange-500/15 text-orange-600 border-orange-500/30";
   if (p === "medium") return "bg-cyan-500/15 text-cyan-600 border-cyan-500/30";

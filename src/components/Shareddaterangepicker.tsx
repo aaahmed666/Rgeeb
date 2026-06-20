@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { DateRangePicker, DatePicker } from "rsuite";
 import type { DateRange } from "rsuite/DateRangePicker";
 import { useTranslation } from "react-i18next";
@@ -28,17 +29,91 @@ const d = (offset = 0): Date => {
 function useRanges(): RangePreset[] {
   const { t } = useTranslation();
   return [
-    { label: t("dateRanges.today",      "Today"),           value: [d(), d()], placement: "left" },
-    { label: t("dateRanges.yesterday",  "Yesterday"),       value: (() => { const y = d(-1); return [y, new Date(y)] as DateRange; })(), placement: "left" },
-    { label: t("dateRanges.thisWeek",   "This Week"),       value: (() => { const now = new Date(); const s = new Date(now); s.setDate(now.getDate() - now.getDay()); s.setHours(0,0,0,0); return [s, new Date()] as DateRange; })(), placement: "left" },
-    { label: t("dateRanges.lastWeek",   "Last Week"),       value: (() => { const now = new Date(); const s = new Date(now); s.setDate(now.getDate() - now.getDay() - 7); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(s.getDate() + 6); e.setHours(23,59,59,999); return [s, e] as DateRange; })(), placement: "left" },
-    { label: t("dateRanges.thisMonth",  "This Month"),      value: [new Date(new Date().getFullYear(), new Date().getMonth(), 1), new Date()] as DateRange, placement: "left" },
-    { label: t("dateRanges.lastMonth",  "Last Month"),      value: [new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), new Date(new Date().getFullYear(), new Date().getMonth(), 0)] as DateRange, placement: "left" },
-    { label: t("dateRanges.thisYear",   "This Year"),       value: [new Date(new Date().getFullYear(), 0, 1), new Date()] as DateRange, placement: "left" },
-    { label: t("dateRanges.lastYear",   "Last Year"),       value: [new Date(new Date().getFullYear() - 1, 0, 1), new Date(new Date().getFullYear() - 1, 11, 31)] as DateRange, placement: "left" },
-    { label: t("dateRanges.last7Days",  "Last 7 Days"),     value: [d(-7), d()] as DateRange, placement: "left" },
-    { label: t("dateRanges.last30Days", "Last 30 Days"),    value: [d(-30), d()] as DateRange, placement: "left" },
-    { label: t("dateRanges.last365Days","Last 365 Days"),   value: [d(-365), d()] as DateRange, placement: "left" },
+    {
+      label: t("dateRanges.today", "Today"),
+      value: [d(), d()],
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.yesterday", "Yesterday"),
+      value: (() => {
+        const y = d(-1);
+        return [y, new Date(y)] as DateRange;
+      })(),
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.thisWeek", "This Week"),
+      value: (() => {
+        const now = new Date();
+        const s = new Date(now);
+        s.setDate(now.getDate() - now.getDay());
+        s.setHours(0, 0, 0, 0);
+        return [s, new Date()] as DateRange;
+      })(),
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.lastWeek", "Last Week"),
+      value: (() => {
+        const now = new Date();
+        const s = new Date(now);
+        s.setDate(now.getDate() - now.getDay() - 7);
+        s.setHours(0, 0, 0, 0);
+        const e = new Date(s);
+        e.setDate(s.getDate() + 6);
+        e.setHours(23, 59, 59, 999);
+        return [s, e] as DateRange;
+      })(),
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.thisMonth", "This Month"),
+      value: [
+        new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        new Date(),
+      ] as DateRange,
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.lastMonth", "Last Month"),
+      value: [
+        new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+        new Date(new Date().getFullYear(), new Date().getMonth(), 0),
+      ] as DateRange,
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.thisYear", "This Year"),
+      value: [
+        new Date(new Date().getFullYear(), 0, 1),
+        new Date(),
+      ] as DateRange,
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.lastYear", "Last Year"),
+      value: [
+        new Date(new Date().getFullYear() - 1, 0, 1),
+        new Date(new Date().getFullYear() - 1, 11, 31),
+      ] as DateRange,
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.last7Days", "Last 7 Days"),
+      value: [d(-7), d()] as DateRange,
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.last30Days", "Last 30 Days"),
+      value: [d(-30), d()] as DateRange,
+      placement: "left",
+    },
+    {
+      label: t("dateRanges.last365Days", "Last 365 Days"),
+      value: [d(-365), d()] as DateRange,
+      placement: "left",
+    },
   ];
 }
 
@@ -88,16 +163,27 @@ const SharedDateRangePicker = ({
   const { t, i18n } = useTranslation();
   const ranges = useRanges();
   const isRtl = rtl ?? i18n.language === "ar";
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+
+  // When this picker lives inside a Radix dialog/sheet, render the rsuite
+  // calendar popup INTO that dialog rather than document.body. A dialog sets
+  // `pointer-events: none` outside its focus scope and creates its own stacking
+  // context (via transform); a body-portalled popup can land behind it or be
+  // unclickable. Portalling into the dialog keeps the calendar inside the
+  // dialog's pointer-events + stacking scope so it opens and is interactive.
+  const getContainer = React.useCallback((): HTMLElement => {
+    const dialog = wrapRef.current?.closest<HTMLElement>(
+      '[role="dialog"], [role="alertdialog"]'
+    );
+    return dialog ?? document.body;
+  }, []);
 
   // Support both value/onChange (DateRange) AND from/to/onFromChange/onToChange (strings)
   const resolvedValue: DateRange | null =
     value !== undefined
       ? (value ?? null)
       : from || to
-        ? [
-            from ? new Date(from) : new Date(),
-            to   ? new Date(to)   : new Date(),
-          ]
+        ? [from ? new Date(from) : new Date(), to ? new Date(to) : new Date()]
         : null;
 
   const handleChange = (range: DateRange | null) => {
@@ -116,6 +202,7 @@ const SharedDateRangePicker = ({
 
   return (
     <div
+      ref={wrapRef}
       className={["rs-picker-wrap w-full", className].filter(Boolean).join(" ")}
       dir={isRtl ? "rtl" : "ltr"}
     >
@@ -147,12 +234,15 @@ const SharedDateRangePicker = ({
           block
           preventOverflow
           oneTap
+          container={getContainer}
           placement="autoVerticalStart"
         />
       ) : (
         <DateRangePicker
           format="MM/dd/yyyy"
-          placeholder={placeholder || t("dashboard.selectDateRange", "Select Date Range")}
+          placeholder={
+            placeholder || t("dashboard.selectDateRange", "Select Date Range")
+          }
           value={resolvedValue}
           onChange={handleChange}
           ranges={ranges}
@@ -162,6 +252,7 @@ const SharedDateRangePicker = ({
           preventOverflow
           showOneCalendar
           placement="autoVerticalStart"
+          container={getContainer}
           locale={{ ok: t("common.apply", "Apply") }}
         />
       )}
@@ -173,15 +264,67 @@ export default SharedDateRangePicker;
 
 // Named export for backward-compat
 export const predefinedRanges: RangePreset[] = [
-  { label: "Today",        value: [d(), d()], placement: "left" },
-  { label: "Yesterday",    value: (() => { const y = d(-1); return [y, new Date(y)] as DateRange; })(), placement: "left" },
-  { label: "This Week",    value: (() => { const now = new Date(); const s = new Date(now); s.setDate(now.getDate() - now.getDay()); s.setHours(0,0,0,0); return [s, new Date()] as DateRange; })(), placement: "left" },
-  { label: "Last Week",    value: (() => { const now = new Date(); const s = new Date(now); s.setDate(now.getDate() - now.getDay() - 7); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(s.getDate() + 6); e.setHours(23,59,59,999); return [s, e] as DateRange; })(), placement: "left" },
-  { label: "This Month",   value: [new Date(new Date().getFullYear(), new Date().getMonth(), 1), new Date()] as DateRange, placement: "left" },
-  { label: "Last Month",   value: [new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), new Date(new Date().getFullYear(), new Date().getMonth(), 0)] as DateRange, placement: "left" },
-  { label: "This Year",    value: [new Date(new Date().getFullYear(), 0, 1), new Date()] as DateRange, placement: "left" },
-  { label: "Last 7 Days",  value: [d(-7), d()] as DateRange, placement: "left" },
-  { label: "Last 30 Days", value: [d(-30), d()] as DateRange, placement: "left" },
+  { label: "Today", value: [d(), d()], placement: "left" },
+  {
+    label: "Yesterday",
+    value: (() => {
+      const y = d(-1);
+      return [y, new Date(y)] as DateRange;
+    })(),
+    placement: "left",
+  },
+  {
+    label: "This Week",
+    value: (() => {
+      const now = new Date();
+      const s = new Date(now);
+      s.setDate(now.getDate() - now.getDay());
+      s.setHours(0, 0, 0, 0);
+      return [s, new Date()] as DateRange;
+    })(),
+    placement: "left",
+  },
+  {
+    label: "Last Week",
+    value: (() => {
+      const now = new Date();
+      const s = new Date(now);
+      s.setDate(now.getDate() - now.getDay() - 7);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(s);
+      e.setDate(s.getDate() + 6);
+      e.setHours(23, 59, 59, 999);
+      return [s, e] as DateRange;
+    })(),
+    placement: "left",
+  },
+  {
+    label: "This Month",
+    value: [
+      new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      new Date(),
+    ] as DateRange,
+    placement: "left",
+  },
+  {
+    label: "Last Month",
+    value: [
+      new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+      new Date(new Date().getFullYear(), new Date().getMonth(), 0),
+    ] as DateRange,
+    placement: "left",
+  },
+  {
+    label: "This Year",
+    value: [new Date(new Date().getFullYear(), 0, 1), new Date()] as DateRange,
+    placement: "left",
+  },
+  { label: "Last 7 Days", value: [d(-7), d()] as DateRange, placement: "left" },
+  {
+    label: "Last 30 Days",
+    value: [d(-30), d()] as DateRange,
+    placement: "left",
+  },
 ];
 
 export { SharedDateRangePicker };

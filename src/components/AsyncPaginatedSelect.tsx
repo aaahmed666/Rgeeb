@@ -393,8 +393,13 @@ export function AuthPaginatedSelect({
           : isRtl
             ? "0 16px 0 48px"
             : "0 48px 0 16px",
-        flexWrap: "wrap",
+        // Only multi-select needs wrapping (chips flow to new rows). For a
+        // single-select, wrapping a two-word placeholder like "All Branches"
+        // pushes a second line that clips against the fixed control height —
+        // keep it on one line.
+        flexWrap: isMulti ? "wrap" : "nowrap",
         gap: 4,
+        overflow: "hidden",
       }),
       indicatorsContainer: (base) => ({
         ...base,
@@ -406,12 +411,20 @@ export function AuthPaginatedSelect({
         fontSize: "14.5px",
         fontWeight: 500,
         textAlign: isRtl ? "right" : "left",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "100%",
       }),
       singleValue: (base) => ({
         ...base,
         color: isDark ? COLORS.textDark : COLORS.textLight,
         fontSize: "14.5px",
         fontWeight: 500,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "100%",
       }),
       multiValue: (base) => ({
         ...base,

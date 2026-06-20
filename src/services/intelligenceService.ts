@@ -701,12 +701,28 @@ function q(f: IntelFilters, extra: Record<string, string | number> = {}) {
   };
 }
 
-function unwrapArray<T>(r: T[] | { data: T[] } | { branches: T[] }): T[] {
-  if (Array.isArray(r)) return r;
-  if (r && typeof r === "object") {
-    if ("data" in r) return (r as { data: T[] }).data ?? [];
-    if ("branches" in r) return (r as { branches: T[] }).branches ?? [];
+function unwrapArray<T>(r: unknown): T[] {
+  // Directly an array.
+  if (Array.isArray(r)) return r as T[];
+  if (!r || typeof r !== "object") return [];
+
+  const obj = r as Record<string, unknown>;
+
+  // Common array-bearing keys, in priority order. The backend wraps the
+  // efficiency-index rows under `branches`, but tolerate a handful of other
+  // shapes (`rows`, `items`, `results`, `list`) so a minor API envelope change
+  // can't silently empty the table.
+  const arrayKeys = ["branches", "rows", "items", "results", "list"];
+  for (const key of arrayKeys) {
+    if (Array.isArray(obj[key])) return obj[key] as T[];
   }
+
+  // Envelope: { data: [...] } or { data: { branches: [...] } } — and even one
+  // extra level of nesting ({ data: { data: { branches: [...] } } }).
+  if ("data" in obj) {
+    return unwrapArray<T>(obj.data);
+  }
+
   return [];
 }
 
@@ -851,9 +867,9 @@ export const intelligenceService = {
         // Fallback: general services catalog (returns all subscribed
         // services, not just those with intelligence data).
         .catch(() =>
-          apiFetch<string[] | { data: string[] }>(
-            endpoints.services.list
-          ).then((r) => unwrapArray(r))
+          apiFetch<string[] | { data: string[] }>(endpoints.services.list).then(
+            (r) => unwrapArray(r)
+          )
         ),
       demoAvailableServices
     ),

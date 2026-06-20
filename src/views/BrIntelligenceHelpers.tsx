@@ -542,7 +542,10 @@ export function RadarSection({
 
   const maxDet = Math.max(1, ...rows.map((r) => r.detections));
   // Normalize every axis to 0–100 where bigger = better
-  const axisValue = (r: EfficiencyRow, key: (typeof metrics)[number]["key"]) => {
+  const axisValue = (
+    r: EfficiencyRow,
+    key: (typeof metrics)[number]["key"]
+  ) => {
     let v: number;
     if (key === "detections") v = (r.detections / maxDet) * 100;
     else if (key === "violations") v = 100 - (r.violation_rate ?? 0);
@@ -611,7 +614,10 @@ export function RadarSection({
             strokeWidth="1.5"
           >
             <path d="M12 3l8.5 6.2-3.2 10H6.7L3.5 9.2 12 3z" />
-            <path d="M12 3v16.2M3.5 9.2l17 0M6.7 19.2L20.5 9.2M17.3 19.2L3.5 9.2" opacity="0.4" />
+            <path
+              d="M12 3v16.2M3.5 9.2l17 0M6.7 19.2L20.5 9.2M17.3 19.2L3.5 9.2"
+              opacity="0.4"
+            />
           </svg>
           <p className="text-sm text-muted-foreground">
             {t(
@@ -702,7 +708,9 @@ export function RadarSection({
               >
                 <span
                   className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: RADAR_COLORS[idx % RADAR_COLORS.length] }}
+                  style={{
+                    background: RADAR_COLORS[idx % RADAR_COLORS.length],
+                  }}
                 />
                 {r.branch}
               </span>
@@ -716,12 +724,27 @@ export function RadarSection({
 
 /* ---------------- new section helpers ---------------- */
 
-export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
+export function BranchComparisonSection({
+  rows,
+  branches = [],
+}: {
+  rows: EfficiencyRow[];
+  /** Full branch list (id+name) so the A/B selects always have options, even
+      before per-branch efficiency data is computed — parity with the OLD
+      "Select Branch A / Select Branch B" panel. */
+  branches?: { id: string; name: string }[];
+}) {
   const { t } = useTranslation();
   const [selectedA, setSelectedA] = useState<string>("");
   const [selectedB, setSelectedB] = useState<string>("");
 
-  if (rows.length === 0) return <Skeleton className="h-40 w-full" />;
+  // Options come from the branch list when available, otherwise fall back to
+  // whatever branches appear in the efficiency rows. We never blank out the
+  // whole section: the selects always render so the user can pick two branches.
+  const branchOptions =
+    branches.length > 0
+      ? branches.map((b) => ({ value: b.name, label: b.name }))
+      : rows.map((r) => ({ value: r.branch, label: r.branch }));
 
   const branchA = rows.find((r) => r.branch === selectedA);
   const branchB = rows.find((r) => r.branch === selectedB);
@@ -753,10 +776,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
           <span className="h-3 w-3 rounded-full bg-indigo-500" />
           <div className="min-w-[200px]">
             <AsyncPaginatedSelect
-              options={rows.map((r) => ({
-                value: r.branch,
-                label: r.branch,
-              }))}
+              options={branchOptions}
               value={selectedA || null}
               onChange={(v) => setSelectedA(v ?? "")}
               placeholder={t("intel.selectBranchA", "Select Branch A")}
@@ -770,10 +790,7 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
           <span className="h-3 w-3 rounded-full bg-teal-500" />
           <div className="min-w-[200px]">
             <AsyncPaginatedSelect
-              options={rows.map((r) => ({
-                value: r.branch,
-                label: r.branch,
-              }))}
+              options={branchOptions}
               value={selectedB || null}
               onChange={(v) => setSelectedB(v ?? "")}
               placeholder={t("intel.selectBranchB", "Select Branch B")}
@@ -788,97 +805,122 @@ export function BranchComparisonSection({ rows }: { rows: EfficiencyRow[] }) {
         <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
           <TrendingUp className="h-9 w-9 text-slate-300" />
           <p className="text-sm text-muted-foreground">
-            {t(
-              "intel.comparisonSelectPrompt",
-              "Select two branches above to compare their performance"
-            )}
+            {selectedA && selectedB
+              ? t(
+                  "intel.comparisonNoData",
+                  "No performance data available for the selected branches in this period"
+                )
+              : t(
+                  "intel.comparisonSelectPrompt",
+                  "Select two branches above to compare their performance"
+                )}
           </p>
         </div>
       ) : (
-      <div className="space-y-4">
-        {metrics.map((m) => {
-          const valA =
-            (branchA as unknown as Record<string, number>)[m.key] ?? 0;
-          const valB =
-            (branchB as unknown as Record<string, number>)[m.key] ?? 0;
-          const pctA = Math.max(0, Math.min(100, (valA / m.max) * 100));
-          const pctB = Math.max(0, Math.min(100, (valB / m.max) * 100));
-          const winner = m.invert
-            ? valA < valB
-              ? "A"
-              : valB < valA
-                ? "B"
-                : "tie"
-            : valA > valB
-              ? "A"
-              : valB > valA
-                ? "B"
-                : "tie";
-          return (
-            <div
-              key={m.key}
-              className="space-y-1.5"
-            >
-              <div className="flex justify-between text-xs font-medium text-slate-500">
-                <span>{t(m.label, m.label.split(".").pop() ?? m.label)}</span>
-                {winner !== "tie" && (
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      winner === "A"
-                        ? "bg-indigo-100 text-indigo-700"
-                        : "bg-teal-100 text-teal-700"
-                    )}
-                  >
-                    {winner === "A" ? branchA?.branch : branchB?.branch}{" "}
-                    {t("intel.wins", "wins")}
-                  </span>
-                )}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-28 truncate text-xs text-slate-600">
-                    {branchA?.branch}
-                  </span>
-                  <div className="flex-1">
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className={cn("h-full rounded-full transition-all",
-                          m.invert && pctA > 50 ? "bg-rose-500" : "bg-indigo-500")}
-                        style={{ width: `${pctA}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className={cn("w-12 text-end text-xs font-semibold tabular-nums",
-                    m.invert && valA > 50 ? "text-rose-600" : "text-indigo-600")}>
-                    {valA.toFixed(1)}
-                    {m.unit}
-                  </span>
+        <div className="space-y-4">
+          {metrics.map((m) => {
+            const valA =
+              (branchA as unknown as Record<string, number>)[m.key] ?? 0;
+            const valB =
+              (branchB as unknown as Record<string, number>)[m.key] ?? 0;
+            const pctA = Math.max(0, Math.min(100, (valA / m.max) * 100));
+            const pctB = Math.max(0, Math.min(100, (valB / m.max) * 100));
+            const winner = m.invert
+              ? valA < valB
+                ? "A"
+                : valB < valA
+                  ? "B"
+                  : "tie"
+              : valA > valB
+                ? "A"
+                : valB > valA
+                  ? "B"
+                  : "tie";
+            return (
+              <div
+                key={m.key}
+                className="space-y-1.5"
+              >
+                <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <span>{t(m.label, m.label.split(".").pop() ?? m.label)}</span>
+                  {winner !== "tie" && (
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        winner === "A"
+                          ? "bg-indigo-100 text-indigo-700"
+                          : "bg-teal-100 text-teal-700"
+                      )}
+                    >
+                      {winner === "A" ? branchA?.branch : branchB?.branch}{" "}
+                      {t("intel.wins", "wins")}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-28 truncate text-xs text-slate-600">
-                    {branchB?.branch}
-                  </span>
-                  <div className="flex-1">
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className={cn("h-full rounded-full transition-all",
-                          m.invert && pctB > 50 ? "bg-rose-500" : "bg-teal-500")}
-                        style={{ width: `${pctB}%` }}
-                      />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-28 truncate text-xs text-slate-600">
+                      {branchA?.branch}
+                    </span>
+                    <div className="flex-1">
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            m.invert && pctA > 50
+                              ? "bg-rose-500"
+                              : "bg-indigo-500"
+                          )}
+                          style={{ width: `${pctA}%` }}
+                        />
+                      </div>
                     </div>
+                    <span
+                      className={cn(
+                        "w-12 text-end text-xs font-semibold tabular-nums",
+                        m.invert && valA > 50
+                          ? "text-rose-600"
+                          : "text-indigo-600"
+                      )}
+                    >
+                      {valA.toFixed(1)}
+                      {m.unit}
+                    </span>
                   </div>
-                  <span className={cn("w-12 text-end text-xs font-semibold tabular-nums",
-                    m.invert && valB > 50 ? "text-rose-600" : "text-teal-600")}>
-                    {valB.toFixed(1)}
-                    {m.unit}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-28 truncate text-xs text-slate-600">
+                      {branchB?.branch}
+                    </span>
+                    <div className="flex-1">
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            m.invert && pctB > 50
+                              ? "bg-rose-500"
+                              : "bg-teal-500"
+                          )}
+                          style={{ width: `${pctB}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        "w-12 text-end text-xs font-semibold tabular-nums",
+                        m.invert && valB > 50
+                          ? "text-rose-600"
+                          : "text-teal-600"
+                      )}
+                    >
+                      {valB.toFixed(1)}
+                      {m.unit}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -1040,19 +1082,34 @@ export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
           <thead className="border-b bg-muted/40">
             <tr>
               <th className="w-8" />
-              <SortHead k="branch" className="min-w-[130px]">
+              <SortHead
+                k="branch"
+                className="min-w-[130px]"
+              >
                 {t("intel.branch", "Branch")}
               </SortHead>
-              <SortHead k="cameras_online" className="w-28 text-center">
+              <SortHead
+                k="cameras_online"
+                className="w-28 text-center"
+              >
                 📷 {t("intel.cameras", "Cameras")}
               </SortHead>
-              <SortHead k="detections" className="w-28 text-center">
+              <SortHead
+                k="detections"
+                className="w-28 text-center"
+              >
                 {t("intel.detections", "Detections")}
               </SortHead>
-              <SortHead k="violations" className="w-28 text-center">
+              <SortHead
+                k="violations"
+                className="w-28 text-center"
+              >
                 {t("analytics.violations", "Violations")}
               </SortHead>
-              <SortHead k="viol_pct" className="w-20 text-center">
+              <SortHead
+                k="viol_pct"
+                className="w-20 text-center"
+              >
                 {t("intel.violPct", "Viol %")}
               </SortHead>
               <th className="w-24 px-3 py-2 text-start text-xs font-semibold text-muted-foreground">
@@ -1182,7 +1239,10 @@ export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
                   {/* Expanded drill-down: service breakdown + recent activity */}
                   {isExp && (
                     <tr className="border-b bg-rose-50/30">
-                      <td colSpan={8} className="px-6 pb-4 pt-1">
+                      <td
+                        colSpan={8}
+                        className="px-6 pb-4 pt-1"
+                      >
                         <div className="flex flex-wrap gap-8">
                           <div className="min-w-[220px]">
                             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-rose-500">
@@ -1512,8 +1572,18 @@ export function ForecastSection({
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
-          <svg viewBox="0 0 24 24" className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6" strokeDasharray="3 3"/>
+          <svg
+            viewBox="0 0 24 24"
+            className="h-6 w-6 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M3 3v18h18" />
+            <path
+              d="M7 16l4-8 4 4 4-6"
+              strokeDasharray="3 3"
+            />
           </svg>
         </div>
         <div>
@@ -1521,7 +1591,10 @@ export function ForecastSection({
             {t("intel.noForecastData", "Insufficient Data for Forecasting")}
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {t("intel.forecastRequirement", "At least 2 days of detection data are required for trend analysis")}
+            {t(
+              "intel.forecastRequirement",
+              "At least 2 days of detection data are required for trend analysis"
+            )}
           </p>
         </div>
       </div>
@@ -1929,7 +2002,10 @@ function PeriodDailyChart({ data }: { data: PeriodComparisonPayload }) {
 
   return (
     <div className="w-full">
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-52 w-full">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-52 w-full"
+      >
         {ticks.map((tv, i) => (
           <g key={i}>
             <line

@@ -18,7 +18,7 @@ export interface MyTaskItem {
   title: string;
   description: string;
   type: string;
-  priority: "low" | "medium" | "high" | "urgent" | string;
+  priority: "low" | "medium" | "high" | "critical" | string;
   status: "pending" | "assigned" | "in_progress" | "pending_review" | "completed" | "cancelled" | string;
   assignedTo: string;
   branch: string;

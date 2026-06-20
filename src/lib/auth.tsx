@@ -38,6 +38,8 @@ export interface AuthUser {
   avatar?: string;
   role: "admin" | "user";
   permissions: string[];
+  /** Fatoorah client id — present when the account has connected Fatoorah. */
+  fatoorahClientId?: string | number | null;
   /**
    * True when the backend profile payload actually contained a `roles` or
    * `permissions` field. Used to distinguish "this account type has no RBAC"
@@ -144,6 +146,7 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
     role: isAdminRole ? "admin" : "user",
     permissions,
     rbacProvided,
+    fatoorahClientId: raw?.fatoorah_client_id ?? null,
   };
 }
 

@@ -524,7 +524,7 @@ function BoardCard({
   const { t } = useTranslation();
 
   const priorityTone =
-    task.priority === "urgent"
+    task.priority === "critical"
       ? "bg-destructive text-destructive-foreground"
       : task.priority === "high"
         ? "bg-orange-500/15 text-orange-700 border-orange-500/30"

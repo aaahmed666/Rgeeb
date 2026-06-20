@@ -181,7 +181,12 @@ export const endpoints = {
     create: "/customer/tasks/create",
     update: "/customer/tasks/update",
     delete: "/customer/tasks/delete",
-    status: "/customer/tasks/update", // Postman: POST /update with { id, status } — no separate status endpoint
+    // Dedicated status endpoint (OLD production contract): POST { id, status }.
+    // This is a lightweight status-only change and must NOT be routed through
+    // /update, which is the full-update endpoint that validates every field
+    // (name, priority, etc.) and silently resets the task when they're absent —
+    // that was making drag-and-drop snap the card back to its old column.
+    status: "/customer/tasks/status",
     dashboard: "/customer/tasks/dashboard",
     branches: "/customer/branches",
     // OLD production task-detail contract (not in Postman; kept for parity):
@@ -190,7 +195,9 @@ export const endpoints = {
     logs: "/customer/tasks/logs", // GET  ?id=&per_page=
     children: "/customer/tasks/children", // GET  ?id= — subtasks of a parent
     attachment: "/customer/tasks/attachment", // POST multipart { id, file }
-    legacyStatus: "/customer/tasks/status", // POST { id, status } — OLD path
+    // Fallback path if the primary status endpoint is unavailable on a given
+    // backend build: route the status change through the full-update endpoint.
+    legacyStatus: "/customer/tasks/update",
   },
 
   // ── My Tasks ─────────────────────────────────────────────────────────────────

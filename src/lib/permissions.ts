@@ -20,7 +20,13 @@ export const normPerm = (s: string): string =>
  */
 export const PERMISSION_ALIASES: Record<string, string[]> = {
   // ── Dashboard & Overview ──
-  dashboard: ["detections", "analytics", "branches", "service_monitor", "task_management"],
+  dashboard: [
+    "detections",
+    "analytics",
+    "branches",
+    "service_monitor",
+    "task_management",
+  ],
   // ── AI Services ──
   ai_services: ["detections", "analytics", "service_monitor"],
   detection_feed: ["detections"],
@@ -63,7 +69,12 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   // ── Reports & Other ──
   report_center: ["reports"],
   subscription: ["subscriptions"],
-  productivity: ["productivity"],
+  // Productivity sits under Insights. The OLD project gated it on `roles`
+  // (same as Branch Intelligence), and the backend doesn't expose a dedicated
+  // `productivity` namespace — so map it to the namespaces the other visible
+  // Insights items use (analytics / roles), plus its own, so it shows whenever
+  // any of those is granted.
+  productivity: ["productivity", "analytics", "roles"],
   // ── Foodics ──
   foodics: ["foodics"],
   foodics_connection: ["foodics"],
@@ -91,9 +102,7 @@ export function permissionMatchesAny(
   const candidates = resolvePermissionCandidates(resource);
   return userPerms.some((p) => {
     const np = normPerm(p);
-    return candidates.some(
-      (c) => np === c || np.startsWith(`${c}_`)
-    );
+    return candidates.some((c) => np === c || np.startsWith(`${c}_`));
   });
 }
 
@@ -161,4 +170,3 @@ export function canAccess(
   // Bare resource key → viewing requires read.
   return permissionMatchesAction(perm, "read", userPerms);
 }
-

@@ -263,7 +263,7 @@ function TaskCard({ task, onStart, onComplete, starting, completing }: TaskCardP
   const isReview = REVIEW_STATUSES.has(status);
 
   const borderColor =
-    task.overdue || priority === "urgent"
+    task.overdue || priority === "critical"
       ? "border-l-rose-500"
       : priority === "high"
         ? "border-l-orange-500"
@@ -420,8 +420,8 @@ function statusLabel(s: string, t: TFn) {
 
 function priorityLabel(p: string, t: TFn) {
   switch (p) {
-    case "urgent":
-      return t("myTasks.priorityUrgent", "urgent");
+    case "critical":
+      return t("myTasks.priorityCritical", "critical");
     case "high":
       return t("myTasks.priorityHigh", "high");
     case "medium":
@@ -435,7 +435,7 @@ function priorityLabel(p: string, t: TFn) {
 
 function priorityClass(p: string) {
   switch (p) {
-    case "urgent":
+    case "critical":
       return "border-rose-500 text-rose-600";
     case "high":
       return "border-orange-500 text-orange-600";

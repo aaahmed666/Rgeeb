@@ -95,7 +95,7 @@ import {
 } from "@/views/BrIntelligenceHelpers";
 
 export default function BrIntelligenceView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { hasPermission } = useAuth();
 
   // UI state
@@ -209,7 +209,12 @@ export default function BrIntelligenceView() {
         </p>
       </div>
       {/* Banner — hidden when printing */}
-      <div className="no-print rounded-2xl p-5 text-white shadow-lg" style={{ background: "linear-gradient(to right, #0f172a, #1e293b, #1e1b4b)" }}>
+      <div
+        className="no-print rounded-2xl p-5 text-white shadow-lg"
+        style={{
+          background: "linear-gradient(to right, #0f172a, #1e293b, #1e1b4b)",
+        }}
+      >
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
             <div className="rounded-xl bg-indigo-500/20 p-3 backdrop-blur-sm">
@@ -290,10 +295,19 @@ export default function BrIntelligenceView() {
               onClick={async () => {
                 try {
                   const token = getAuthToken();
-                  const params = new URLSearchParams({ date_from: from, date_to: to, type: "full" });
-                  const res = await fetch(`/api/customer/branch-intelligence/export-report?${params}`, {
-                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                  const params = new URLSearchParams({
+                    date_from: from,
+                    date_to: to,
+                    type: "full",
                   });
+                  const res = await fetch(
+                    `/api/customer/branch-intelligence/export-report?${params}`,
+                    {
+                      headers: {
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                      },
+                    }
+                  );
                   if (!res.ok) throw new Error(`Export failed (${res.status})`);
                   const blob = await res.blob();
                   const objectUrl = URL.createObjectURL(blob);
@@ -339,7 +353,12 @@ export default function BrIntelligenceView() {
                 // Increased timeout to allow complex charts/tables to fully render before print
                 setTimeout(() => {
                   const htmlEl = document.documentElement;
-                  const prevDir = htmlEl.getAttribute("dir") ?? "ltr";
+                  // Derive the app's real direction from the active language
+                  // rather than the current DOM attribute — a previously
+                  // cancelled print could have left a stale `dir="rtl"` on
+                  // <html>, and reading that would make us "restore" to the
+                  // wrong (reversed) direction.
+                  const prevDir = i18n.dir();
 
                   const printWrapper = document.querySelector(
                     ".print-rtl"
@@ -415,8 +434,18 @@ export default function BrIntelligenceView() {
 
                   htmlEl.setAttribute("dir", "rtl");
 
+                  let restored = false;
                   const restoreAfterPrint = () => {
-                    htmlEl.setAttribute("dir", prevDir);
+                    // Idempotent: afterprint can fire more than once, and we
+                    // also call this from a safety timeout. Restoring twice
+                    // would clobber the saved styles, so guard against it.
+                    if (restored) return;
+                    restored = true;
+                    // Always restore to the document's real default direction.
+                    // Reading getAttribute can yield null/"rtl" depending on the
+                    // app shell, so fall back to the captured prevDir and, if
+                    // that itself was already "rtl" by mistake, to "ltr".
+                    htmlEl.setAttribute("dir", prevDir || "ltr");
                     saved.forEach(
                       ({ el, direction, textAlign, flexDirection }) => {
                         el.style.direction = direction;
@@ -424,10 +453,25 @@ export default function BrIntelligenceView() {
                         el.style.flexDirection = flexDirection;
                       }
                     );
+                    if (printWrapper) {
+                      printWrapper.style.removeProperty("width");
+                      printWrapper.style.removeProperty("direction");
+                    }
+                    document
+                      .querySelectorAll("[data-section-id]")
+                      .forEach((el) => {
+                        (el as HTMLElement).style.removeProperty("width");
+                      });
                     setPrintMode(false);
                     setSectionsWithData(new Set());
                     window.removeEventListener("afterprint", restoreAfterPrint);
+                    if (fallbackTimer) clearTimeout(fallbackTimer);
                   };
+                  // Safety net: some browsers don't reliably fire `afterprint`
+                  // when the print dialog is cancelled, which previously left
+                  // the whole page stuck in RTL. Restore unconditionally after
+                  // a short delay as a fallback.
+                  const fallbackTimer = setTimeout(restoreAfterPrint, 3000);
                   window.addEventListener("afterprint", restoreAfterPrint);
                   window.print();
                 }, 800);
@@ -807,7 +851,10 @@ export default function BrIntelligenceView() {
         openSection={openSection}
         setOpenSection={setOpenSection}
       >
-        <BranchComparisonSection rows={efficiency} />
+        <BranchComparisonSection
+          rows={efficiency}
+          branches={branches}
+        />
       </Section>
 
       {/* Performance Radar (simple list view) */}
@@ -824,7 +871,10 @@ export default function BrIntelligenceView() {
           </span>
         }
       >
-        <RadarSection rows={efficiency} onSelectionCount={setRadarCount} />
+        <RadarSection
+          rows={efficiency}
+          onSelectionCount={setRadarCount}
+        />
       </Section>
 
       {/* Hourly Peak Analysis */}
@@ -1028,7 +1078,10 @@ export default function BrIntelligenceView() {
                 {t("intel.noAnomalies", "No Anomalies Detected")}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {t("intel.noAnomaliesDesc", "All branches are operating within normal parameters")}
+                {t(
+                  "intel.noAnomaliesDesc",
+                  "All branches are operating within normal parameters"
+                )}
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
@@ -1042,7 +1095,8 @@ export default function BrIntelligenceView() {
               </span>
               <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
                 <Brain className="h-3 w-3" />
-                {efficiency.length} {t("intel.branchesMonitored", "branches monitored")}
+                {efficiency.length}{" "}
+                {t("intel.branchesMonitored", "branches monitored")}
               </span>
             </div>
           </div>

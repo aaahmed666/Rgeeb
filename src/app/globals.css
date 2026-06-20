@@ -250,6 +250,45 @@ a:not(.rs-btn):not([class*="rs-"]) {
   color: var(--foreground) !important;
 }
 
+/* Stacking + base surface for EVERY rsuite picker popup (single DatePicker as  */
+/* well as the DateRangePicker). rsuite ships these styles inside @layer rsuite */
+/* (lowest priority), so a Radix dialog's unlayered `z-50` can stack above the  */
+/* portalled popup and the calendar appears not to open. This UNLAYERED rule    */
+/* forces the popup above dialogs (dialog overlay/content sit at z-index 50).   */
+.rs-picker-popup {
+  z-index: 9999 !important;
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 8px 32px oklch(0 0 0 / 0.12) !important;
+  color: var(--foreground) !important;
+}
+
+/* Single-date calendar surface (no -daterange suffix) — give it the same look */
+/* as the range popup, which previously had no styling at all.                  */
+.rs-picker-popup .rs-calendar-table-cell-content:hover {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 12%,
+    transparent
+  ) !important;
+  color: var(--foreground) !important;
+}
+.rs-picker-popup
+  .rs-calendar-table-cell-selected
+  .rs-calendar-table-cell-content {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+.rs-picker-popup .rs-calendar-header-title,
+.rs-picker-popup .rs-calendar-header-title:hover {
+  color: var(--foreground) !important;
+}
+.dark .rs-picker-popup {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+}
+
 /* Predefined ranges sidebar */
 .rs-picker-popup-daterange .rs-picker-daterange-predefined {
   background-color: var(--card) !important;

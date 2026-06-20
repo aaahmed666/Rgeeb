@@ -42,6 +42,8 @@ export interface AuthUserRaw {
   token?: string;
   // Customer-specific
   client_id?: number | string | null;
+  // Fatoorah integration — when present the account can fetch financial reports.
+  fatoorah_client_id?: number | string | null;
   client?: Record<string, unknown> | null;
   country_id?: number | string | null;
   city_id?: number | string | null;

@@ -340,10 +340,18 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
         ? t("serviceMonitor.minutesAverage", "minutes average")
         : "Detection confidence";
 
-  const alertPct = alertStatus.percentage ?? 0;
   const critical = alertStatus.critical ?? 0;
   const warning = alertStatus.warning ?? 0;
   const normal = alertStatus.normal ?? 0;
+  // Parity with the OLD ServiceMonitor donut: the backend doesn't always send a
+  // `percentage`, so derive the "safe" share from the actual counts. With
+  // 0 critical / 0 warning / 35 normal this is 100% (not NO DATA). Only when
+  // there are no detections at all (total === 0) do we show NO DATA.
+  const alertTotal = critical + warning + normal;
+  const hasAlertData = alertTotal > 0;
+  const alertPct = hasAlertData
+    ? (alertStatus.percentage ?? Math.round((normal / alertTotal) * 100))
+    : 0;
 
   const maxBar = Math.max(...perHour.map((h) => h.count), 1);
   // Total shown on the chart header = sum of the charted buckets, so it stays
@@ -513,6 +521,15 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     cy = 64;
   const circumference = 2 * Math.PI * r;
   const dash = (arcPct / 100) * circumference;
+  // Ring colour mirrors the OLD donut: green when mostly safe, amber in the
+  // middle band, red when the safe share is low. Grey only when there's no data.
+  const arcColor = !hasAlertData
+    ? "#e2e8f0"
+    : arcPct >= 90
+      ? "#22c55e"
+      : arcPct >= 70
+        ? "#f59e0b"
+        : "#ef4444";
 
   return (
     <div className="space-y-5 p-4 sm:p-6">
@@ -672,7 +689,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                 cy={cy}
                 r={r}
                 fill="none"
-                stroke={arcPct === 0 ? "#e2e8f0" : "#22c55e"}
+                stroke={arcColor}
                 strokeWidth={14}
                 strokeDasharray={`${dash} ${circumference}`}
                 strokeLinecap="round"
@@ -687,7 +704,7 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                 fontSize="18"
                 fontWeight="bold"
               >
-                {arcPct === 0 ? "--" : `${arcPct}%`}
+                {hasAlertData ? `${arcPct}%` : "--"}
               </text>
               <text
                 x={cx}
@@ -696,9 +713,9 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
                 fill="#94a3b8"
                 fontSize="11"
               >
-                {arcPct === 0
-                  ? t("serviceMonitor.noData", "NO DATA")
-                  : t("serviceMonitor.safe", "SAFE")}
+                {hasAlertData
+                  ? t("serviceMonitor.safe", "SAFE")
+                  : t("serviceMonitor.noData", "NO DATA")}
               </text>
             </svg>
 

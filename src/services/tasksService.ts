@@ -26,7 +26,7 @@ export interface TaskItem {
   id: string;
   title: string;
   type: string;
-  priority: "low" | "medium" | "high" | "urgent" | string;
+  priority: "low" | "medium" | "high" | "critical" | string;
   status:
     | "new"
     | "pending"
@@ -392,11 +392,28 @@ export const tasksService = {
     }
   },
 
-  dashboard: () =>
+  dashboard: (params?: {
+    assignedToMe?: boolean;
+    branchId?: string;
+    from?: string;
+    to?: string;
+  }) =>
     safe(
       (async () => {
         const raw = await api.get<Record<string, unknown>>(
-          endpoints.tasks.dashboard
+          endpoints.tasks.dashboard,
+          {
+            query: {
+              // Old dashboard contract: only user's own tasks by default.
+              assigned_to_me: params?.assignedToMe ? 1 : undefined,
+              branch_id:
+                params?.branchId && params.branchId !== "all"
+                  ? params.branchId
+                  : undefined,
+              date_from: params?.from,
+              date_to: params?.to,
+            },
+          }
         );
         const r = (raw?.data as Record<string, unknown>) ?? raw ?? {};
         const toNumMap = (o: unknown): Record<string, number> => {
@@ -557,9 +574,17 @@ export const tasksService = {
   },
 
   /**
-   * Update only the status field.
-   * POST /customer/tasks/status  { id, status }
-   * (dedicated endpoint — does NOT require a name field)
+   * Update only the status field — used by the Kanban drag-and-drop.
+   *
+   * Primary: POST /customer/tasks/status { id, status } — the dedicated
+   * status-only endpoint (OLD production contract). It does NOT validate the
+   * other task fields, so the change sticks and the board re-fetch reflects it.
+   *
+   * Fallback (only if the dedicated endpoint is unavailable): POST
+   * /customer/tasks/update with the task's CURRENT full payload, changing just
+   * the status. We must send the complete record here because /update validates
+   * every field (name, title, priority, …) and will reject or reset the task
+   * when they're missing — which previously made the dragged card snap back.
    */
   updateStatus: async (id: string, status: string): Promise<TaskItem> => {
     try {
@@ -570,12 +595,30 @@ export const tasksService = {
       const r = (raw?.data as Record<string, unknown>) ?? raw;
       return mapTask(r, 0);
     } catch {
-      // OLD production contract fallback: POST /customer/tasks/status { id, status }.
-      // If this also fails, rethrow — the UI has onError handling and a fake
-      // success stub here would show a false "Status updated" toast.
+      // Fallback path. Hydrate the task first so the /update call carries a
+      // complete, valid payload rather than just { id, status }.
+      const current = await tasksService.single(id);
+      const fullPayload: TaskPayload & { id: string } = {
+        id,
+        status,
+        name: current?.title ?? "Task",
+        title: current?.title ?? "Task",
+        description: current?.description,
+        type: current?.type,
+        priority: current?.priority,
+        time: current?.time,
+        scheduled_date: current?.scheduledDate,
+        start_date: current?.startDate,
+        end_date: current?.endDate,
+        project_id: current?.projectId,
+        department_id: current?.departmentId,
+        recurring_every_days: current?.recurringEveryDays,
+        assigned_user_ids: current?.assignedUserIds,
+        branch_ids: current?.branchIds,
+      };
       const raw = await api.post<Record<string, unknown>>(
         endpoints.tasks.legacyStatus,
-        { id, status }
+        buildTaskBody(fullPayload)
       );
       const r = (raw?.data as Record<string, unknown>) ?? raw;
       return mapTask(r, 0);

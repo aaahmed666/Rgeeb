@@ -14,6 +14,8 @@ import {
   Users,
   Loader2,
   ShieldAlert,
+  PlugZap,
+  AlertTriangle,
 } from "lucide-react";
 import type { DateRange } from "rsuite/DateRangePicker";
 
@@ -79,7 +81,7 @@ const PRESETS: [Preset, string][] = [
 
 export default function StatisticsView() {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange | null>(rangeFor("30d"));
   const [activePreset, setActivePreset] = useState<Preset>("30d");
   const [tab, setTab] = useState<ReportTab>("customers");
@@ -127,6 +129,29 @@ export default function StatisticsView() {
 
   // Read guard handled via auth aliases — isAdmin bypasses all
 
+  // Fatoorah connection gate (parity with old Overview page): reports can only
+  // be fetched when the account has a Fatoorah client id.
+  const hasFatoorahId = useMemo(() => {
+    if (user?.fatoorahClientId != null && user.fatoorahClientId !== "") {
+      return true;
+    }
+    // Fallback: read the raw stored profile in case the field wasn't mapped.
+    try {
+      const raw =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("app.auth.user") ??
+            window.sessionStorage.getItem("app.auth.user")
+          : null;
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const fid =
+        parsed.fatoorahClientId ?? parsed.fatoorah_client_id ?? null;
+      return fid != null && fid !== "";
+    } catch {
+      return false;
+    }
+  }, [user?.fatoorahClientId]);
+
   // Permission read guard
   if (!hasPermission("statistics")) {
     return (
@@ -152,7 +177,7 @@ export default function StatisticsView() {
           <p className="text-sm text-muted-foreground">
             {t(
               "reports.subtitle",
-              "Comprehensive analytics across your business"
+              "Comprehensive financial analytics powered by Fatoorah"
             )}
           </p>
         </div>
@@ -168,8 +193,37 @@ export default function StatisticsView() {
         </div>
       )}
 
-      {/* Filter card — all controls in ONE row */}
-      <Card className="overflow-hidden border-border shadow-sm">
+      {/* Fatoorah not connected — gate (matches old Overview page) */}
+      {!hasFatoorahId ? (
+        <Card className="border-border shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <div className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-amber-400/40 bg-gradient-to-br from-amber-400/15 to-amber-400/5 text-amber-500">
+              <PlugZap className="h-11 w-11" />
+            </div>
+            <h2 className="mb-2 text-lg font-bold">
+              {t("reports.fatoorahNotConnected", "Fatoorah Not Connected")}
+            </h2>
+            <p className="mb-5 max-w-md text-sm text-muted-foreground">
+              {t(
+                "reports.fatoorahConnectHint",
+                "Please connect your Fatoorah account to fetch financial reports. Go to Settings → Fatoorah Integration to link your account."
+              )}
+            </p>
+            <div className="flex max-w-lg items-start gap-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-start text-sm text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                {t(
+                  "reports.fatoorahNoClientId",
+                  "Your account does not have a Fatoorah Client ID. Reports cannot be loaded until you connect."
+                )}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Filter card — all controls in ONE row */}
+          <Card className="overflow-hidden border-border shadow-sm">
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-2">
             {/* Quick presets */}
@@ -270,6 +324,8 @@ export default function StatisticsView() {
           </Tabs>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }
