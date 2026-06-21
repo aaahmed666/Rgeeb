@@ -155,8 +155,8 @@ export default function FoodicsDashboardPage() {
           <TrendingUp className="w-5 h-5 text-primary" />
           {t("navigation.foodicsIntelligence")}
         </h1>
-        <div className="flex flex-wrap gap-2">
-          <div className="w-48">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-full sm:w-44">
             <AsyncPaginatedSelect
               endpoint="/customer/branches"
               labelKey="name"
@@ -169,6 +169,7 @@ export default function FoodicsDashboardPage() {
             />
           </div>
           <SharedDateRangePicker
+            className="rs-compact w-full sm:w-64"
             value={dateRange}
             onChange={setDateRange}
           />

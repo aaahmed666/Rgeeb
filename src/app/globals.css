@@ -225,6 +225,24 @@ a:not(.rs-btn):not([class*="rs-"]) {
   border-radius: var(--radius) !important;
 }
 
+/* ── Compact variant: matches the 38px select height + smaller text so the    */
+/* date range control lines up with the Branch/Status selects on filter rows. */
+.rs-picker-wrap.rs-compact .rs-picker-toggle {
+  min-height: 38px !important;
+  height: 38px !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+  font-size: 0.8125rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+.rs-picker-wrap.rs-compact .rs-picker-toggle .rs-picker-toggle-placeholder,
+.rs-picker-wrap.rs-compact .rs-picker-toggle .rs-picker-toggle-value,
+.rs-picker-wrap.rs-compact .rs-picker-toggle .rs-picker-toggle-textbox {
+  font-size: 0.8125rem !important;
+  line-height: 1.25 !important;
+}
+
 .rs-picker-wrap
   .rs-picker-daterange
   .rs-picker-toggle

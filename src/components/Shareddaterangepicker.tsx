@@ -203,7 +203,15 @@ const SharedDateRangePicker = ({
   return (
     <div
       ref={wrapRef}
-      className={["rs-picker-wrap w-full", className].filter(Boolean).join(" ")}
+      className={[
+        "rs-picker-wrap",
+        // Default to full width, but let a caller-supplied width class win by
+        // omitting w-full when className already sets a width (w-*, max-w-*).
+        className && /(^|\s)(w-|max-w-)/.test(className) ? "" : "w-full",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       dir={isRtl ? "rtl" : "ltr"}
     >
       {label && (

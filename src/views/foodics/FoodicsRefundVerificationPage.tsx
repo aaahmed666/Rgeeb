@@ -253,8 +253,8 @@ export default function FoodicsRefundVerificationPage() {
 
       {/* Filters + Table */}
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-col sm:flex-row sm:flex-nowrap items-stretch sm:items-center gap-3 mb-4">
-          <div className="w-full sm:w-48 sm:shrink-0">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="w-full sm:w-44">
             <AsyncPaginatedSelect
               endpoint="/customer/branches"
               labelKey="name"
@@ -269,7 +269,7 @@ export default function FoodicsRefundVerificationPage() {
               isClearable
             />
           </div>
-          <div className="w-full sm:w-48 sm:shrink-0">
+          <div className="w-full sm:w-44">
             <AsyncPaginatedSelect
               options={[
                 { value: "clear", label: t("foodics.refundStatusFilter.clear") },
@@ -286,12 +286,11 @@ export default function FoodicsRefundVerificationPage() {
               isClearable
             />
           </div>
-          <div className="w-full sm:flex-1 sm:min-w-0">
-            <SharedDateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
-            />
-          </div>
+          <SharedDateRangePicker
+            className="rs-compact w-full sm:w-64"
+            value={dateRange}
+            onChange={setDateRange}
+          />
         </div>
 
         <div>

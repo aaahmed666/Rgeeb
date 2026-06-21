@@ -224,7 +224,7 @@ export default function FoodicsInventoryAuditPage() {
           <div className="p-4">
             {/* Branch filter + Add Zone button */}
             <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
-              <div className="w-48">
+              <div className="w-full sm:w-44">
                 <AsyncPaginatedSelect
                   endpoint="/customer/branches"
                   labelKey="name"

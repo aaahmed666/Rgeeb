@@ -194,8 +194,8 @@ export default function FoodicsOrdersPage() {
 
       {/* Filters + Sync */}
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-48">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:flex-1 sm:min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
@@ -205,7 +205,7 @@ export default function FoodicsOrdersPage() {
               className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
-          <div className="w-48">
+          <div className="w-full sm:w-44">
             <AsyncPaginatedSelect
               endpoint="/customer/branches"
               labelKey="name"
@@ -220,23 +220,26 @@ export default function FoodicsOrdersPage() {
               isClearable
             />
           </div>
-          <AsyncPaginatedSelect
-            options={[
-              { value: "completed", label: t("foodics.orderStatus.completed") },
-              { value: "pending", label: t("foodics.orderStatus.pending") },
-              { value: "cancelled", label: t("foodics.orderStatus.cancelled") },
-              { value: "refunded", label: t("foodics.orderStatus.refunded") },
-            ]}
-            value={status || null}
-            onChange={(v) => {
-              setStatus(v ?? "");
-              setPage(1);
-            }}
-            placeholder={t("foodics.orderStatus.all")}
-            height={38}
-            isClearable
-          />
+          <div className="w-full sm:w-44">
+            <AsyncPaginatedSelect
+              options={[
+                { value: "completed", label: t("foodics.orderStatus.completed") },
+                { value: "pending", label: t("foodics.orderStatus.pending") },
+                { value: "cancelled", label: t("foodics.orderStatus.cancelled") },
+                { value: "refunded", label: t("foodics.orderStatus.refunded") },
+              ]}
+              value={status || null}
+              onChange={(v) => {
+                setStatus(v ?? "");
+                setPage(1);
+              }}
+              placeholder={t("foodics.orderStatus.all")}
+              height={38}
+              isClearable
+            />
+          </div>
           <SharedDateRangePicker
+            className="rs-compact w-full sm:w-64"
             value={dateRange}
             onChange={setDateRange}
           />

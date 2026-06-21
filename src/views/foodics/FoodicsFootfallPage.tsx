@@ -198,8 +198,8 @@ export default function FoodicsFootfallPage() {
 
         <div className="p-4">
           {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div className="w-48">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="w-full sm:w-44">
               <AsyncPaginatedSelect
                 endpoint="/customer/branches"
                 labelKey="name"
@@ -212,6 +212,7 @@ export default function FoodicsFootfallPage() {
               />
             </div>
             <SharedDateRangePicker
+              className="rs-compact w-full sm:w-64"
               value={dateRange}
               onChange={setDateRange}
             />

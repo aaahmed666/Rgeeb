@@ -291,8 +291,8 @@ export default function FoodicsDrawerAuditPage() {
           {activeTab === "audit" && (
             <>
               {/* Filters */}
-              <div className="flex flex-wrap gap-3 mb-4">
-                <div className="w-48">
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <div className="w-full sm:w-44">
                   <AsyncPaginatedSelect
                     endpoint="/customer/branches"
                     labelKey="name"
@@ -307,23 +307,26 @@ export default function FoodicsDrawerAuditPage() {
                     isClearable
                   />
                 </div>
-                <AsyncPaginatedSelect
-                  options={[
-                    { value: "matched", label: t("foodics.drawerStatus.matched") },
-                    { value: "unmatched", label: t("foodics.drawerStatus.unmatched") },
-                    { value: "suspicious", label: t("foodics.drawerStatus.suspicious") },
-                    { value: "critical", label: t("foodics.drawerStatus.critical") },
-                  ]}
-                  value={status || null}
-                  onChange={(v) => {
-                    setStatus(v ?? "");
-                    setPage(1);
-                  }}
-                  placeholder={t("foodics.drawerStatus.all")}
-                  height={38}
-                  isClearable
-                />
+                <div className="w-full sm:w-44">
+                  <AsyncPaginatedSelect
+                    options={[
+                      { value: "matched", label: t("foodics.drawerStatus.matched") },
+                      { value: "unmatched", label: t("foodics.drawerStatus.unmatched") },
+                      { value: "suspicious", label: t("foodics.drawerStatus.suspicious") },
+                      { value: "critical", label: t("foodics.drawerStatus.critical") },
+                    ]}
+                    value={status || null}
+                    onChange={(v) => {
+                      setStatus(v ?? "");
+                      setPage(1);
+                    }}
+                    placeholder={t("foodics.drawerStatus.all")}
+                    height={38}
+                    isClearable
+                  />
+                </div>
                 <SharedDateRangePicker
+                  className="rs-compact w-full sm:w-64"
                   value={dateRange}
                   onChange={setDateRange}
                 />
