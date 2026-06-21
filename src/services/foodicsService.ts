@@ -312,6 +312,13 @@ export const foodicsService = {
     api
       .get<{ data: FoodicsStatus }>(endpoints.foodics.status)
       .then((r) => r.data),
+  // Live health probe (parity with legacy production System Health page).
+  // Resolves true when the endpoint responds, false otherwise.
+  checkHealth: (): Promise<boolean> =>
+    api
+      .get(endpoints.foodics.health)
+      .then(() => true)
+      .catch(() => false),
   // Backend (parity with legacy app): GET /customer/foodics/connect
   //   → { data: { authorization_url } }
   // The legacy production system reads `authorization_url`; some newer feeds
@@ -670,7 +677,13 @@ export const foodicsService = {
     const data: FoodicsRefundVerification[] = rawRows.map((row) => {
       const conf = row.detection_confidence;
       return {
-        id: (row.id as number | string | undefined) ?? undefined,
+        // Verification record id (RefundVerificationResource.id). Kept distinct
+        // from order_ref because the manager review action posts to
+        // /refund-verifications/{id}/review using THIS id (parity with OLD app).
+        id:
+          (row.id as number | string | undefined) ??
+          (row.verification_id as number | string | undefined) ??
+          undefined,
         order_ref: String(row.foodics_order_id ?? row.id ?? ""),
         amount: num(row.refund_amount),
         type: (row.refund_type as string) ?? "",

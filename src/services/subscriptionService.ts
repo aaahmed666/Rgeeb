@@ -185,43 +185,18 @@ async function countResource(endpoint: string): Promise<number> {
 /**
  * Resource usage (cameras / branches).
  *
- * Parity with the OLD dashboard, which derived usage from real data:
- *   used  = number of items in /customer/cameras and /customer/branches
- *   total = package.max_cameras / package.max_branches
+ * Parity with the OLD dashboard, which derived usage from real data and never
+ * called a dedicated usage endpoint:
+ *   used  = number of items in /customer/cameras?all=1 and /customer/branches?all=1
+ *   total = package.max_cameras / package.max_branches (from /subscriptions/current)
  *
- * We first try the dedicated /customer/subscriptions/usage endpoint; if it is
- * unavailable or returns no real totals, we fall back to the old approach so
- * the meters still show meaningful numbers.
+ * The previous implementation probed /customer/subscriptions/usage first, but
+ * that endpoint does not exist on the backend and returned 404 on every load.
+ * We now compute usage the same way the old project did.
  */
 export async function fetchUsage(): Promise<ResourceUsage> {
-  // 1) Try the dedicated usage endpoint.
   try {
-    const res = await apiFetch<Record<string, unknown>>(
-      endpoints.subscription.usage
-    );
-    const data = ((res?.data as Record<string, unknown>) ?? res ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const cameras = (data.cameras ?? {}) as Record<string, unknown>;
-    const branches = (data.branches ?? {}) as Record<string, unknown>;
-    const camTotal = asNumber(cameras.total ?? cameras.limit, 0);
-    const brTotal = asNumber(branches.total ?? branches.limit, 0);
-    // Only trust this endpoint if it actually returned limits.
-    if (camTotal > 0 || brTotal > 0) {
-      return {
-        cameras: { used: asNumber(cameras.used), total: camTotal || 50 },
-        branches: { used: asNumber(branches.used), total: brTotal || 50 },
-      };
-    }
-  } catch {
-    // fall through to the OLD-style computation
-  }
-
-  // 2) Fallback: count resources + read limits from the package (OLD parity).
-  try {
-    const [sub, camerasCount, branchesCount] = await Promise.all([
-      fetchSubscription(),
+    const [camerasCount, branchesCount] = await Promise.all([
       countResource(endpoints.cameras.list),
       countResource(endpoints.organization.branches),
     ]);
@@ -239,8 +214,6 @@ export async function fetchUsage(): Promise<ResourceUsage> {
     } catch {
       // keep defaults
     }
-    // (sub kept for potential future use / ensures subscription is loaded)
-    void sub;
 
     return {
       cameras: { used: camerasCount, total: maxCameras || 50 },

@@ -164,6 +164,9 @@ export const endpoints = {
     webhook: "/customer/subscriptions/webhook", // payment gateway → backend
     transactions: "/customer/subscription-transactions",
     transactionSingle: "/customer/subscription-transactions/single",
+    // @deprecated Not implemented on the backend (returns 404). Usage is
+    // derived from /cameras + /branches counts and the package limits instead,
+    // for parity with the legacy production dashboard. Kept only for reference.
     usage: "/customer/subscriptions/usage",
     // Production contract (verified against the OLD system):
     //   list  → GET  /customer/services/available?all=1

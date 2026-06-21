@@ -130,7 +130,14 @@ export default function FoodicsRefundVerificationPage() {
 
   const submitReview = async () => {
     if (!reviewTarget || !verdict) return;
-    const reviewId = reviewTarget.id ?? reviewTarget.order_ref;
+    // Parity with legacy production system: the review endpoint expects the
+    // verification record id (RefundVerificationResource.id), NOT the POS
+    // order reference. Sending order_ref produced calls like /0/review.
+    const reviewId = reviewTarget.id;
+    if (reviewId == null || reviewId === "" || reviewId === 0) {
+      toast.error(t("foodics.reviewFailed", "Review failed"));
+      return;
+    }
     setSubmitting(true);
     try {
       await foodicsService.reviewRefund(reviewId, { verdict, notes });

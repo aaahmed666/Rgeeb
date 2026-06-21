@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CheckCircle2,
   Loader2,
   Plug,
   RefreshCw,
@@ -13,19 +12,29 @@ import {
   Receipt,
   ShieldCheck,
   Wallet,
-  LayoutGrid } from "lucide-react";
+  LayoutGrid,
+  Activity,
+  PlugZap,
+  HeartPulse,
+  Brain,
+  Webhook,
+  Cpu } from "lucide-react";
 import { foodicsService, FoodicsStatus } from "@/services/foodicsService";
 import { useAuth } from "@/lib/auth";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { usePermission } from "@/hooks/usePermission";
 
+// Service tiles — parity with the legacy production System Health page
+// (old src/pages/apps/foodics/health.tsx). Each service derives its status
+// from the connection + a live /health probe rather than a backend `services`
+// payload, and renders a gradient icon tile + pulsing status dot.
 const SERVICE_ICONS = [
-  { key: "foodics_api", labelKey: "foodics.svcApiLabel", descKey: "foodics.svcApiDesc" },
-  { key: "health_endpoint", labelKey: "foodics.svcHealthLabel", descKey: "foodics.svcHealthDesc" },
-  { key: "order_sync", labelKey: "foodics.svcOrderSyncLabel", descKey: "foodics.svcOrderSyncDesc" },
-  { key: "ai_workers", labelKey: "foodics.svcAiWorkersLabel", descKey: "foodics.svcAiWorkersDesc" },
-  { key: "webhook_receiver", labelKey: "foodics.svcWebhookLabel", descKey: "foodics.svcWebhookDesc" },
-  { key: "bridge_api", labelKey: "foodics.svcBridgeLabel", descKey: "foodics.svcBridgeDesc" },
+  { key: "foodics_api", labelKey: "foodics.svcApiLabel", descKey: "foodics.svcApiDesc", icon: PlugZap },
+  { key: "health_endpoint", labelKey: "foodics.svcHealthLabel", descKey: "foodics.svcHealthDesc", icon: HeartPulse },
+  { key: "order_sync", labelKey: "foodics.svcOrderSyncLabel", descKey: "foodics.svcOrderSyncDesc", icon: RefreshCw },
+  { key: "ai_workers", labelKey: "foodics.svcAiWorkersLabel", descKey: "foodics.svcAiWorkersDesc", icon: Brain },
+  { key: "webhook_receiver", labelKey: "foodics.svcWebhookLabel", descKey: "foodics.svcWebhookDesc", icon: Webhook },
+  { key: "bridge_api", labelKey: "foodics.svcBridgeLabel", descKey: "foodics.svcBridgeDesc", icon: Cpu },
 ];
 
 // Foodics Intelligence Modules — quick-access cards (parity with the legacy
@@ -81,14 +90,22 @@ export default function FoodicsConnectionPage() {
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Live health probe + last-checked time (parity with legacy production page).
+  const [healthOk, setHealthOk] = useState<boolean | null>(null);
+  const [lastChecked, setLastChecked] = useState<string>("");
 
   const fetchStatus = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
     try {
-      const data = await foodicsService.getStatus();
+      const [data, isHealthy] = await Promise.all([
+        foodicsService.getStatus(),
+        foodicsService.checkHealth(),
+      ]);
       setStatus(data);
+      setHealthOk(isHealthy);
+      setLastChecked(new Date().toLocaleTimeString());
     } catch {
       setError(t("foodics.loadStatusFailed"));
     } finally {
@@ -129,13 +146,29 @@ export default function FoodicsConnectionPage() {
     }
   };
 
-  const operationalCount = status
-    ? Object.values(status.services ?? {}).filter(Boolean).length
-    : 0;
+  // Derive each service's status the same way the legacy production page did,
+  // rather than trusting a backend `services` payload (which the status
+  // endpoint does not return — that was why this showed 0%/all-red).
+  //   foodics_api / order_sync / webhook_receiver → ok when connected
+  //   health_endpoint → ok when the live /health probe succeeds
+  //   ai_workers / bridge_api → always ok (configured pipelines)
+  const isConnected = !!status?.connected;
+  const serviceStatus: Record<string, "ok" | "warn" | "error"> = {
+    foodics_api: isConnected ? "ok" : "error",
+    health_endpoint:
+      healthOk === null ? "warn" : healthOk ? "ok" : "error",
+    order_sync: isConnected ? "ok" : "warn",
+    ai_workers: "ok",
+    webhook_receiver: isConnected ? "ok" : "warn",
+    bridge_api: "ok",
+  };
   const totalServices = SERVICE_ICONS.length;
-  const healthPct = status
-    ? Math.round((operationalCount / totalServices) * 100)
-    : 0;
+  const operationalCount = SERVICE_ICONS.filter(
+    (s) => serviceStatus[s.key] === "ok"
+  ).length;
+  const healthPct = Math.round((operationalCount / totalServices) * 100);
+  const healthColor =
+    healthPct >= 80 ? "#22c55e" : healthPct >= 50 ? "#f59e0b" : "#ef4444";
 
   if (loading) {
     return (
@@ -241,9 +274,8 @@ export default function FoodicsConnectionPage() {
               cy="40"
               r="34"
               fill="none"
-              stroke="currentColor"
+              stroke={healthColor}
               strokeWidth="8"
-              className="text-green-500"
               strokeDasharray={`${2 * Math.PI * 34}`}
               strokeDashoffset={`${2 * Math.PI * 34 * (1 - healthPct / 100)}`}
               strokeLinecap="round"
@@ -254,11 +286,16 @@ export default function FoodicsConnectionPage() {
           </span>
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-bold text-card-foreground">
+          <h2 className="text-xl font-bold text-card-foreground flex items-center gap-2">
+            <Activity className="w-6 h-6" />
             {t("foodics.systemHealth")}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {operationalCount}/{totalServices} {t("foodics.connectionStatus")}
+            {operationalCount}/{totalServices}{" "}
+            {t("foodics.servicesOperational", "services operational")}
+            {lastChecked
+              ? ` • ${t("foodics.lastChecked", "Last checked")}: ${lastChecked}`
+              : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -290,28 +327,31 @@ export default function FoodicsConnectionPage() {
       {/* Service Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {SERVICE_ICONS.map((svc) => {
-          const isUp =
-            status?.services?.[svc.key as keyof typeof status.services];
+          const st = serviceStatus[svc.key];
+          const Icon = svc.icon;
+          const tone =
+            st === "ok" ? "#22c55e" : st === "warn" ? "#f59e0b" : "#ef4444";
           return (
             <div
               key={svc.key}
-              className="rounded-xl border border-border bg-card p-4 flex items-start gap-3"
+              className="rounded-xl border border-border bg-card p-4 flex items-start gap-3 transition-transform hover:-translate-y-0.5"
             >
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  isUp
-                    ? "bg-green-100 dark:bg-green-900/30"
-                    : "bg-red-100 dark:bg-red-900/30"
-                }`}
+                className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 text-white"
+                style={{
+                  background: `linear-gradient(135deg, ${tone}, ${tone}99)`,
+                }}
               >
-                <CheckCircle2
-                  className={`w-5 h-5 ${isUp ? "text-green-600" : "text-red-500"}`}
-                />
+                <Icon className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`w-2 h-2 rounded-full ${isUp ? "bg-green-500" : "bg-red-500"}`}
+                    className="w-2.5 h-2.5 rounded-full animate-pulse"
+                    style={{
+                      background: tone,
+                      boxShadow: `0 0 8px ${tone}`,
+                    }}
                   />
                   <p className="text-sm font-semibold text-card-foreground">
                     {t(svc.labelKey)}

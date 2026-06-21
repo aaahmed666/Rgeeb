@@ -2446,7 +2446,9 @@
     "noMatch": "لا تطابق",
     "runAudit": "تشغيل التدقيق",
     "runningAudit": "جارٍ التشغيل…",
-    "rowsPerPage": "عدد الصفوف في الصفحة"
+    "rowsPerPage": "عدد الصفوف في الصفحة",
+    "servicesOperational": "خدمة تعمل",
+    "lastChecked": "آخر فحص"
   },
   "paginatedSelect": {
     "loading": "جارٍ تحميل الخيارات…",

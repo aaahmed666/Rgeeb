@@ -2446,7 +2446,9 @@
     "noMatch": "No match",
     "runAudit": "Run Audit",
     "runningAudit": "Running…",
-    "rowsPerPage": "Rows per page"
+    "rowsPerPage": "Rows per page",
+    "servicesOperational": "services operational",
+    "lastChecked": "Last checked"
   },
   "paginatedSelect": {
     "loading": "Loading options…",
