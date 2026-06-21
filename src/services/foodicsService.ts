@@ -351,10 +351,10 @@ export const foodicsService = {
         }>(endpoints.foodics.dashboardOverview, { query })
         .catch(() => ({ data: {} as Record<string, unknown> })),
       api
-        .get<{
-          data: Record<string, unknown>;
-        }>(endpoints.foodics.dashboardInsights, { query })
-        .catch(() => ({ data: {} as Record<string, unknown> })),
+        .get<Record<string, unknown>>(endpoints.foodics.dashboardInsights, {
+          query,
+        })
+        .catch(() => ({ data: {} }) as Record<string, unknown>),
       api
         .get<{
           data: Record<string, unknown>;
@@ -375,6 +375,8 @@ export const foodicsService = {
     const orders = get(ov, "orders");
     const conversion = get(ov, "conversion");
     const refunds = get(ov, "refunds");
+    const drawer = get(ov, "drawer");
+    const inventory = get(ov, "inventory");
     const prep = get(ov, "prep_time") ?? get(ov, "prep_times");
 
     const stats: FoodicsDashboardStats = flatStats
@@ -394,6 +396,9 @@ export const foodicsService = {
           inventory_audits_total: num(flatStats.inventory_audits_total),
         }
       : {
+          // Nested overview groups (parity with legacy dashboard.tsx:
+          // ov.orders / ov.conversion / ov.refunds / ov.drawer /
+          // ov.prep_time / ov.inventory).
           total_orders: num(get(orders, "total_orders")),
           total_revenue: num(get(orders, "total_revenue")),
           avg_ticket: num(get(orders, "avg_ticket")),
@@ -401,27 +406,74 @@ export const foodicsService = {
             (get(conversion, "conversion_rate") as number | null) ?? null,
           suspicious_refunds: num(get(refunds, "suspicious_count")),
           suspicious_refunds_pct: num(get(refunds, "suspicious_rate")),
-          drawer_flags: num(get(ov, "drawer_flags")),
-          drawer_flags_pct: num(get(ov, "drawer_flags_pct")),
+          drawer_flags: num(get(drawer, "flagged_count")),
+          drawer_flags_pct: num(get(drawer, "flagged_rate")),
           avg_kitchen_prep:
             (get(prep, "avg_kitchen_prep_seconds") as number | null) ?? null,
           avg_kitchen_matched_pct: num(get(prep, "match_rate")),
-          inventory_issues: num(get(ov, "inventory_issues")),
-          inventory_audits_total: num(get(ov, "inventory_audits_total")),
+          inventory_issues: num(get(inventory, "discrepancies")),
+          inventory_audits_total: num(get(inventory, "total_audits")),
         };
 
-    const ins = (insRes?.data ?? {}) as Record<string, unknown>;
-    const anomalies = Array.isArray(ins.anomalies)
-      ? (ins.anomalies as string[])
-      : [];
-    const ai_insights: FoodicsDashboardInsights = {
-      summary: String(ins.summary ?? ""),
-      anomalies,
-      all_clear:
-        typeof ins.all_clear === "boolean"
-          ? ins.all_clear
-          : anomalies.length === 0,
-    };
+    // Insights: the backend returns an array of insight objects
+    // ({ type, severity, title, message, metric, action }) — parity with legacy
+    // DashboardInsight[]. Some deployments wrap it as { data: [...] } or expose
+    // a newer { summary, anomalies, all_clear } object; handle all shapes.
+    const insPayload = insRes?.data;
+    let ai_insights: FoodicsDashboardInsights;
+    if (Array.isArray(insPayload)) {
+      const items = insPayload as Record<string, unknown>[];
+      const anomalies = items
+        .map((it) => {
+          const title = String(it.title ?? "");
+          const message = String(it.message ?? "");
+          return title && message
+            ? `${title}: ${message}`
+            : title || message;
+        })
+        .filter(Boolean);
+      ai_insights = {
+        summary: "",
+        anomalies,
+        all_clear: anomalies.length === 0,
+      };
+    } else {
+      const ins = (insPayload ?? {}) as Record<string, unknown>;
+      const nested = Array.isArray(ins.data)
+        ? (ins.data as Record<string, unknown>[])
+        : null;
+      if (nested) {
+        const anomalies = nested
+          .map((it) => {
+            const title = String(it.title ?? "");
+            const message = String(it.message ?? "");
+            return title && message
+              ? `${title}: ${message}`
+              : title || message;
+          })
+          .filter(Boolean);
+        ai_insights = {
+          summary: String(ins.summary ?? ""),
+          anomalies,
+          all_clear:
+            typeof ins.all_clear === "boolean"
+              ? ins.all_clear
+              : anomalies.length === 0,
+        };
+      } else {
+        const anomalies = Array.isArray(ins.anomalies)
+          ? (ins.anomalies as string[])
+          : [];
+        ai_insights = {
+          summary: String(ins.summary ?? ""),
+          anomalies,
+          all_clear:
+            typeof ins.all_clear === "boolean"
+              ? ins.all_clear
+              : anomalies.length === 0,
+        };
+      }
+    }
 
     // Trends: tolerate OLD array feeds or the newer scalar-summary shape.
     const tr = (trRes?.data ?? {}) as Record<string, unknown>;
@@ -503,9 +555,50 @@ export const foodicsService = {
     const inner = (root.data ?? root) as Record<string, unknown>;
     const num = (v: unknown) =>
       typeof v === "number" ? v : Number(v ?? 0) || 0;
-    const data = (
+
+    // Label maps (parity with legacy orders.tsx ORDER_TYPE_MAP / ORDER_STATUS_MAP).
+    const ORDER_TYPE_MAP: Record<number, string> = {
+      1: "Dine In",
+      2: "Pick Up",
+      3: "Delivery",
+      4: "Drive Thru",
+    };
+    const ORDER_STATUS_MAP: Record<number, string> = {
+      1: "Pending",
+      2: "Active",
+      3: "Declined",
+      4: "Closed",
+      5: "Returned",
+      6: "Joined",
+      7: "Void",
+      8: "Draft",
+    };
+
+    // Raw rows from the Laravel paginator carry the backend's field names
+    // (FoodicsOrderResource). The page consumes a flattened shape, so map them
+    // here (parity with the legacy production system).
+    const rawRows = (
       Array.isArray(inner) ? inner : Array.isArray(inner.data) ? inner.data : []
-    ) as FoodicsOrder[];
+    ) as Record<string, unknown>[];
+
+    const data: FoodicsOrder[] = rawRows.map((row) => {
+      const typeNum = num(row.type);
+      const statusNum = num(row.status);
+      return {
+        id: String(row.foodics_order_id ?? row.id ?? ""),
+        reference: (row.reference as string) || String(row.id ?? ""),
+        date: (row.business_date as string) ?? "",
+        type: ORDER_TYPE_MAP[typeNum] ?? (row.type != null ? `Type ${typeNum}` : ""),
+        customer: (row.customer_name as string) ?? null,
+        total: num(row.total_price),
+        discount: num(row.discount_amount),
+        status:
+          ORDER_STATUS_MAP[statusNum] ??
+          (row.status != null ? `Status ${statusNum}` : ""),
+        branch_id: String(row.branch_id ?? ""),
+        branch_name: (row.branch_name as string) ?? "",
+      };
+    });
     // /orders/summary may return an array of daily rows; fold to totals.
     const rawSum = sumRes?.data;
     const sumRows = Array.isArray(rawSum)
@@ -555,27 +648,78 @@ export const foodicsService = {
         .get<Record<string, unknown>>(endpoints.foodics.refunds, { query })
         .catch(() => ({}) as Record<string, unknown>),
       api
-        .get<{
-          data: Record<string, unknown>;
-        }>(endpoints.foodics.refundVerificationsStats, { query })
-        .catch(() => ({ data: {} as Record<string, unknown> })),
+        .get<Record<string, unknown>>(
+          endpoints.foodics.refundVerificationsStats,
+          { query }
+        )
+        .catch(() => ({ data: [] }) as Record<string, unknown>),
     ]);
     const root = (listRes ?? {}) as Record<string, unknown>;
     const inner = (root.data ?? root) as Record<string, unknown>;
     const num = (v: unknown) =>
       typeof v === "number" ? v : Number(v ?? 0) || 0;
-    const data = (
+
+    // Raw rows from the Laravel paginator. The backend's
+    // RefundVerificationResource exposes these exact field names; the page
+    // consumes a flattened shape, so map them here (parity with the legacy
+    // production system — see old store/apps/foodics fetchRefundVerifications).
+    const rawRows = (
       Array.isArray(inner) ? inner : Array.isArray(inner.data) ? inner.data : []
-    ) as FoodicsRefundVerification[];
-    const rawStats =
-      (root.stats as Record<string, unknown> | undefined) ??
-      (statsRes?.data as Record<string, unknown> | undefined) ??
-      {};
+    ) as Record<string, unknown>[];
+
+    const data: FoodicsRefundVerification[] = rawRows.map((row) => {
+      const conf = row.detection_confidence;
+      return {
+        id: (row.id as number | string | undefined) ?? undefined,
+        order_ref: String(row.foodics_order_id ?? row.id ?? ""),
+        amount: num(row.refund_amount),
+        type: (row.refund_type as string) ?? "",
+        refunded_at: (row.refunded_at as string) ?? "",
+        ai_status: (row.verification_status as string) ?? "pending",
+        person:
+          row.person_detected == null
+            ? null
+            : row.person_detected
+              ? "Detected"
+              : "Not detected",
+        confidence:
+          conf == null ? null : Math.round(num(conf) * 100),
+        verdict: (row.manager_verdict as string) ?? "pending",
+        branch_id: String(row.branch_id ?? ""),
+        branch_name: (row.branch_name as string) ?? "",
+      };
+    });
+
+    // Stats endpoint returns an array: [{ verification_status, count }, ...].
+    // Aggregate it into the consolidated card shape (parity with the legacy
+    // system's stats reducer in refunds.tsx).
+    const statsArr = (
+      Array.isArray(statsRes?.data)
+        ? statsRes.data
+        : Array.isArray((statsRes as Record<string, unknown>)?.stats)
+          ? (statsRes as Record<string, unknown>).stats
+          : Array.isArray(root.stats)
+            ? root.stats
+            : []
+    ) as Record<string, unknown>[];
+
+    const countFor = (s: string) =>
+      num(
+        statsArr.find((r) => (r.verification_status as string) === s)?.count
+      );
+    const totalRefunds = statsArr.reduce((sum, r) => sum + num(r.count), 0);
+    const suspicious = countFor("suspicious");
+    const critical = countFor("critical");
+    const flaggedRate =
+      totalRefunds > 0
+        ? Number((((suspicious + critical) / totalRefunds) * 100).toFixed(1))
+        : 0;
+
     const stats: FoodicsRefundStats = {
-      total_refunds: num(rawStats.total_refunds),
-      suspicious: num(rawStats.suspicious),
-      critical: num(rawStats.critical),
-      flagged_rate: num(rawStats.flagged_rate),
+      total_refunds: totalRefunds,
+      suspicious,
+      critical,
+      flagged_rate: flaggedRate,
     };
     return {
       data,
@@ -609,10 +753,10 @@ export const foodicsService = {
         .get<Record<string, unknown>>(endpoints.foodics.drawerAudits, { query })
         .catch(() => ({}) as Record<string, unknown>),
       api
-        .get<{
-          data: Record<string, unknown>;
-        }>(endpoints.foodics.drawerAuditsStats, { query })
-        .catch(() => ({ data: {} as Record<string, unknown> })),
+        .get<Record<string, unknown>>(endpoints.foodics.drawerAuditsStats, {
+          query,
+        })
+        .catch(() => ({ data: [] }) as Record<string, unknown>),
       api
         .get<{ data: PatternFlag[] }>(endpoints.foodics.drawerAuditsPatterns, {
           query,
@@ -623,19 +767,74 @@ export const foodicsService = {
     const inner = (root.data ?? root) as Record<string, unknown>;
     const num = (v: unknown) =>
       typeof v === "number" ? v : Number(v ?? 0) || 0;
-    const data = (
+
+    // Status labels kept lowercase to match the page's color lookup; the page
+    // applies a `capitalize` class for display (parity with legacy AUDIT_STATUS_CONFIG).
+    const rawRows = (
       Array.isArray(inner) ? inner : Array.isArray(inner.data) ? inner.data : []
-    ) as FoodicsDrawerAudit[];
-    const rawStats =
-      (root.stats as Record<string, unknown> | undefined) ??
-      (statsRes?.data as Record<string, unknown> | undefined) ??
-      {};
+    ) as Record<string, unknown>[];
+
+    const data: FoodicsDrawerAudit[] = rawRows.map((row) => {
+      const flags = row.pattern_flags;
+      let patterns: string | null = null;
+      if (Array.isArray(flags) && flags.length) {
+        patterns = flags.join(", ");
+      } else if (flags && typeof flags === "object") {
+        const keys = Object.keys(flags as Record<string, unknown>);
+        patterns = keys.length ? keys.join(", ") : null;
+      }
+      return {
+        id: String(row.id ?? ""),
+        status: (row.audit_status as string) ?? "unmatched",
+        person:
+          row.person_detected == null
+            ? null
+            : row.person_detected
+              ? "Detected"
+              : "Not detected",
+        employee_id:
+          row.employee_identified
+            ? (row.employee_id as string) ?? "Identified"
+            : null,
+        matched_order:
+          row.matched_order_id != null ? `#${row.matched_order_id}` : null,
+        patterns,
+        date: (row.created_at as string) ?? "",
+        verdict: (row.manager_verdict as string) ?? "pending",
+        branch_id: String(row.branch_id ?? ""),
+        branch_name: (row.branch_name as string) ?? "",
+      };
+    });
+
+    // Stats endpoint returns an array: [{ audit_status, count }, ...].
+    // Aggregate into the consolidated card shape (parity with legacy drawer.tsx).
+    const statsArr = (
+      Array.isArray(statsRes?.data)
+        ? statsRes.data
+        : Array.isArray((statsRes as Record<string, unknown>)?.stats)
+          ? (statsRes as Record<string, unknown>).stats
+          : Array.isArray(root.stats)
+            ? root.stats
+            : []
+    ) as Record<string, unknown>[];
+
+    const countFor = (s: string) =>
+      num(statsArr.find((r) => (r.audit_status as string) === s)?.count);
+    const totalOpens = statsArr.reduce((sum, r) => sum + num(r.count), 0);
+    const unmatched = countFor("unmatched");
+    const suspicious = countFor("suspicious");
+    const critical = countFor("critical");
+    const flaggedRate =
+      totalOpens > 0
+        ? Number((((suspicious + critical) / totalOpens) * 100).toFixed(1))
+        : 0;
+
     const stats: FoodicsDrawerStats = {
-      total_opens: num(rawStats.total_opens),
-      unmatched: num(rawStats.unmatched),
-      suspicious: num(rawStats.suspicious),
-      critical: num(rawStats.critical),
-      flagged_rate: num(rawStats.flagged_rate),
+      total_opens: totalOpens,
+      unmatched,
+      suspicious,
+      critical,
+      flagged_rate: flaggedRate,
     };
     const pattern_flags = Array.isArray(root.pattern_flags)
       ? (root.pattern_flags as PatternFlag[])
@@ -691,7 +890,7 @@ export const foodicsService = {
     const root = (recRes ?? {}) as Record<string, unknown>;
     // The records list may be at .data, .data.data, or .data.records.
     const inner = (root.data ?? root) as Record<string, unknown>;
-    const records = (
+    const rawRecords = (
       Array.isArray(inner)
         ? inner
         : Array.isArray(inner.data)
@@ -699,12 +898,27 @@ export const foodicsService = {
           : Array.isArray(inner.records)
             ? inner.records
             : []
-    ) as FoodicsPrepTimeRecord[];
+    ) as Record<string, unknown>[];
 
     const num = (v: unknown): number =>
       typeof v === "number" ? v : Number(v ?? 0) || 0;
     const numN = (v: unknown): number | null =>
       v == null ? null : Number(v) || 0;
+
+    // Raw rows carry the backend's field names (prep_times migration). Map to
+    // the flattened shape the page consumes (parity with the legacy system).
+    const records: FoodicsPrepTimeRecord[] = rawRecords.map((row) => ({
+      id: String(row.id ?? ""),
+      date: (row.business_date as string) ?? "",
+      order_placed: (row.t1_order_placed as string) ?? "",
+      food_ready: (row.t3_food_ready as string) ?? "",
+      kitchen_prep: num(row.kitchen_prep_seconds),
+      service: num(row.service_seconds),
+      total_cycle: num(row.total_cycle_seconds),
+      hour: num(row.hour_of_day),
+      branch_id: String(row.branch_id ?? ""),
+      branch_name: (row.branch_name as string) ?? "",
+    }));
 
     // Stats: prefer an embedded stats block, else the /summary feed.
     const rawStats =
@@ -829,13 +1043,32 @@ export const foodicsService = {
   },
 
   // Inventory Audit
-  getInventoryZones: (branch_id?: string) =>
-    api.get<{ data: FoodicsInventoryZone[] }>(
-      endpoints.foodics.inventoryZones,
-      {
+  getInventoryZones: async (
+    branch_id?: string
+  ): Promise<{ data: FoodicsInventoryZone[] }> => {
+    const res = await api
+      .get<Record<string, unknown>>(endpoints.foodics.inventoryZones, {
         query: branch_id ? { branch_id } : undefined,
-      }
-    ),
+      })
+      .catch(() => ({}) as Record<string, unknown>);
+    const rows = (
+      Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : []
+    ) as Record<string, unknown>[];
+    // Map raw inventory_zones fields to the flattened shape (parity with legacy).
+    const data: FoodicsInventoryZone[] = rows.map((row) => {
+      const zone = (row.zone as Record<string, unknown> | undefined) ?? row;
+      return {
+        id: String(row.id ?? ""),
+        name: String(zone.name ?? row.name ?? ""),
+        branch_id: String(row.branch_id ?? ""),
+        branch_name: String(row.branch_name ?? ""),
+        items_count: Number(row.baseline_count ?? row.detected_count ?? 0) || 0,
+        last_audit: (row.audited_at as string) ?? null,
+        status: String(row.product_type ?? (row.active ? "active" : "inactive")),
+      };
+    });
+    return { data };
+  },
   createInventoryZone: (data: { name: string; branch_id: string }) =>
     api.post(endpoints.foodics.inventoryZoneCreate, data),
   updateInventoryZone: (id: string, data: { name: string }) =>
@@ -848,13 +1081,39 @@ export const foodicsService = {
    */
   runInventoryAudit: (zoneId: string) =>
     api.post(endpoints.foodics.inventoryAudit, { zone_id: zoneId }),
-  getInventoryAuditHistory: (params?: FoodicsDateBranchFilter) =>
-    api.get<{ data: FoodicsInventoryAudit[] }>(
-      endpoints.foodics.inventoryAuditHistory,
-      {
+  getInventoryAuditHistory: async (
+    params?: FoodicsDateBranchFilter
+  ): Promise<{ data: FoodicsInventoryAudit[] }> => {
+    const res = await api
+      .get<Record<string, unknown>>(endpoints.foodics.inventoryAuditHistory, {
         query: params as never,
-      }
-    ),
+      })
+      .catch(() => ({}) as Record<string, unknown>);
+    const inner = (res.data ?? res) as Record<string, unknown>;
+    const rows = (
+      Array.isArray(inner)
+        ? inner
+        : Array.isArray(inner.data)
+          ? inner.data
+          : []
+    ) as Record<string, unknown>[];
+    // Map raw inventory_audits fields (DB schema) to the flattened shape.
+    const data: FoodicsInventoryAudit[] = rows.map((row) => {
+      const zone = row.zone as Record<string, unknown> | undefined;
+      return {
+        id: String(row.id ?? ""),
+        zone_id: String(row.zone_id ?? ""),
+        zone_name: String(zone?.name ?? row.zone_name ?? ""),
+        date: (row.audited_at as string) ?? "",
+        status: String(row.review_status ?? row.camera_level ?? ""),
+        items_audited: Number(row.detected_count ?? 0) || 0,
+        discrepancies: row.discrepancy ? 1 : 0,
+        branch_id: String(row.branch_id ?? ""),
+        branch_name: String(row.branch_name ?? ""),
+      };
+    });
+    return { data };
+  },
 
   // Branches
   importBranches: () => api.post(endpoints.foodics.importBranches),

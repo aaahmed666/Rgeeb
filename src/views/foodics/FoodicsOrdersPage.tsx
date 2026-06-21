@@ -26,13 +26,30 @@ import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
 
 const STATUS_COLORS: Record<string, string> = {
-  completed:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  pending:
+  // Real Foodics order statuses (parity with legacy orders.tsx ORDER_STATUS_MAP).
+  Pending:
     "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  refunded:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  Active:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  Declined: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  Closed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  Returned:
+    "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+  Joined: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  Void: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  Draft: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+};
+
+// Compact date formatter (parity with legacy orders.tsx → "MMM dd, yyyy").
+const formatOrderDate = (value: string): string => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 };
 
 export default function FoodicsOrdersPage() {
@@ -254,7 +271,7 @@ export default function FoodicsOrdersPage() {
                 key: "date",
                 header: t("foodics.date"),
                 cellClassName: "text-muted-foreground",
-                render: (o) => o.date,
+                render: (o) => formatOrderDate(o.date),
               },
               {
                 key: "type",

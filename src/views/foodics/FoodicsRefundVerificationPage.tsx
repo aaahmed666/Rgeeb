@@ -3,6 +3,21 @@ import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { dateRangeToISO, formatSAR } from "@/lib/utils";
+
+// Compact date formatter (parity with legacy refunds.tsx → "MMM dd, HH:mm").
+// Falls back to the raw value if it isn't a parseable date.
+const formatRefundedAt = (value: string): string => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
 import {
   Loader2,
   ChevronLeft,
@@ -51,17 +66,28 @@ const VERDICT_OPTIONS = [
 ] as const;
 
 const VERDICT_COLORS: Record<string, string> = {
-  clear: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  suspicious:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  // manager_verdict values (parity with legacy VERDICT_OPTIONS).
+  legitimate:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  fraud: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  inconclusive:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  pending: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
 };
 
 const AI_STATUS_COLORS: Record<string, string> = {
+  // Real backend verification_status values (parity with legacy STATUS_CONFIG).
+  pending: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+  clear: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  review: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  suspicious:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+  critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  no_camera:
+    "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
   matched: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   unmatched:
     "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  pending: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
 };
 
 export default function FoodicsRefundVerificationPage() {
@@ -227,8 +253,8 @@ export default function FoodicsRefundVerificationPage() {
 
       {/* Filters + Table */}
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap gap-3 mb-4">
-          <div className="w-48">
+        <div className="flex flex-col sm:flex-row sm:flex-nowrap items-stretch sm:items-center gap-3 mb-4">
+          <div className="w-full sm:w-48 sm:shrink-0">
             <AsyncPaginatedSelect
               endpoint="/customer/branches"
               labelKey="name"
@@ -243,25 +269,29 @@ export default function FoodicsRefundVerificationPage() {
               isClearable
             />
           </div>
-          <AsyncPaginatedSelect
-            options={[
-              { value: "clear", label: t("foodics.refundStatusFilter.clear") },
-              { value: "suspicious", label: t("foodics.refundStatusFilter.suspicious") },
-              { value: "critical", label: t("foodics.refundStatusFilter.critical") },
-            ]}
-            value={status || null}
-            onChange={(v) => {
-              setStatus(v ?? "");
-              setPage(1);
-            }}
-            placeholder={t("foodics.refundStatusFilter.all")}
-            height={38}
-            isClearable
-          />
-          <SharedDateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-          />
+          <div className="w-full sm:w-48 sm:shrink-0">
+            <AsyncPaginatedSelect
+              options={[
+                { value: "clear", label: t("foodics.refundStatusFilter.clear") },
+                { value: "suspicious", label: t("foodics.refundStatusFilter.suspicious") },
+                { value: "critical", label: t("foodics.refundStatusFilter.critical") },
+              ]}
+              value={status || null}
+              onChange={(v) => {
+                setStatus(v ?? "");
+                setPage(1);
+              }}
+              placeholder={t("foodics.refundStatusFilter.all")}
+              height={38}
+              isClearable
+            />
+          </div>
+          <div className="w-full sm:flex-1 sm:min-w-0">
+            <SharedDateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
+          </div>
         </div>
 
         <div>
@@ -286,13 +316,19 @@ export default function FoodicsRefundVerificationPage() {
               {
                 key: "type",
                 header: t("foodics.type"),
-                render: (r) => r.type,
+                render: (r) =>
+                  r.type
+                    ? t(
+                        `foodics.refundType_${r.type}`,
+                        r.type === "void" ? "Void" : "Return"
+                      )
+                    : "—",
               },
               {
                 key: "refunded_at",
                 header: t("foodics.date"),
                 cellClassName: "text-muted-foreground",
-                render: (r) => r.refunded_at,
+                render: (r) => formatRefundedAt(r.refunded_at),
               },
               {
                 key: "ai_status",

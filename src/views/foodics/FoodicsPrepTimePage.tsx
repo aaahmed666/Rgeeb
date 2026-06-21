@@ -31,10 +31,26 @@ const HOUR_LABELS = Array.from(
   (_, i) => `${i === 0 ? "12" : i > 12 ? i - 12 : i}${i < 12 ? "am" : "pm"}`
 );
 
-function formatTime(mins: number | null): string {
-  if (mins == null) return "—";
-  if (mins < 60) return `${mins.toFixed(0)}m`;
-  return `${Math.floor(mins / 60)}h ${(mins % 60).toFixed(0)}m`;
+// Input is SECONDS (parity with legacy prep-times.tsx formatTime). The
+// backend's *_seconds fields are passed straight through.
+function formatTime(seconds: number | null): string {
+  if (seconds == null) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+// Clock formatter for timestamp columns (parity with legacy → "HH:mm:ss").
+function formatClock(value: string): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function FoodicsPrepTimePage() {
@@ -251,12 +267,19 @@ export default function FoodicsPrepTimePage() {
                   {
                     key: "order_placed",
                     header: t("foodics.orders"),
-                    render: (r) => r.order_placed,
+                    render: (r) => formatClock(r.order_placed),
                   },
                   {
                     key: "food_ready",
                     header: t("foodics.prepTime"),
-                    render: (r) => r.food_ready,
+                    render: (r) =>
+                      r.food_ready ? (
+                        formatClock(r.food_ready)
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {t("foodics.noMatch", "No match")}
+                        </span>
+                      ),
                   },
                   {
                     key: "kitchen_prep",

@@ -25,6 +25,20 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAuth } from "@/lib/auth";
 import { usePermission } from "@/hooks/usePermission";
 
+// Compact date formatter (parity with legacy inventory.tsx → "MMM dd, HH:mm").
+const formatAuditDate = (value: string | null): string => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
 export default function FoodicsInventoryAuditPage() {
   const { hasPermission } = useAuth();
   const can = usePermission("foodics");
@@ -159,6 +173,11 @@ export default function FoodicsInventoryAuditPage() {
     inactive: "bg-gray-100 text-gray-600",
     pending:
       "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+    // Audit review_status values (parity with legacy inventory.tsx).
+    acknowledged:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    restocked:
+      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   };
 
   if (!hasPermission("foodics.inventory.audits.read")) {
@@ -328,7 +347,7 @@ export default function FoodicsInventoryAuditPage() {
                       </div>
                       {zone.last_audit && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Last audit: {zone.last_audit}
+                          Last audit: {formatAuditDate(zone.last_audit)}
                         </p>
                       )}
                       {can.update && (
@@ -375,7 +394,7 @@ export default function FoodicsInventoryAuditPage() {
                     key: "date",
                     header: t("foodics.date"),
                     cellClassName: "text-muted-foreground",
-                    render: (a) => a.date,
+                    render: (a) => formatAuditDate(a.date),
                   },
                   {
                     key: "status",

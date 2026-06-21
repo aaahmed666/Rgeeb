@@ -32,6 +32,8 @@ import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
 
 const STATUS_COLORS: Record<string, string> = {
+  justified:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   matched:
     "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   unmatched:
@@ -39,6 +41,30 @@ const STATUS_COLORS: Record<string, string> = {
   suspicious:
     "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
   critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+};
+
+// Verdict colors (parity with legacy VERDICT_OPTIONS).
+const VERDICT_COLORS: Record<string, string> = {
+  legitimate:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  fraud: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  inconclusive:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  pending: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+};
+
+// Compact date formatter (parity with legacy drawer.tsx → "MMM dd, HH:mm").
+const formatDrawerDate = (value: string): string => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -353,7 +379,7 @@ export default function FoodicsDrawerAuditPage() {
                     key: "date",
                     header: t("foodics.date"),
                     cellClassName: "text-muted-foreground",
-                    render: (a) => a.date,
+                    render: (a) => formatDrawerDate(a.date),
                   },
                   {
                     key: "verdict",
@@ -361,7 +387,7 @@ export default function FoodicsDrawerAuditPage() {
                     render: (a) => (
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          STATUS_COLORS[a.verdict] ?? "bg-gray-100 text-gray-600"
+                          VERDICT_COLORS[a.verdict] ?? "bg-gray-100 text-gray-600"
                         }`}
                       >
                         {a.verdict}
@@ -469,7 +495,7 @@ export default function FoodicsDrawerAuditPage() {
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 #{reviewTarget.id} · {reviewTarget.person ?? "—"} ·{" "}
-                {reviewTarget.date}
+                {formatDrawerDate(reviewTarget.date)}
               </p>
               <span
                 className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
