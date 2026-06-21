@@ -25,7 +25,15 @@ import { useAuth } from "@/lib/auth";
 import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import type { DateRange } from "rsuite/DateRangePicker";
 
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABEL_KEYS = [
+  "foodics.daySun",
+  "foodics.dayMon",
+  "foodics.dayTue",
+  "foodics.dayWed",
+  "foodics.dayThu",
+  "foodics.dayFri",
+  "foodics.daySat",
+];
 const HOUR_LABELS = Array.from(
   { length: 24 },
   (_, i) => `${i === 0 ? "12" : i > 12 ? i - 12 : i}${i < 12 ? "am" : "pm"}`
@@ -151,10 +159,10 @@ export default function FoodicsPrepTimePage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <p className="text-lg font-semibold text-muted-foreground">
-          Access Denied
+          {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Prep Time.
+          {t("foodics.noPermissionPrepTime")}
         </p>
       </div>
     );
@@ -172,25 +180,25 @@ export default function FoodicsPrepTimePage() {
         />
         <StatCard
           icon={Link2}
-          label={t("foodics.syncing")}
+          label={t("foodics.aiMatched")}
           value={`${stats.ai_matched} (${stats.ai_matched_pct.toFixed(0)}%)`}
           bg="bg-emerald-500"
         />
         <StatCard
           icon={ChefHat}
-          label={t("foodics.avgPrepTime")}
+          label={t("foodics.kitchenPrep")}
           value={formatTime(stats.avg_kitchen_prep)}
           bg="bg-amber-500"
         />
         <StatCard
           icon={Hand}
-          label={t("foodics.minPrepTime")}
+          label={t("foodics.service")}
           value={formatTime(stats.avg_service)}
           bg="bg-sky-500"
         />
         <StatCard
           icon={Clock}
-          label={t("foodics.maxPrepTime")}
+          label={t("foodics.totalCycle")}
           value={formatTime(stats.avg_total_cycle)}
           bg="bg-violet-500"
         />
@@ -207,7 +215,7 @@ export default function FoodicsPrepTimePage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <ClipboardList className="w-4 h-4" /> {t("foodics.orders")}
+            <ClipboardList className="w-4 h-4" /> {t("foodics.tabRecords")}
           </button>
           <button
             onClick={() => setActiveTab("heatmap")}
@@ -217,7 +225,7 @@ export default function FoodicsPrepTimePage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <BarChart3 className="w-4 h-4" /> {t("intel.detectionHeatmap")}
+            <BarChart3 className="w-4 h-4" /> {t("foodics.tabHeatmap")}
           </button>
         </div>
 
@@ -267,12 +275,12 @@ export default function FoodicsPrepTimePage() {
                   },
                   {
                     key: "order_placed",
-                    header: t("foodics.orders"),
+                    header: t("foodics.orderPlaced"),
                     render: (r) => formatClock(r.order_placed),
                   },
                   {
                     key: "food_ready",
-                    header: t("foodics.prepTime"),
+                    header: t("foodics.foodReady"),
                     render: (r) =>
                       r.food_ready ? (
                         formatClock(r.food_ready)
@@ -284,21 +292,21 @@ export default function FoodicsPrepTimePage() {
                   },
                   {
                     key: "kitchen_prep",
-                    header: t("foodics.avgPrepTime"),
+                    header: t("foodics.kitchenPrep"),
                     headClassName: "text-right",
                     cellClassName: "text-right",
                     render: (r) => formatTime(r.kitchen_prep),
                   },
                   {
                     key: "service",
-                    header: t("foodics.minPrepTime"),
+                    header: t("foodics.service"),
                     headClassName: "text-right",
                     cellClassName: "text-right",
                     render: (r) => formatTime(r.service),
                   },
                   {
                     key: "total_cycle",
-                    header: t("foodics.maxPrepTime"),
+                    header: t("foodics.totalCycle"),
                     headClassName: "text-right",
                     cellClassName: "text-right font-medium",
                     render: (r) => formatTime(r.total_cycle),
@@ -315,8 +323,12 @@ export default function FoodicsPrepTimePage() {
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
                   {total === 0
-                    ? "0–0 of 0"
-                    : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total}`}
+                    ? t("foodics.paginationEmpty")
+                    : t("foodics.paginationRange", {
+                        from: (page - 1) * 25 + 1,
+                        to: Math.min(page * 25, total),
+                        total,
+                      })}
                 </span>
                 <div className="flex items-center gap-2">
                   <span>{t("admin.common.rowsPerPage")}: 25</span>
@@ -366,14 +378,14 @@ export default function FoodicsPrepTimePage() {
                       className="flex items-center gap-1"
                     >
                       <span className="text-xs text-muted-foreground w-8">
-                        {DAY_LABELS[dayIdx]}
+                        {t(DAY_LABEL_KEYS[dayIdx])}
                       </span>
                       {row.map((val, hourIdx) => {
                         const intensity = val / maxHeat;
                         return (
                           <div
                             key={hourIdx}
-                            title={`${DAY_LABELS[dayIdx]} ${hourIdx}:00 — ${val.toFixed(1)} min`}
+                            title={t("foodics.heatmapCellTitle", { day: t(DAY_LABEL_KEYS[dayIdx]), hour: hourIdx, value: val.toFixed(1) })}
                             className="w-5 h-5 rounded-sm transition"
                             style={{
                               backgroundColor:
@@ -387,7 +399,7 @@ export default function FoodicsPrepTimePage() {
                     </div>
                   ))}
                   <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                    <span>Low</span>
+                    <span>{t("foodics.heatmapLow")}</span>
                     {[0.2, 0.4, 0.6, 0.8, 1].map((v) => (
                       <div
                         key={v}
@@ -397,7 +409,7 @@ export default function FoodicsPrepTimePage() {
                         }}
                       />
                     ))}
-                    <span>High</span>
+                    <span>{t("foodics.heatmapHigh")}</span>
                   </div>
                 </div>
               )}

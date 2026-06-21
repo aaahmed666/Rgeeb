@@ -71,10 +71,10 @@ export default function FoodicsView() {
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <Plug className="h-12 w-12 text-muted-foreground mb-4" />
         <p className="text-lg font-semibold text-muted-foreground">
-          Access Denied
+          {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to access Foodics Integration.
+          {t("foodics.noPermissionIntegration")}
         </p>
       </div>
     );
@@ -90,10 +90,10 @@ export default function FoodicsView() {
           </div>
           <div>
             <h1 className="text-base font-bold sm:text-lg">
-              Foodics Integration
+              {t("foodics.integrationTitle")}
             </h1>
             <p className="text-xs text-muted-foreground">
-              Connect and sync with your Foodics account
+              {t("foodics.integrationSubtitle")}
             </p>
           </div>
         </div>
@@ -106,16 +106,16 @@ export default function FoodicsView() {
           <RefreshCw
             className={`mr-1.5 h-4 w-4 ${statusQ.isFetching ? "animate-spin" : ""}`}
           />{" "}
-          Refresh
+          {t("common.refresh")}
         </Button>
       </header>
 
       {/* Connection Status */}
       <Card className="border-border/60 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base">Connection Status</CardTitle>
+          <CardTitle className="text-base">{t("foodics.connectionStatusTitle")}</CardTitle>
           <CardDescription>
-            Current integration status with Foodics POS
+            {t("foodics.connectionStatusSubtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -134,7 +134,7 @@ export default function FoodicsView() {
                 )}
                 <div>
                   <p className="font-semibold text-lg">
-                    {status?.connected ? "Connected" : "Not Connected"}
+                    {status?.connected ? t("foodics.connected") : t("foodics.notConnected")}
                   </p>
                   {status?.business_name && (
                     <p className="text-sm text-muted-foreground">
@@ -145,7 +145,7 @@ export default function FoodicsView() {
               </div>
               {status?.connected_at && (
                 <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">Connected at:</span>{" "}
+                  <span className="font-medium">{t("foodics.connectedAtLabel")}</span>{" "}
                   {new Date(status.connected_at).toLocaleString()}
                 </div>
               )}
@@ -159,10 +159,10 @@ export default function FoodicsView() {
         <Card className="border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Download className="h-4 w-4 text-primary" /> Import Branches
+              <Download className="h-4 w-4 text-primary" /> {t("foodics.importBranchesTitle")}
             </CardTitle>
             <CardDescription>
-              Pull your Foodics branches into the system
+              {t("foodics.importBranchesSubtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,11 +171,11 @@ export default function FoodicsView() {
               disabled={!can.create || importMut.isPending || !status?.connected}
               className="w-full"
             >
-              {importMut.isPending ? "Importing…" : "Import Branches"}
+              {importMut.isPending ? t("foodics.importing") : t("foodics.importBranches")}
             </Button>
             {importMut.isSuccess && (
               <p className="mt-2 text-sm text-emerald-600">
-                ✓ Branches imported successfully
+                ✓ {t("foodics.branchesImportedInline")}
               </p>
             )}
           </CardContent>
@@ -184,11 +184,10 @@ export default function FoodicsView() {
         <Card className="border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 text-primary" /> Sync Drawer
-              Operations
+              <RefreshCw className="h-4 w-4 text-primary" /> {t("foodics.syncDrawerTitle")}
             </CardTitle>
             <CardDescription>
-              Synchronize cash drawer operations from Foodics
+              {t("foodics.syncDrawerSubtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -198,11 +197,11 @@ export default function FoodicsView() {
               disabled={!can.update || syncMut.isPending || !status?.connected}
               className="w-full"
             >
-              {syncMut.isPending ? "Syncing…" : "Sync Now"}
+              {syncMut.isPending ? t("foodics.syncing") : t("foodics.syncNow")}
             </Button>
             {syncMut.isSuccess && (
               <p className="mt-2 text-sm text-emerald-600">
-                ✓ Drawer operations synced successfully
+                ✓ {t("foodics.drawerSyncedInline")}
               </p>
             )}
           </CardContent>
@@ -214,10 +213,10 @@ export default function FoodicsView() {
         <Card className="border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" /> Inventory Zones
+              <Package className="h-4 w-4 text-primary" /> {t("foodics.inventoryZonesTitle")}
             </CardTitle>
             <CardDescription>
-              Inventory zones pulled from Foodics
+              {t("foodics.inventoryZonesSubtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -232,7 +231,7 @@ export default function FoodicsView() {
               </div>
             ) : (zonesQ.data?.data?.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
-                No inventory zones found
+                {t("foodics.noInventoryZones")}
               </p>
             ) : (
               <div className="divide-y divide-border/60">
@@ -261,7 +260,7 @@ export default function FoodicsView() {
                         </span>
                       )}
                       {zone.items_count !== undefined && (
-                        <span>{zone.items_count} items</span>
+                        <span>{t("foodics.itemsCount", { count: zone.items_count })}</span>
                       )}
                     </div>
                   </div>

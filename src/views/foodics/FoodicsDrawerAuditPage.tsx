@@ -220,7 +220,7 @@ export default function FoodicsDrawerAuditPage() {
           {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Drawer Audit.
+          {t("foodics.noPermissionDrawer")}
         </p>
       </div>
     );
@@ -232,19 +232,19 @@ export default function FoodicsDrawerAuditPage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           icon={CreditCard}
-          label={t("foodics.openingBalance")}
+          label={t("foodics.totalOpens")}
           value={String(stats.total_opens)}
           bg="bg-blue-500"
         />
         <StatCard
           icon={Link2Off}
-          label={t("foodics.discrepancy")}
+          label={t("foodics.unmatched")}
           value={String(stats.unmatched)}
           bg="bg-sky-500"
         />
         <StatCard
           icon={AlertTriangle}
-          label={t("escalationAlerts.severity")}
+          label={t("foodics.suspicious")}
           value={String(stats.suspicious)}
           bg="bg-amber-500"
         />
@@ -256,7 +256,7 @@ export default function FoodicsDrawerAuditPage() {
         />
         <StatCard
           icon={Percent}
-          label={t("intel.compliance")}
+          label={t("foodics.flaggedRate")}
           value={`${stats.flagged_rate}%`}
           bg="bg-violet-500"
         />
@@ -417,11 +417,15 @@ export default function FoodicsDrawerAuditPage() {
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
                   {total === 0
-                    ? "0–0 of 0"
-                    : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total}`}
+                    ? t("foodics.paginationEmpty")
+                    : t("foodics.paginationRange", {
+                        from: (page - 1) * 25 + 1,
+                        to: Math.min(page * 25, total),
+                        total,
+                      })}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span>Rows per page: 25</span>
+                  <span>{t("foodics.rowsPerPage")}: 25</span>
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}

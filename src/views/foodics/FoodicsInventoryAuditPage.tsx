@@ -187,7 +187,7 @@ export default function FoodicsInventoryAuditPage() {
           {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Inventory Audit.
+          {t("foodics.noPermissionInventory")}
         </p>
       </div>
     );
@@ -207,7 +207,7 @@ export default function FoodicsInventoryAuditPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Package className="w-4 h-4" /> {t("foodics.zoneName")}
+              <Package className="w-4 h-4" /> {t("foodics.tabZones")}
             </button>
             <button
               onClick={() => setActiveTab("history")}
@@ -334,7 +334,7 @@ export default function FoodicsInventoryAuditPage() {
                       </p>
                       <div className="flex items-center justify-between mt-3">
                         <span className="text-xs text-muted-foreground">
-                          {zone.items_count} items
+                          {t("foodics.itemsCount", { count: zone.items_count })}
                         </span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
@@ -347,7 +347,7 @@ export default function FoodicsInventoryAuditPage() {
                       </div>
                       {zone.last_audit && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Last audit: {formatAuditDate(zone.last_audit)}
+                          {t("foodics.lastAudit", { date: formatAuditDate(zone.last_audit) })}
                         </p>
                       )}
                       {can.update && (
@@ -450,7 +450,7 @@ export default function FoodicsInventoryAuditPage() {
                     type="text"
                     value={newZoneName}
                     onChange={(e) => setNewZoneName(e.target.value)}
-                    placeholder="e.g. Kitchen Storage A"
+                    placeholder={t("foodics.zoneNamePlaceholder")}
                     className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -508,11 +508,8 @@ export default function FoodicsInventoryAuditPage() {
         onOpenChange={(o) => {
           if (!o) setDeleteZoneId(null);
         }}
-        title={t("validation.deleteConfirm", "Delete Zone")}
-        description={t(
-          "validation.deleteConfirmDesc",
-          "Are you sure you want to delete this zone? This cannot be undone."
-        )}
+        title={t("foodics.deleteZoneTitle")}
+        description={t("foodics.deleteZoneDesc")}
         onConfirm={() => {
           const id = deleteZoneId;
           setDeleteZoneId(null);

@@ -68,7 +68,7 @@ export default function FoodicsDashboardPage() {
           {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view the Foodics Dashboard.
+          {t("foodics.noPermissionDashboard")}
         </p>
       </div>
     );
@@ -217,14 +217,14 @@ export default function FoodicsDashboardPage() {
               icon={Receipt}
               label={t("foodics.refund")}
               value={String(s?.suspicious_refunds ?? 0)}
-              sub={`${fmt(s?.suspicious_refunds_pct ?? 0, 1)}% of orders`}
+              sub={t("foodics.ofOrders", { value: fmt(s?.suspicious_refunds_pct ?? 0, 1) })}
               bg="bg-gradient-to-br from-rose-500 to-red-600"
             />
             <StatCard
               icon={CreditCard}
               label={t("foodics.cashDrawer")}
               value={String(s?.drawer_flags ?? 0)}
-              sub={`${fmt(s?.drawer_flags_pct ?? 0, 1)}% of opens`}
+              sub={t("foodics.ofOpens", { value: fmt(s?.drawer_flags_pct ?? 0, 1) })}
               bg="bg-gradient-to-br from-orange-500 to-amber-600"
             />
             <StatCard
@@ -235,14 +235,14 @@ export default function FoodicsDashboardPage() {
                   ? `${fmt(s.avg_kitchen_prep, 0)}m`
                   : "—"
               }
-              sub={`${fmt(s?.avg_kitchen_matched_pct ?? 0, 0)}% matched`}
+              sub={t("foodics.pctMatched", { value: fmt(s?.avg_kitchen_matched_pct ?? 0, 0) })}
               bg="bg-gradient-to-br from-violet-500 to-purple-600"
             />
             <StatCard
               icon={Package}
               label={t("foodics.inventory")}
               value={String(s?.inventory_issues ?? 0)}
-              sub={`${s?.inventory_audits_total ?? 0} total audits`}
+              sub={t("foodics.totalAuditsCount", { count: s?.inventory_audits_total ?? 0 })}
               bg="bg-gradient-to-br from-pink-500 to-rose-600"
             />
           </div>
@@ -260,7 +260,7 @@ export default function FoodicsDashboardPage() {
                   <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold text-green-700 dark:text-green-300">
-                      All Clear
+                      {t("foodics.allClear")}
                     </p>
                     <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                       {t("intel.noAnomalies")}
@@ -298,29 +298,31 @@ export default function FoodicsDashboardPage() {
                   icon={ShoppingCart}
                   label={t("foodics.orders")}
                   color="bg-indigo-500"
-                  detail={`${data?.trends?.orders?.days ?? 0} days of data • ${data?.trends?.orders?.total ?? 0} total orders`}
+                  detail={t("foodics.trendOrdersDetail", { days: data?.trends?.orders?.days ?? 0, total: data?.trends?.orders?.total ?? 0 })}
                 />
                 <TrendRow
                   icon={ChefHat}
                   label={t("foodics.prepTime")}
                   color="bg-amber-500"
-                  detail={`${data?.trends?.prep_times?.data_points ?? 0} data points • avg ${
-                    data?.trends?.prep_times?.avg != null
-                      ? `${fmt(data.trends.prep_times.avg, 0)}m`
-                      : "—"
-                  }`}
+                  detail={t("foodics.trendPrepDetail", {
+                    points: data?.trends?.prep_times?.data_points ?? 0,
+                    avg:
+                      data?.trends?.prep_times?.avg != null
+                        ? `${fmt(data.trends.prep_times.avg, 0)}m`
+                        : "—",
+                  })}
                 />
                 <TrendRow
                   icon={ArrowRightLeft}
                   label={t("foodics.conversion")}
                   color="bg-sky-500"
-                  detail={`${data?.trends?.conversion?.days ?? 0} days • ${data?.trends?.conversion?.visitors ?? 0} total visitors`}
+                  detail={t("foodics.trendConversionDetail", { days: data?.trends?.conversion?.days ?? 0, visitors: data?.trends?.conversion?.visitors ?? 0 })}
                 />
                 <TrendRow
                   icon={Receipt}
                   label={t("foodics.refund")}
                   color="bg-rose-500"
-                  detail={`${data?.trends?.refunds?.records ?? 0} records • ${data?.trends?.refunds?.total ?? 0} total refunds`}
+                  detail={t("foodics.trendRefundsDetail", { records: data?.trends?.refunds?.records ?? 0, total: data?.trends?.refunds?.total ?? 0 })}
                 />
               </div>
             </div>

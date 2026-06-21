@@ -156,7 +156,7 @@ export default function FoodicsOrdersPage() {
           {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Orders.
+          {t("foodics.noPermissionOrders")}
         </p>
       </div>
     );
@@ -249,7 +249,7 @@ export default function FoodicsOrdersPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-            Sync Orders
+            {t("foodics.syncOrdersAction")}
           </button>
         </div>
 
@@ -321,8 +321,12 @@ export default function FoodicsOrdersPage() {
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <span>
             {total === 0
-              ? "0–0 of 0"
-              : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total}`}
+              ? t("foodics.paginationEmpty")
+              : t("foodics.paginationRange", {
+                  from: (page - 1) * 25 + 1,
+                  to: Math.min(page * 25, total),
+                  total,
+                })}
           </span>
           <div className="flex items-center gap-2">
             <span>{t("admin.common.rowsPerPage")}: 25</span>

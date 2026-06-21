@@ -211,7 +211,7 @@ export default function FoodicsRefundVerificationPage() {
           {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Refund Verifications.
+          {t("foodics.noPermissionRefund")}
         </p>
       </div>
     );
@@ -230,7 +230,7 @@ export default function FoodicsRefundVerificationPage() {
         />
         <StatCard
           icon={AlertTriangle}
-          label={t("escalationAlerts.severity")}
+          label={t("foodics.suspicious")}
           value={String(stats.suspicious)}
           iconColor="text-white"
           bgColor="bg-amber-500"
@@ -244,7 +244,7 @@ export default function FoodicsRefundVerificationPage() {
         />
         <StatCard
           icon={Percent}
-          label={t("intel.compliance")}
+          label={t("foodics.flaggedRate")}
           value={`${stats.flagged_rate}%`}
           iconColor="text-white"
           bgColor="bg-violet-500"
@@ -389,8 +389,12 @@ export default function FoodicsRefundVerificationPage() {
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <span>
             {total === 0
-              ? "0–0 of 0"
-              : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total}`}
+              ? t("foodics.paginationEmpty")
+              : t("foodics.paginationRange", {
+                  from: (page - 1) * 25 + 1,
+                  to: Math.min(page * 25, total),
+                  total,
+                })}
           </span>
           <div className="flex items-center gap-2">
             <span>{t("admin.common.rowsPerPage")}: 25</span>

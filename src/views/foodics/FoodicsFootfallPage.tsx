@@ -115,7 +115,7 @@ export default function FoodicsFootfallPage() {
           {t("foodics.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Footfall Analytics.
+          {t("foodics.noPermissionFootfall")}
         </p>
       </div>
     );
@@ -155,7 +155,7 @@ export default function FoodicsFootfallPage() {
         />
         <StatCard
           icon={TrendingUp}
-          label={t("foodics.footfall")}
+          label={t("foodics.revenuePerVisitor")}
           value={
             stats.revenue_per_visitor != null
               ? `SAR ${fmt(stats.revenue_per_visitor)}`
@@ -165,7 +165,7 @@ export default function FoodicsFootfallPage() {
         />
         <StatCard
           icon={Calendar}
-          label={t("foodics.footfallDesc")}
+          label={t("foodics.avgDailyFootfall")}
           value={String(stats.avg_daily_footfall)}
           bg="bg-amber-500"
         />
@@ -182,7 +182,7 @@ export default function FoodicsFootfallPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Calendar className="w-4 h-4" /> {t("dateRanges.today")}
+            <Calendar className="w-4 h-4" /> {t("foodics.tabDaily")}
           </button>
           <button
             onClick={() => setActiveTab("hourly")}
@@ -192,7 +192,7 @@ export default function FoodicsFootfallPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Clock className="w-4 h-4" /> {t("analytics.detectionsByCamera")}
+            <Clock className="w-4 h-4" /> {t("foodics.tabHourly")}
           </button>
         </div>
 
@@ -284,7 +284,7 @@ export default function FoodicsFootfallPage() {
             )
           ) : hourly.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              No hourly data available for this period.
+              {t("foodics.noHourlyData")}
             </div>
           ) : (
             <DataTable<HourlyBreakdown & { id: string | number }>
