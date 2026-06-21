@@ -56,3 +56,27 @@ export function dateRangeToISO(
     to: toISO(range?.[1]),
   };
 }
+
+/**
+ * Safe SAR currency formatter (parity with the legacy app's `formatCurrency`).
+ *
+ * Per-row Foodics values such as order `total`/`discount` and refund `amount`
+ * are typed as `number`, but the backend can return `null`, `undefined`, or a
+ * numeric string. Calling `.toFixed()` directly on those threw a TypeError
+ * during render, which tripped the route-level error boundary and showed
+ * "Failed to load page" on the Orders and Refund Verification screens.
+ *
+ * This helper never throws: any non-finite value renders as an em dash, exactly
+ * like the legacy production system did.
+ */
+export function formatSAR(
+  value: number | string | null | undefined,
+  { dash = true }: { dash?: boolean } = {}
+): string {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return dash ? "—" : "SAR 0.00";
+  return `SAR ${n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}

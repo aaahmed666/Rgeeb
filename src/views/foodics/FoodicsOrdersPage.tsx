@@ -2,7 +2,7 @@
 import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { dateRangeToISO } from "@/lib/utils";
+import { dateRangeToISO, formatSAR } from "@/lib/utils";
 import {
   Loader2,
   RefreshCw,
@@ -158,19 +158,19 @@ export default function FoodicsOrdersPage() {
         <StatCard
           icon={DollarSign}
           label={t("foodics.totalSales")}
-          value={`SAR ${stats.total_sales.toFixed(2)}`}
+          value={formatSAR(stats.total_sales, { dash: false })}
           color="bg-emerald-500"
         />
         <StatCard
           icon={Tag}
           label={t("foodics.totalDiscounts")}
-          value={`SAR ${stats.total_discounts.toFixed(2)}`}
+          value={formatSAR(stats.total_discounts, { dash: false })}
           color="bg-pink-500"
         />
         <StatCard
           icon={TrendingUp}
           label={t("foodics.avgOrderValue")}
-          value={`SAR ${stats.avg_order_value.toFixed(2)}`}
+          value={formatSAR(stats.avg_order_value, { dash: false })}
           color="bg-sky-500"
         />
       </div>
@@ -271,14 +271,14 @@ export default function FoodicsOrdersPage() {
                 header: t("common.total"),
                 headClassName: "text-right",
                 cellClassName: "text-right font-medium",
-                render: (o) => `SAR ${o.total.toFixed(2)}`,
+                render: (o) => formatSAR(o.total),
               },
               {
                 key: "discount",
                 header: t("foodics.totalDiscounts"),
                 headClassName: "text-right",
                 cellClassName: "text-right text-muted-foreground",
-                render: (o) => `SAR ${o.discount.toFixed(2)}`,
+                render: (o) => formatSAR(o.discount),
               },
               {
                 key: "status",

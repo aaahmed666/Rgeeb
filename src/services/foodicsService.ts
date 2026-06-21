@@ -312,10 +312,25 @@ export const foodicsService = {
     api
       .get<{ data: FoodicsStatus }>(endpoints.foodics.status)
       .then((r) => r.data),
-  getConnectUrl: () =>
+  // Backend (parity with legacy app): GET /customer/foodics/connect
+  //   → { data: { authorization_url } }
+  // The legacy production system reads `authorization_url`; some newer feeds
+  // use `url`. Accept either so the OAuth redirect never lands on
+  // `/dashboard/foodics/undefined`.
+  getConnectUrl: (): Promise<FoodicsConnectUrl> =>
     api
-      .get<{ data: FoodicsConnectUrl }>(endpoints.foodics.connect)
-      .then((r) => r.data),
+      .get<Record<string, unknown>>(endpoints.foodics.connect)
+      .then((r) => {
+        const root = (r ?? {}) as Record<string, unknown>;
+        const inner = (root.data ?? root) as Record<string, unknown>;
+        const url =
+          (inner.authorization_url as string | undefined) ??
+          (inner.url as string | undefined) ??
+          (root.authorization_url as string | undefined) ??
+          (root.url as string | undefined) ??
+          "";
+        return { url };
+      }),
   disconnect: () => api.post(endpoints.foodics.disconnect),
 
   // Dashboard (aggregate)

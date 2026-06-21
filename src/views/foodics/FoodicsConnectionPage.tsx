@@ -78,7 +78,12 @@ export default function FoodicsConnectionPage() {
     setConnecting(true);
     try {
       const { url } = await foodicsService.getConnectUrl();
-      window.location.href = url;
+      if (url) {
+        window.location.href = url;
+      } else {
+        setError("Failed to initiate connection.");
+        setConnecting(false);
+      }
     } catch {
       setError("Failed to initiate connection.");
       setConnecting(false);
@@ -357,6 +362,8 @@ export default function FoodicsConnectionPage() {
       onOpenChange={setShowDisconnectConfirm}
       title={t("foodics.disconnect", "Disconnect Foodics")}
       description={t("foodics.disconnectConfirm", "Are you sure you want to disconnect Foodics? This will remove the integration.")}
+      confirmLabel={t("foodics.disconnect", "Disconnect")}
+      cancelLabel={t("common.cancel", "Cancel")}
       onConfirm={() => { setShowDisconnectConfirm(false); void handleDisconnect(); }}
     />
     </>

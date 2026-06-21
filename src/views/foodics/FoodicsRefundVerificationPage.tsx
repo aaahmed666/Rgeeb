@@ -2,7 +2,7 @@
 import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { dateRangeToISO } from "@/lib/utils";
+import { dateRangeToISO, formatSAR } from "@/lib/utils";
 import {
   Loader2,
   ChevronLeft,
@@ -281,7 +281,7 @@ export default function FoodicsRefundVerificationPage() {
                 header: t("admin.subscriptions.amount"),
                 headClassName: "text-right",
                 cellClassName: "text-right font-medium",
-                render: (r) => `SAR ${r.amount.toFixed(2)}`,
+                render: (r) => formatSAR(r.amount),
               },
               {
                 key: "type",
@@ -392,7 +392,7 @@ export default function FoodicsRefundVerificationPage() {
                 {t("foodics.reviewRefund", "Review Refund")}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {reviewTarget.order_ref} · SAR {reviewTarget.amount.toFixed(2)}{" "}
+                {reviewTarget.order_ref} · {formatSAR(reviewTarget.amount)}{" "}
                 · {reviewTarget.refunded_at}
               </p>
               <span
