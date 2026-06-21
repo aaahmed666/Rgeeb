@@ -261,7 +261,9 @@
     "status_late": "متأخر",
     "status_absent": "غائب",
     "status_leave": "إجازة",
-    "exportFailed": "فشل التصدير. يرجى المحاولة مرة أخرى."
+    "exportFailed": "فشل التصدير. يرجى المحاولة مرة أخرى.",
+    "pdfReportTitle": "لوحة صدارة الموظفين",
+    "pdfGenerated": "تاريخ الإنشاء"
   },
   "intel": {
     "title": "ذكاء الفروع",
@@ -2101,7 +2103,9 @@
     "colTime": "الوقت",
     "noData": "لا توجد بيانات",
     "selectDate": "اختر تاريخاً لعرض البيانات",
-    "viewingRange": "عرض البيانات من {{from}} إلى {{to}}"
+    "viewingRange": "عرض البيانات من {{from}} إلى {{to}}",
+    "showingRange": "عرض {{start}}–{{end}} من {{total}}",
+    "pageOf": "صفحة {{page}} من {{total}}"
   },
   "validation": {
     "required": "هذا الحقل مطلوب",

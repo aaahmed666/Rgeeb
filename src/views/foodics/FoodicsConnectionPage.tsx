@@ -275,7 +275,7 @@ export default function FoodicsConnectionPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {SERVICE_ICONS.map((svc) => {
           const isUp =
-            status?.services[svc.key as keyof typeof status.services];
+            status?.services?.[svc.key as keyof typeof status.services];
           return (
             <div
               key={svc.key}

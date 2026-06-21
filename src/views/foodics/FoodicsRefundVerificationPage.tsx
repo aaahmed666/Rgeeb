@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { dateRangeToISO } from "@/lib/utils";
 import {
   Loader2,
   ChevronLeft,
@@ -78,8 +79,7 @@ export default function FoodicsRefundVerificationPage() {
   const [branchId, setBranchId] = useState("");
   const [status, setStatus] = useState("");
   const [dateRange, setDateRange] = React.useState<DateRange | null>(null);
-  const from = dateRange ? dateRange[0].toISOString().split("T")[0] : "";
-  const to = dateRange ? dateRange[1].toISOString().split("T")[0] : "";
+  const { from, to } = dateRangeToISO(dateRange);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);

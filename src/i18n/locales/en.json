@@ -261,7 +261,9 @@
     "status_late": "Late",
     "status_absent": "Absent",
     "status_leave": "On Leave",
-    "exportFailed": "Export failed. Please try again."
+    "exportFailed": "Export failed. Please try again.",
+    "pdfReportTitle": "Employee Leaderboard",
+    "pdfGenerated": "Generated"
   },
   "intel": {
     "title": "Br Intelligence",
@@ -2101,7 +2103,9 @@
     "colTime": "Time",
     "noData": "NO DATA",
     "selectDate": "Select a date to view data",
-    "viewingRange": "Showing data from {{from}} to {{to}}"
+    "viewingRange": "Showing data from {{from}} to {{to}}",
+    "showingRange": "Showing {{start}}–{{end}} of {{total}}",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "validation": {
     "required": "This field is required",

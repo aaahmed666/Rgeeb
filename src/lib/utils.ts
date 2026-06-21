@@ -34,3 +34,25 @@ export function clampISODateToToday(iso: string): string {
   const today = todayLocalISO();
   return iso > today ? today : iso;
 }
+
+/**
+ * Safely turn an rsuite-style date range (`[Date, Date] | null`) into
+ * `{ from, to }` local ISO date strings.
+ *
+ * The picker can hand back a partial or non-Date value mid-interaction (e.g.
+ * `[Date, null]`), and a value rehydrated from elsewhere may not be a real
+ * Date instance. The previous inline `dateRange[1].toISOString()` ran during
+ * render and threw a TypeError in those cases, which tripped the route-level
+ * error boundary and showed "Failed to load page". This helper never throws:
+ * any missing or invalid endpoint yields an empty string for that side.
+ */
+export function dateRangeToISO(
+  range: readonly (Date | null | undefined)[] | null | undefined
+): { from: string; to: string } {
+  const toISO = (d: Date | null | undefined): string =>
+    d instanceof Date && !Number.isNaN(d.getTime()) ? toLocalISODate(d) : "";
+  return {
+    from: toISO(range?.[0]),
+    to: toISO(range?.[1]),
+  };
+}

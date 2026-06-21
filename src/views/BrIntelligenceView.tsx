@@ -55,6 +55,7 @@ import {
 import { cn, toLocalISODate } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { getAuthToken } from "@/lib/api";
+import { exportElementToPdf } from "@/lib/pdfExport";
 import {
   useBrIntelligenceData,
   useBrIntelligenceSummary,
@@ -107,6 +108,7 @@ export default function BrIntelligenceView() {
   const [rankTop, setRankTop] = useState<3 | 5 | 10>(3);
   const [openSection, setOpenSection] = useState<string | null>("efficiency");
   const [printMode, setPrintMode] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [radarCount, setRadarCount] = useState(0);
   const [sectionsWithData, setSectionsWithData] = useState<Set<string>>(
@@ -178,6 +180,84 @@ export default function BrIntelligenceView() {
     () => rangeFor(range, customFrom, customTo),
     [range, customFrom, customTo]
   );
+
+  // Export the full report to PDF using jsPDF + html2canvas.
+  //
+  // Keeps the same content as the previous print output — every section that
+  // has data, expanded — but replaces the brittle window.print() + per-node
+  // direction mutation with a single rasterized capture. The .pdf-capture class
+  // (added on <html> by exportElementToPdf for the duration of the capture)
+  // forces the light theme and real table layout, so the snapshot is clean
+  // regardless of the on-screen theme. Direction follows the active language,
+  // so Arabic renders RTL and English LTR.
+  const handleExportPdf = React.useCallback(async () => {
+    if (exportingPdf) return;
+    const dataMap: Record<string, boolean> = {
+      efficiency: efficiency.length > 0,
+      classification: efficiency.length > 0,
+      "branch-comparison": efficiency.length > 0,
+      radar: efficiency.length > 0,
+      rankings: (rankings?.by_score?.length ?? 0) > 0,
+      heatmap: (heatmap?.cells?.length ?? 0) > 0,
+      hourly: (hourly?.length ?? 0) > 0,
+      period: (comparison?.metrics?.length ?? 0) > 0,
+      insights: insights.length > 0,
+      health: health.length > 0,
+      matrix: matrix.length > 0,
+      forecast: (forecast?.points?.length ?? 0) > 0,
+      anomaly: anomalies.length > 0,
+    };
+    const withData = new Set<string>(
+      Object.keys(dataMap).filter((k) => dataMap[k])
+    );
+
+    const dir = i18n.dir() === "rtl" ? "rtl" : "ltr";
+
+    setSectionsWithData(withData);
+    setPrintMode(true);
+    setExportingPdf(true);
+
+    // Wait for React to commit the expanded sections and for charts/tables to
+    // lay out before we capture. Two rAFs + a short delay mirrors the previous
+    // timeout that allowed complex SVG charts to settle.
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => setTimeout(r, 600));
+
+    const wrapper = document.querySelector(".print-rtl") as HTMLElement | null;
+    try {
+      if (!wrapper) throw new Error("Report container not found");
+      await exportElementToPdf(wrapper, {
+        filename: `branch-intelligence-${from}-${to}.pdf`,
+        dir,
+        title: t("intel.title", "ذكاء الفروع"),
+        subtitle: `${t("intel.printDate", "تاريخ التقرير")}: ${new Date().toLocaleDateString(
+          dir === "rtl" ? "ar-EG" : "en-US"
+        )}`,
+      });
+    } catch (e) {
+      console.error("PDF export failed:", e);
+    } finally {
+      setExportingPdf(false);
+      setPrintMode(false);
+      setSectionsWithData(new Set());
+    }
+  }, [
+    exportingPdf,
+    efficiency,
+    rankings,
+    heatmap,
+    hourly,
+    comparison,
+    insights,
+    health,
+    matrix,
+    forecast,
+    anomalies,
+    from,
+    to,
+    t,
+  ]);
 
   if (!hasPermission("analytics.read")) {
     return (
@@ -327,157 +407,10 @@ export default function BrIntelligenceView() {
               <FileSpreadsheet className="h-4 w-4" />
             </button>
             <button
-              onClick={() => {
-                // Build set of ALL sections that have data — print them all
-                const dataMap: Record<string, boolean> = {
-                  efficiency: efficiency.length > 0,
-                  classification: efficiency.length > 0,
-                  "branch-comparison": efficiency.length > 0,
-                  radar: efficiency.length > 0,
-                  rankings: (rankings?.by_score?.length ?? 0) > 0,
-                  heatmap: (heatmap?.cells?.length ?? 0) > 0,
-                  hourly: (hourly?.length ?? 0) > 0,
-                  period: (comparison?.metrics?.length ?? 0) > 0,
-                  insights: insights.length > 0,
-                  health: health.length > 0,
-                  matrix: matrix.length > 0,
-                  forecast: (forecast?.points?.length ?? 0) > 0,
-                  anomaly: anomalies.length > 0,
-                };
-                const withData = new Set<string>(
-                  Object.keys(dataMap).filter((k) => dataMap[k])
-                );
-                setSectionsWithData(withData);
-                setPrintMode(true);
-                // Wait for React to render all sections before opening print dialog
-                // Increased timeout to allow complex charts/tables to fully render before print
-                setTimeout(() => {
-                  const htmlEl = document.documentElement;
-                  // Derive the app's real direction from the active language
-                  // rather than the current DOM attribute — a previously
-                  // cancelled print could have left a stale `dir="rtl"` on
-                  // <html>, and reading that would make us "restore" to the
-                  // wrong (reversed) direction.
-                  const prevDir = i18n.dir();
-
-                  const printWrapper = document.querySelector(
-                    ".print-rtl"
-                  ) as HTMLElement | null;
-                  if (printWrapper) {
-                    printWrapper.style.width = "100%";
-                    printWrapper.style.direction = "rtl";
-                  }
-                  const allEls: HTMLElement[] = printWrapper
-                    ? Array.from(printWrapper.querySelectorAll("*"))
-                    : [];
-
-                  type SavedStyle = {
-                    el: HTMLElement;
-                    direction: string;
-                    textAlign: string;
-                    flexDirection: string;
-                  };
-                  const saved: SavedStyle[] = [];
-
-                  allEls.forEach((el) => {
-                    const h = el as HTMLElement;
-                    const tag = h.tagName.toUpperCase();
-                    if (
-                      [
-                        "TABLE",
-                        "TR",
-                        "TD",
-                        "TH",
-                        "THEAD",
-                        "TBODY",
-                        "SVG",
-                        "PATH",
-                        "CIRCLE",
-                        "G",
-                      ].includes(tag)
-                    )
-                      return;
-
-                    const computed = window.getComputedStyle(h);
-                    const display = computed.display;
-                    const isFlex =
-                      display === "flex" || display === "inline-flex";
-                    const isGrid =
-                      display === "grid" || display === "inline-grid";
-                    const flexDir = computed.flexDirection;
-                    const isRowFlex =
-                      isFlex &&
-                      (flexDir === "row" || flexDir === "row-reverse");
-
-                    saved.push({
-                      el: h,
-                      direction: h.style.direction,
-                      textAlign: h.style.textAlign,
-                      flexDirection: h.style.flexDirection,
-                    });
-
-                    h.style.direction = "rtl";
-                    if (isRowFlex) {
-                      h.style.flexDirection = "row-reverse";
-                    } else if (isGrid) {
-                      // grid inherits direction:rtl automatically
-                    } else if (!isFlex) {
-                      h.style.textAlign = "right";
-                    }
-                  });
-
-                  document
-                    .querySelectorAll("[data-section-id]")
-                    .forEach((el) => {
-                      (el as HTMLElement).style.width = "100%";
-                    });
-
-                  htmlEl.setAttribute("dir", "rtl");
-
-                  let restored = false;
-                  const restoreAfterPrint = () => {
-                    // Idempotent: afterprint can fire more than once, and we
-                    // also call this from a safety timeout. Restoring twice
-                    // would clobber the saved styles, so guard against it.
-                    if (restored) return;
-                    restored = true;
-                    // Always restore to the document's real default direction.
-                    // Reading getAttribute can yield null/"rtl" depending on the
-                    // app shell, so fall back to the captured prevDir and, if
-                    // that itself was already "rtl" by mistake, to "ltr".
-                    htmlEl.setAttribute("dir", prevDir || "ltr");
-                    saved.forEach(
-                      ({ el, direction, textAlign, flexDirection }) => {
-                        el.style.direction = direction;
-                        el.style.textAlign = textAlign;
-                        el.style.flexDirection = flexDirection;
-                      }
-                    );
-                    if (printWrapper) {
-                      printWrapper.style.removeProperty("width");
-                      printWrapper.style.removeProperty("direction");
-                    }
-                    document
-                      .querySelectorAll("[data-section-id]")
-                      .forEach((el) => {
-                        (el as HTMLElement).style.removeProperty("width");
-                      });
-                    setPrintMode(false);
-                    setSectionsWithData(new Set());
-                    window.removeEventListener("afterprint", restoreAfterPrint);
-                    if (fallbackTimer) clearTimeout(fallbackTimer);
-                  };
-                  // Safety net: some browsers don't reliably fire `afterprint`
-                  // when the print dialog is cancelled, which previously left
-                  // the whole page stuck in RTL. Restore unconditionally after
-                  // a short delay as a fallback.
-                  const fallbackTimer = setTimeout(restoreAfterPrint, 3000);
-                  window.addEventListener("afterprint", restoreAfterPrint);
-                  window.print();
-                }, 800);
-              }}
+              onClick={() => void handleExportPdf()}
+              disabled={exportingPdf}
               title="Print"
-              className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10"
+              className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Printer className="h-4 w-4" />
             </button>

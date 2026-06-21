@@ -7,7 +7,13 @@ export interface TwoFactorStatus {
 }
 
 export interface TwoFactorSetup {
+  /** Pre-rendered QR image (data URL or SVG markup), if the backend sends one. */
   qrCode?: string;
+  /**
+   * The otpauth:// provisioning URI. This is what the OLD project's backend
+   * returns as `qr_uri`; the old UI rendered the QR from this string client-side.
+   */
+  qrUri?: string;
   secret?: string;
   recoveryCodes?: string[];
 }
@@ -23,18 +29,25 @@ function b(v: unknown): boolean {
 }
 
 export async function fetchTwoFactorStatus(): Promise<TwoFactorStatus> {
-  const res = await apiFetch<Record<string, unknown>>(endpoints.security.twoFactorStatus);
+  const res = await apiFetch<Record<string, unknown>>(
+    endpoints.security.twoFactorStatus
+  );
   const data = (res?.data as Record<string, unknown>) ?? res ?? {};
   return {
     enabled: b(data.enabled ?? data.is_enabled ?? data.two_factor_enabled),
-    confirmed: b(data.confirmed ?? data.is_confirmed ?? data.two_factor_confirmed),
+    confirmed: b(
+      data.confirmed ?? data.is_confirmed ?? data.two_factor_confirmed
+    ),
   };
 }
 
 export async function setupTwoFactor(): Promise<TwoFactorSetup> {
-  const res = await apiFetch<Record<string, unknown>>(endpoints.security.twoFactorSetup, {
-    method: "POST",
-  });
+  const res = await apiFetch<Record<string, unknown>>(
+    endpoints.security.twoFactorSetup,
+    {
+      method: "POST",
+    }
+  );
   const data = (res?.data as Record<string, unknown>) ?? res ?? {};
   const codes = Array.isArray(data.recovery_codes)
     ? (data.recovery_codes as unknown[]).map(String)
@@ -42,7 +55,17 @@ export async function setupTwoFactor(): Promise<TwoFactorSetup> {
       ? (data.recoveryCodes as unknown[]).map(String)
       : undefined;
   return {
-    qrCode: s(data.qr_code) ?? s(data.qrCode) ?? s(data.qr) ?? s(data.qr_code_url),
+    // A pre-rendered image if the backend provides one (data URL / SVG / image URL).
+    qrCode:
+      s(data.qr_code) ?? s(data.qrCode) ?? s(data.qr) ?? s(data.qr_code_url),
+    // The otpauth:// URI — this is what THIS backend returns (`qr_uri`), exactly
+    // like the OLD project. The view renders the QR image from it client-side.
+    qrUri:
+      s(data.qr_uri) ??
+      s(data.qrUri) ??
+      s(data.otpauth_url) ??
+      s(data.otpauth) ??
+      s(data.uri),
     secret: s(data.secret) ?? s(data.code),
     recoveryCodes: codes,
   };
@@ -63,7 +86,9 @@ export async function verifyTwoFactor(code: string): Promise<void> {
   });
 }
 
-export async function disableTwoFactor(password?: string): Promise<TwoFactorStatus> {
+export async function disableTwoFactor(
+  password?: string
+): Promise<TwoFactorStatus> {
   await apiFetch(endpoints.security.twoFactorDisable, {
     method: "POST",
     body: password ? { password } : {},

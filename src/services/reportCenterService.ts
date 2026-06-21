@@ -286,8 +286,9 @@ export async function fetchScheduledReports(): Promise<ScheduledReport[]> {
  * Response shape (confirmed from DevTools Preview):
  *   { status: true, message: "report_generated", data: GeneratedReport }
  *
- * If download_url is present in the response data, we trigger browser download
- * automatically so the user doesn't have to go to history tab.
+ * After a successful generate we auto-download the file so the user doesn't have
+ * to open the History tab — exactly like the OLD project, which called the
+ * authenticated blob endpoint right after generate.
  */
 export async function generateReport(
   payload: GenerateReportPayload
@@ -324,12 +325,21 @@ export async function generateReport(
 
   const report = json.data;
 
-  // Auto-trigger download if download_url is available
-  if (report?.download_url) {
-    triggerDownload(
-      report.download_url,
-      `${payload.template}-${payload.date_from}_${payload.date_to}.${payload.format === "excel" ? "xlsx" : payload.format}`
-    );
+  // Auto-download the freshly generated report. We download by id through the
+  // authenticated proxy endpoint (downloadReport) rather than anchoring to the
+  // raw `download_url`: that URL points straight at the backend with no Bearer
+  // token, which made Laravel redirect to the (undefined) `login` route and
+  // throw a 500. Going through downloadReport keeps the request authenticated.
+  if (report?.id != null) {
+    try {
+      await downloadReport(report.id, {
+        template: payload.template,
+        format: payload.format,
+      });
+    } catch {
+      // Non-fatal: the report was generated and is available in History even if
+      // the immediate download didn't start. The caller still gets `report`.
+    }
   }
 
   return report;
@@ -348,34 +358,82 @@ export function triggerDownload(url: string, filename?: string): void {
   document.body.removeChild(a);
 }
 
-export async function downloadReport(id: string | number): Promise<void> {
+/**
+ * Download a generated report by id.
+ *
+ * Mirrors the OLD project exactly: an *authenticated* GET to
+ * `/customer/reports/download?id={id}` requested as a blob, then anchored to an
+ * object URL.
+ *
+ * Why this matters (the bug): the previous version first hit a RESTful route
+ * `/customer/reports/{id}/download` that does NOT exist on the backend, and the
+ * generate flow anchored straight to the absolute backend `download_url`
+ * (`https://api.dev.rgeeb.com/api/customer/reports/download?id=80`). A plain
+ * anchor navigation carries NO Authorization header, so Laravel's auth
+ * middleware tried to redirect to the `login` route — which isn't defined for
+ * the API — producing the "Route [login] not defined" 500 seen in the browser.
+ *
+ * Fetching the bytes through the same-origin `/api` proxy WITH the Bearer token
+ * keeps the request authenticated, so the backend streams the file instead of
+ * redirecting. The blob is then saved client-side.
+ */
+export async function downloadReport(
+  id: string | number,
+  meta?: { template?: string; format?: ReportFormat | string }
+): Promise<void> {
   const token = getAuthToken();
-  const headers = {
-    Accept: "application/octet-stream, application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  // Primary: RESTful path; Fallback: legacy production endpoint
-  // GET /customer/reports/download?id={id} (see old ReportCenterPage.tsx)
-  let res = await fetch(`${API_BASE_URL}${endpoints.reportCenter.download(String(id))}`, { headers });
-  if (!res.ok) {
-    res = await fetch(
-      `${API_BASE_URL}/customer/reports/download?id=${encodeURIComponent(String(id))}`,
-      { headers },
-    );
-  }
+  // Single real route (confirmed in the Postman collection): there is no
+  // `/customer/reports/{id}/download`. Hitting that nonexistent route was what
+  // triggered the login-redirect 500.
+  const res = await fetch(
+    `${API_BASE_URL}${endpoints.reportCenter.downloadLegacy}?id=${encodeURIComponent(
+      String(id)
+    )}`,
+    {
+      headers: {
+        Accept: "application/octet-stream, application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  );
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
   const ct = res.headers.get("content-type") ?? "";
+  // Some backends answer with a JSON envelope carrying a signed URL instead of
+  // the file bytes. Honour that; otherwise treat the body as the file.
   if (ct.includes("application/json")) {
-    const json = (await res.json()) as { data?: { download_url?: string } };
-    if (json.data?.download_url) {
-      triggerDownload(json.data.download_url);
+    const json = (await res.json()) as {
+      data?: { download_url?: string };
+      download_url?: string;
+    };
+    const url = json.data?.download_url ?? json.download_url;
+    if (url) {
+      triggerDownload(url, buildReportFilename(id, meta));
       return;
     }
     return;
   }
+
   const blob = await res.blob();
-  triggerDownload(URL.createObjectURL(blob), `report-${id}`);
+  const objectUrl = URL.createObjectURL(blob);
+  triggerDownload(objectUrl, buildReportFilename(id, meta));
+  // Revoke on the next tick, after the click has been dispatched.
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
+/**
+ * Build a download filename matching the OLD project's convention:
+ *   `${template}_${format}.${ext}`  (ext = xlsx for excel, csv for csv, else pdf)
+ * Falls back to `report-{id}` when no template metadata is available.
+ */
+function buildReportFilename(
+  id: string | number,
+  meta?: { template?: string; format?: ReportFormat | string }
+): string {
+  if (!meta?.template) return `report-${id}`;
+  const fmt = meta.format || "report";
+  const ext = fmt === "excel" ? "xlsx" : fmt === "csv" ? "csv" : "pdf";
+  return `${meta.template}_${fmt}.${ext}`;
 }
 
 /**
@@ -388,7 +446,9 @@ export async function deleteGeneratedReport(
   id: string | number
 ): Promise<void> {
   try {
-    await apiFetch(endpoints.reportCenter.generatedById(String(id)), { method: "DELETE" });
+    await apiFetch(endpoints.reportCenter.generatedById(String(id)), {
+      method: "DELETE",
+    });
   } catch {
     await apiFetch("/customer/reports/generated/delete", {
       method: "POST",

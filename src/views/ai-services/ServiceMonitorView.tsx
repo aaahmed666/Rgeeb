@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   Camera,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -62,6 +64,17 @@ interface MonitorDashboard {
     timestamp?: string;
   }>;
   branches?: Array<{ id: string | number; name: string }>;
+  /**
+   * Server-side pagination metadata for `recent_detections`. Mirrors the OLD
+   * project's PaginationInfo so the detections table can page through results
+   * instead of only ever showing page 1.
+   */
+  pagination?: {
+    total?: number;
+    per_page?: number;
+    current_page?: number;
+    last_page?: number;
+  };
   [k: string]: unknown;
 }
 
@@ -73,8 +86,8 @@ const EMPTY_HOURS = Array.from({ length: 24 }, (_, i) => ({
 
 // Mandatory pagination params expected by the service-monitor dashboard API.
 // Omitting these makes the backend return an empty / differently-shaped
-// payload (no recent_detections, no detections_per_hour buckets).
-const DEFAULT_PAGE = 1;
+// payload (no recent_detections, no detections_per_hour buckets). The page
+// number is driven by component state; per-page mirrors the OLD project's 15.
 const DEFAULT_PER_PAGE = 15;
 
 // ─── Helper ────────────────────────────────────────────────────────────────
@@ -150,6 +163,11 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
   const from = dateRange ? toLocalISODate(dateRange[0]) : today;
   const to = dateRange ? toLocalISODate(dateRange[1]) : today;
   const [branchId, setBranchId] = React.useState("all");
+  // Server-side pagination for the detections table. UI page is 0-based (like
+  // the OLD project); the API receives `page + 1`. PER_PAGE mirrors the old
+  // hardcoded 15. Without these the dashboard request omitted page/per_page.
+  const [page, setPage] = React.useState(0);
+  const PER_PAGE = DEFAULT_PER_PAGE;
   const [data, setData] = React.useState<MonitorDashboard | null>(null);
   const [loading, setLoading] = React.useState(true);
   // Delete-action state (Bug: delete non-functional). `deletedIds` lets us
@@ -177,13 +195,19 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
       if (branchId !== "all") q.branch_id = branchId;
       // Pagination params are MANDATORY: without `page` / `per_page` the backend
       // returns an empty / differently-shaped payload (no recent_detections, no
-      // detections_per_hour buckets). They are appended last and as strings so
-      // they can never be dropped — buildUrl() skips empty/null/undefined values,
-      // and a numeric 0 would also be skipped, so we always send the literal
-      // contract values "1" / "15".
-      q.page = String(DEFAULT_PAGE);
-      q.per_page = String(DEFAULT_PER_PAGE);
-      const cacheKey = serviceMonitorKey(serviceApiId, from, to, branchId);
+      // detections_per_hour buckets). Sent as strings so buildUrl() never drops
+      // them (it skips empty/null/undefined, and a numeric 0 would be skipped
+      // too). Driven by `page` state — exactly like the OLD project, which sent
+      // `page: page + 1, per_page: 15` and refetched on page change.
+      q.page = String(page + 1);
+      q.per_page = String(PER_PAGE);
+      const cacheKey = serviceMonitorKey(
+        serviceApiId,
+        from,
+        to,
+        branchId,
+        page + 1
+      );
       const res = await serviceMonitorCache.get(cacheKey, () =>
         apiFetch<{ data?: MonitorDashboard } | MonitorDashboard>(
           endpoints.serviceMonitor.dashboard(serviceApiId),
@@ -203,11 +227,19 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [from, to, branchId, serviceApiId]);
+  }, [from, to, branchId, page, serviceApiId]);
 
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  // Reset to the first page whenever a filter changes (date range or branch),
+  // mirroring the OLD project's `setPage(0)` on filter change — otherwise a
+  // user on page 3 of one service could land on an out-of-range page after
+  // narrowing the date range.
+  React.useEffect(() => {
+    setPage(0);
+  }, [from, to, branchId]);
 
   // ── Derived values ────────────────────────────────────────────────────────
   // The real backend (OLD project contract) returns KPIs under `kpis`
@@ -421,6 +453,26 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
         ),
     [detections, deletedIds]
   );
+
+  // ── Pagination metadata (server-side, like the OLD project) ───────────────
+  // The backend returns { total, per_page, current_page, last_page }. Fall back
+  // gracefully when the field is absent so older payloads still render a single
+  // page without breaking the controls.
+  const pagination = data?.pagination;
+  const totalDetectionsCount = pagination?.total ?? detections.length;
+  const lastPage = Math.max(
+    1,
+    pagination?.last_page ??
+      (pagination?.total
+        ? Math.ceil(pagination.total / PER_PAGE)
+        : 1)
+  );
+  // UI page is 0-based; lastPage is 1-based. Clamp so the "next" button can't
+  // push past the final page.
+  const isLastPage = page + 1 >= lastPage;
+  const isFirstPage = page <= 0;
+  const rangeStart = totalDetectionsCount === 0 ? 0 : page * PER_PAGE + 1;
+  const rangeEnd = Math.min((page + 1) * PER_PAGE, totalDetectionsCount);
 
   // ── Delete a detection row (Bug: delete non-functional) ───────────────────
   // The trash button previously had no handler — no request was dispatched and
@@ -975,6 +1027,47 @@ export default function ServiceMonitorView({ service, serviceApiId }: Props) {
           },
         ]}
       />
+
+      {/* ── Detections pagination (server-side, mirrors the OLD project) ──── */}
+      {totalDetectionsCount > 0 && (
+        <div className="flex flex-col items-center justify-between gap-3 px-1 sm:flex-row">
+          <p className="text-xs text-muted-foreground">
+            {t("serviceMonitor.showingRange", "Showing {{start}}–{{end}} of {{total}}", {
+              start: rangeStart,
+              end: rangeEnd,
+              total: totalDetectionsCount,
+            })}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 px-3"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={isFirstPage || loading}
+            >
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+              {t("common.previous", "Previous")}
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground tabular-nums">
+              {t("serviceMonitor.pageOf", "Page {{page}} of {{total}}", {
+                page: page + 1,
+                total: lastPage,
+              })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 px-3"
+              onClick={() => setPage((p) => (isLastPage ? p : p + 1))}
+              disabled={isLastPage || loading}
+            >
+              {t("common.next", "Next")}
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ConfirmDeleteDialog
         open={deleteTarget != null}

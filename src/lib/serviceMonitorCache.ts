@@ -81,15 +81,17 @@ export const serviceMonitorCache = new PromiseCache();
 
 /**
  * Build the canonical cache key for a service monitor dashboard request.
- * Must match the query params sent by ServiceMonitorView.
+ * Must match the query params sent by ServiceMonitorView — including the
+ * 1-based page number, so paging never returns another page's cached payload.
  */
 export function serviceMonitorKey(
   serviceApiId: number,
   from: string,
   to: string,
-  branchId: string
+  branchId: string,
+  page: number
 ): string {
-  return `svc:${serviceApiId}:${from}:${to}:${branchId}`;
+  return `svc:${serviceApiId}:${from}:${to}:${branchId}:${page}`;
 }
 
 /**

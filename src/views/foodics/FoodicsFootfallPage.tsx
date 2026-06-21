@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { dateRangeToISO } from "@/lib/utils";
 import {
   Loader2,
   PersonStanding,
@@ -47,8 +48,7 @@ export default function FoodicsFootfallPage() {
 
   const [branchId, setBranchId] = useState("");
   const [dateRange, setDateRange] = React.useState<DateRange | null>(null);
-  const from = dateRange ? dateRange[0].toISOString().split("T")[0] : "";
-  const to = dateRange ? dateRange[1].toISOString().split("T")[0] : "";
+  const { from, to } = dateRangeToISO(dateRange);
 
   const fetchData = useCallback(async () => {
     setLoading(true);

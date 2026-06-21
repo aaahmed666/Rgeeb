@@ -421,12 +421,22 @@ export const tasksService = {
             ])
           );
         };
+        const byStatus = toNumMap(r.by_status);
+        // The backend returns the per-status counts inside `by_status` — NOT as
+        // top-level `in_progress` / `completed` fields. The OLD project read the
+        // stat cards straight from `by_status` (dashboard.by_status.in_progress,
+        // .completed). Reading the (absent) top-level keys is why the In Progress
+        // and Completed cards showed 0 while the Task Breakdown — which reads
+        // by_status — showed the real 4 and 6. Prefer by_status, fall back to any
+        // top-level value the backend might also send.
         return {
           total: num(r.total ?? r.total_tasks),
-          inProgress: num(r.in_progress ?? r.inProgress),
-          completed: num(r.completed),
-          overdue: num(r.overdue),
-          byStatus: toNumMap(r.by_status),
+          inProgress: num(
+            byStatus.in_progress ?? r.in_progress ?? r.inProgress
+          ),
+          completed: num(byStatus.completed ?? r.completed),
+          overdue: num(r.overdue ?? byStatus.overdue),
+          byStatus,
           byType: toNumMap(r.by_type),
           byPriority: toNumMap(r.by_priority),
         } satisfies TaskSummary;

@@ -160,7 +160,9 @@ export default function EmployeesView() {
   } = useDebounceSearch("", 300);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
-  React.useEffect(() => { setPage(1); }, [debouncedSearch]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   const {
     data: empPage,
@@ -168,12 +170,26 @@ export default function EmployeesView() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["org", "employees", { page, per_page: PER_PAGE, keyword: debouncedSearch }],
-    queryFn: () => fetchEmployees({ page, per_page: PER_PAGE, keyword: debouncedSearch || undefined }),
+    queryKey: [
+      "org",
+      "employees",
+      { page, per_page: PER_PAGE, keyword: debouncedSearch },
+    ],
+    queryFn: () =>
+      fetchEmployees({
+        page,
+        per_page: PER_PAGE,
+        keyword: debouncedSearch || undefined,
+      }),
   });
 
-  const employees = (empPage as unknown as PaginatedResult<Employee>)?.items ?? (empPage as Employee[] ?? []);
-  const total = (empPage as unknown as PaginatedResult<Employee>)?.total ?? (employees as Employee[]).length;
+  const employees =
+    (empPage as unknown as PaginatedResult<Employee>)?.items ??
+    (empPage as Employee[]) ??
+    [];
+  const total =
+    (empPage as unknown as PaginatedResult<Employee>)?.total ??
+    (employees as Employee[]).length;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const filtered = employees as Employee[];
 
@@ -194,15 +210,27 @@ export default function EmployeesView() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
         <ShieldAlert className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
-        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+        <p className="text-lg font-semibold">
+          {t("errors.unauthorized", "Access Denied")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "common.noPermission",
+            "You don't have permission to view this page."
+          )}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="overflow-hidden rounded-2xl p-6 text-white shadow-lg" style={{ background: "linear-gradient(to right, #1e293b, #334155, #f97316)" }}>
+      <div
+        className="overflow-hidden rounded-2xl p-6 text-white shadow-lg"
+        style={{
+          background: "linear-gradient(to right, #1e293b, #334155, #f97316)",
+        }}
+      >
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-white/15 p-3 backdrop-blur">
             <Users className="h-6 w-6" />
@@ -247,7 +275,11 @@ export default function EmployeesView() {
         data={filtered}
         isLoading={isLoading}
         isError={isError}
-        errorMessage={error instanceof Error ? error.message : t("errors.loadFailed", "Failed to load")}
+        errorMessage={
+          error instanceof Error
+            ? error.message
+            : t("errors.loadFailed", "Failed to load")
+        }
         emptyMessage={t("employees.empty", "No employees found")}
         searchValue={search}
         onSearchChange={handleSearchChange}
@@ -257,18 +289,18 @@ export default function EmployeesView() {
         )}
         actions={
           can.create ? (
-          <Button
-            size="sm"
-            data-tour="add-employee"
-            className="gap-1.5"
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />{" "}
-            {t("employees.new", "Add New Employee")}
-          </Button>
+            <Button
+              size="sm"
+              data-tour="add-employee"
+              className="gap-1.5"
+              onClick={() => {
+                setEditing(null);
+                setOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />{" "}
+              {t("employees.new", "Add New Employee")}
+            </Button>
           ) : null
         }
         columns={[
@@ -368,24 +400,24 @@ export default function EmployeesView() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {can.update && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setEditing(e);
-                      setOpen(true);
-                    }}
-                  >
-                    <Pencil className="me-2 h-4 w-4" />{" "}
-                    {t("common.edit", "Edit")}
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditing(e);
+                        setOpen(true);
+                      }}
+                    >
+                      <Pencil className="me-2 h-4 w-4" />{" "}
+                      {t("common.edit", "Edit")}
+                    </DropdownMenuItem>
                   )}
                   {can.delete && (
-                  <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
-                    onClick={() => setDeleteTarget(e)}
-                  >
-                    <Trash2 className="me-2 h-4 w-4" />{" "}
-                    {t("common.delete", "Delete")}
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => setDeleteTarget(e)}
+                    >
+                      <Trash2 className="me-2 h-4 w-4" />{" "}
+                      {t("common.delete", "Delete")}
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -397,13 +429,33 @@ export default function EmployeesView() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2 py-3 text-sm text-muted-foreground">
-          <span>{t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", { start: (page-1)*PER_PAGE+1, end: Math.min(page*PER_PAGE, total), total })}</span>
+          <span>
+            {t("common.showingOf", "Showing {{start}}–{{end}} of {{total}}", {
+              start: (page - 1) * PER_PAGE + 1,
+              end: Math.min(page * PER_PAGE, total),
+              total,
+            })}
+          </span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p-1)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-2">{page} / {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p+1)}>
+            <span className="px-2">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -547,17 +599,22 @@ function EmployeeDrawer({
       // employee code (Postman: code field)
       if (form.employee_code) payload.code = form.employee_code;
       // main_admin flag
-      if (form.is_main_admin !== undefined) payload.main_admin = form.is_main_admin;
+      if (form.is_main_admin !== undefined)
+        payload.main_admin = form.is_main_admin;
       // photo avatar
       if (form.photo) payload.avatar_file = form.photo;
       // working hours - convert the day-keyed object into the array shape
-      // the API/service expects: [{ day, is_day_off, start_time, end_time }]
+      // the API/service expects: [{ day, is_day_off, start_time, end_time }].
+      // `day` MUST be the lowercase full name ("sunday".."saturday") — the
+      // backend validates against those exact values (see the Postman
+      // collection and the OLD project). Sending the capitalized UI label
+      // ("Sunday") fails with "The selected working_hours.0.day is invalid".
       if (form.working_hours) {
         const wh = form.working_hours;
         payload.working_hours = DAYS.map((day) => {
           const sched = wh[day];
           return {
-            day,
+            day: day.toLowerCase(),
             is_day_off: sched.dayOff,
             start_time: sched.startTime,
             end_time: sched.endTime,
@@ -615,7 +672,13 @@ function EmployeeDrawer({
         {/* Header */}
         <SheetHeader className="border-b px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg text-white" style={{ background: "linear-gradient(to bottom right, #334155, #f97316)" }}>
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white"
+              style={{
+                background:
+                  "linear-gradient(to bottom right, #334155, #f97316)",
+              }}
+            >
               <Users className="h-4 w-4" />
             </div>
             <div>
@@ -696,7 +759,10 @@ function EmployeeDrawer({
                 <div className="space-y-1.5">
                   <Label>{t("employees.nameEn", "English Name")}</Label>
                   <Input
-                    placeholder={t("employees.placeholder_nameEn", "Enter name in English")}
+                    placeholder={t(
+                      "employees.placeholder_nameEn",
+                      "Enter name in English"
+                    )}
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -714,7 +780,10 @@ function EmployeeDrawer({
                 <Label>{t("employees.email", "Email")}</Label>
                 <Input
                   type="email"
-                  placeholder={t("employees.placeholder_email", "employee@example.com")}
+                  placeholder={t(
+                    "employees.placeholder_email",
+                    "employee@example.com"
+                  )}
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
@@ -778,7 +847,10 @@ function EmployeeDrawer({
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
+                        <SelectItem
+                          key={d.id}
+                          value={d.id}
+                        >
                           {i18n.language === "ar"
                             ? d.nameAr || d.nameEn
                             : d.nameEn || d.nameAr}
@@ -801,7 +873,10 @@ function EmployeeDrawer({
                   </SelectTrigger>
                   <SelectContent>
                     {branches.map((br) => (
-                      <SelectItem key={br.id} value={br.id}>
+                      <SelectItem
+                        key={br.id}
+                        value={br.id}
+                      >
                         {i18n.language === "ar"
                           ? br.nameAr || br.name
                           : br.name || br.nameAr}

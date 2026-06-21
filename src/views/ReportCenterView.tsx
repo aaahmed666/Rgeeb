@@ -61,7 +61,6 @@ import {
   fetchGeneratedReports,
   fetchScheduledReports,
   generateReport,
-  triggerDownload,
   downloadReport,
   deleteGeneratedReport,
   deleteScheduledReport,
@@ -382,7 +381,12 @@ export default function ReportCenterView() {
 
   /* ── Download ────────────────────────────────────────────────────── */
   const downloadMut = useMutation({
-    mutationFn: (id: string | number) => downloadReport(id),
+    mutationFn: (args: {
+      id: string | number;
+      template?: string;
+      format?: string;
+    }) =>
+      downloadReport(args.id, { template: args.template, format: args.format }),
     onError: () =>
       toast.error(t("reportCenter.downloadFailed", "Download failed")),
   });
@@ -429,7 +433,13 @@ export default function ReportCenterView() {
   /* ── Hero ────────────────────────────────────────────────────────── */
   const hero = useMemo(
     () => (
-      <div className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg sm:p-8" style={{ background: "linear-gradient(to bottom right, #4f46e5, #7c3aed, #7e22ce)" }}>
+      <div
+        className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg sm:p-8"
+        style={{
+          background:
+            "linear-gradient(to bottom right, #4f46e5, #7c3aed, #7e22ce)",
+        }}
+      >
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
         <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -749,15 +759,16 @@ export default function ReportCenterView() {
                           disabled={!can.read}
                           onClick={() => {
                             if (!can.read) return;
-                            const url = h.download_url ?? h.file_url;
-                            if (url) {
-                              triggerDownload(
-                                url,
-                                `${h.template}-report.${h.format === "excel" ? "xlsx" : h.format}`
-                              );
-                            } else {
-                              downloadMut.mutate(h.id);
-                            }
+                            // Always download through the authenticated endpoint
+                            // (like the OLD project). Anchoring to the raw
+                            // backend download_url/file_url sends no Bearer token,
+                            // so Laravel redirects to the undefined `login` route
+                            // and returns a 500.
+                            downloadMut.mutate({
+                              id: h.id,
+                              template: h.template,
+                              format: h.format,
+                            });
                           }}
                         >
                           <Download className="h-4 w-4" />
@@ -768,7 +779,9 @@ export default function ReportCenterView() {
                           className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                           title="Delete"
                           disabled={!can.delete}
-                          onClick={() => can.delete && deleteGenMut.mutate(h.id)}
+                          onClick={() =>
+                            can.delete && deleteGenMut.mutate(h.id)
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -863,7 +876,9 @@ export default function ReportCenterView() {
                         variant="ghost"
                         className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                         disabled={!can.delete}
-                        onClick={() => can.delete && deleteSchedMut.mutate(s.id)}
+                        onClick={() =>
+                          can.delete && deleteSchedMut.mutate(s.id)
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

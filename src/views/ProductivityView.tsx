@@ -38,6 +38,8 @@ import {
   type LeaderboardRow,
   type ProductivitySummary,
 } from "@/services/productivityService";
+import { exportRenderedToPdf } from "@/lib/pdfExport";
+import i18n from "@/lib/i18n";
 
 type TabKey = "overview" | "leaderboard" | "departments" | "employee";
 
@@ -108,39 +110,47 @@ export default function ProductivityView() {
     };
   }, [selectedEmployee, tab, dateFrom, dateTo]);
 
-  // Flag the document while printing so print-only CSS can target it, mirroring
-  // the BrIntelligence print flow. This guarantees the print stylesheet (light
-  // theme + real table layout) is applied even in browsers that are lazy about
-  // recomputing styles between the beforeprint event and the print snapshot.
-  useEffect(() => {
-    const onBefore = () => {
-      document.body.dataset.printing = "true";
-    };
-    const onAfter = () => {
-      delete document.body.dataset.printing;
-    };
-    window.addEventListener("beforeprint", onBefore);
-    window.addEventListener("afterprint", onAfter);
-    return () => {
-      window.removeEventListener("beforeprint", onBefore);
-      window.removeEventListener("afterprint", onAfter);
-    };
-  }, []);
+  const [exporting, setExporting] = useState(false);
 
-  // Export the leaderboard to PDF via the browser print engine. We switch to
-  // the Leaderboard tab first (only the active tab is mounted, so printing from
-  // another tab would emit a blank table), then defer the actual print one
-  // frame so the tab content is committed to the DOM before the snapshot.
-  const handleExportPdf = useCallback(() => {
-    setTab("leaderboard");
-    // Two rAFs: first lets React commit the tab switch, second lets the browser
-    // lay it out before we freeze the page for printing.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.print();
-      });
-    });
-  }, []);
+  // Export the leaderboard to PDF using jsPDF + html2canvas.
+  //
+  // The previous implementation called window.print(), which serialized the
+  // live (often dark-themed, mobile-stacked) DOM and produced a broken,
+  // unstyled PDF. Instead we render a clean, self-contained table off-screen at
+  // a fixed width, rasterize it, and lay it into a paginated A4 PDF. Direction
+  // follows the active language so Arabic exports right-to-left and English
+  // left-to-right, with no font embedding needed (the browser shapes the text
+  // before capture).
+  const handleExportPdf = useCallback(async () => {
+    if (exporting) return;
+    const dir = i18n.dir() === "rtl" ? "rtl" : "ltr";
+    const generatedLabel = t("productivity.pdfGenerated", "Generated");
+    const dateStr = new Date().toLocaleDateString(
+      dir === "rtl" ? "ar-EG" : "en-US",
+      { year: "numeric", month: "long", day: "numeric" }
+    );
+    setExporting(true);
+    try {
+      await exportRenderedToPdf(
+        (host) => {
+          host.innerHTML = renderLeaderboardPdfHtml(leaderboard, t, dir);
+        },
+        {
+          filename: `leaderboard-${new Date().toISOString().slice(0, 10)}.pdf`,
+          dir,
+          title: t("productivity.pdfReportTitle", "Employee Leaderboard"),
+          subtitle: `${generatedLabel}: ${dateStr}`,
+        }
+      );
+    } catch (e) {
+      console.error("PDF export failed:", e);
+      toast.error(
+        t("productivity.exportFailed", "Export failed. Please try again.")
+      );
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, leaderboard, t]);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     {
@@ -232,12 +242,13 @@ export default function ProductivityView() {
             />
           </div>
           <button
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={handleExportPdf}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => void handleExportPdf()}
+            disabled={exporting}
             title={t("productivity.pdf", "PDF")}
           >
             <FileText className="h-4 w-4 text-rose-500" />
-            PDF
+            {exporting ? t("common.loading", "Loading…") : "PDF"}
           </button>
           <button
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -488,6 +499,83 @@ function StatCard({
       </div>
     </Card>
   );
+}
+
+/* -------- Leaderboard PDF builder --------
+   Renders a clean, self-contained HTML table for the PDF export. Kept separate
+   from the on-screen React table so the export never inherits dark-theme tokens
+   or the responsive card-stacking layout that broke the old print output. */
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderLeaderboardPdfHtml(
+  rows: LeaderboardRow[],
+  t: ReturnType<typeof useTranslation>["t"],
+  dir: "ltr" | "rtl"
+): string {
+  const headers = [
+    t("productivity.rank", "Rank"),
+    t("productivity.employee", "Employee"),
+    t("productivity.score", "Score"),
+    t("productivity.attendance", "Attendance"),
+    t("productivity.punctuality", "Punctuality"),
+    t("productivity.avgHours", "Avg Hours"),
+    t("productivity.late", "Late"),
+  ];
+
+  const headRow = headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("");
+
+  const bodyRows = rows.length
+    ? rows
+        .map((r) => {
+          const score = Math.max(0, Math.min(100, r.score ?? 0));
+          const scoreClass =
+            score >= 80
+              ? "pdf-doc__score--high"
+              : score >= 40
+                ? "pdf-doc__score--mid"
+                : "pdf-doc__score--low";
+          const rankClass =
+            r.rank === 1
+              ? "pdf-doc__rank--1"
+              : r.rank === 2
+                ? "pdf-doc__rank--2"
+                : r.rank === 3
+                  ? "pdf-doc__rank--3"
+                  : "";
+          const dept =
+            r.department && r.department.trim().length
+              ? escapeHtml(r.department)
+              : escapeHtml(t("productivity.unassigned", "Unassigned"));
+          return `<tr>
+            <td><span class="pdf-doc__rank ${rankClass}">#${escapeHtml(r.rank)}</span></td>
+            <td>
+              <div class="pdf-doc__name">${escapeHtml(r.name)}</div>
+              <div style="font-size:10px;color:#94a3b8;">${dept}</div>
+            </td>
+            <td><span class="pdf-doc__score ${scoreClass}">${Math.round(score)}</span></td>
+            <td>${escapeHtml(r.attendance ?? 0)}%</td>
+            <td>${escapeHtml(r.punctuality ?? 0)}%</td>
+            <td>${escapeHtml(r.avg_hours ?? "—")}</td>
+            <td><span class="pdf-doc__late">${escapeHtml(r.late_count ?? 0)}</span></td>
+          </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">${escapeHtml(
+        t("productivity.noLeaderboard", "No leaderboard data")
+      )}</td></tr>`;
+
+  return `<div class="pdf-doc" dir="${dir}">
+    <table>
+      <thead><tr>${headRow}</tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>
+  </div>`;
 }
 
 /* -------- Leaderboard Tab -------- */

@@ -323,28 +323,43 @@ function extractPaymentLink(raw: unknown): string | null {
 export interface AddServicesResult {
   ok: boolean;
   payment_link: string | null;
+  /** Server-provided error message when ok is false (for a useful toast). */
+  error?: string;
 }
 
 export async function addServices(
   serviceIds: string[]
 ): Promise<AddServicesResult> {
   try {
-    // Parity fix: the OLD system posts to /customer/subscriptions/add-service.
-    // The previous NEW code posted to the services *list* endpoint, which is
-    // not an action route.
+    // The backend expects multipart form-data with an array field
+    // `service_ids[]` (see the Postman collection: POST add-service uses
+    // formdata `service_ids`, and the rest of this app posts Laravel-style
+    // indexed arrays — e.g. rolesService's `permission_ids[i]`). The previous
+    // code sent a JSON body `{ service_ids: [...] }`, which Laravel does not
+    // bind to the expected `service_ids` array, so the request failed
+    // validation and the user could never add a service.
+    const fd = new FormData();
+    serviceIds.forEach((id, i) => {
+      fd.append(`service_ids[${i}]`, id);
+    });
+
     const raw = await apiFetch<Record<string, unknown>>(
       endpoints.subscription.addServices,
       {
         method: "POST",
-        body: { service_ids: serviceIds },
+        body: fd,
       }
     );
     // Parity: the OLD AddServiceDialog opened `data.payment_link` (Fatoorah
     // checkout) in a new tab when present. Surface it so the caller can do the
     // same instead of silently swallowing it.
     return { ok: true, payment_link: extractPaymentLink(raw) };
-  } catch {
-    return { ok: false, payment_link: null };
+  } catch (e) {
+    return {
+      ok: false,
+      payment_link: null,
+      error: e instanceof Error ? e.message : undefined,
+    };
   }
 }
 

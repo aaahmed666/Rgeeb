@@ -89,7 +89,8 @@ function AddServicesModal({
     onSuccess: (res) => {
       if (!res.ok) {
         toast.error(
-          t("subscription.servicesAddFailed", "Failed to add services")
+          res.error ||
+            t("subscription.servicesAddFailed", "Failed to add services")
         );
         return;
       }

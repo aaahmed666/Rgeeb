@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePermission } from "@/hooks/usePermission";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, Shield, Loader2, KeyRound, Copy, Check } from "lucide-react";
+import {
+  ShieldCheck,
+  Shield,
+  Loader2,
+  KeyRound,
+  Copy,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
@@ -14,10 +21,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  disableTwoFactor, enableTwoFactor, fetchTwoFactorStatus, setupTwoFactor, TwoFactorSetup,
+  disableTwoFactor,
+  enableTwoFactor,
+  fetchTwoFactorStatus,
+  setupTwoFactor,
+  TwoFactorSetup,
 } from "@/services/securityService";
 
 export default function SecurityView() {
@@ -36,7 +52,10 @@ export default function SecurityView() {
 
   const setupMut = useMutation({
     mutationFn: () => setupTwoFactor(),
-    onSuccess: (s) => { setSetup(s); setOpen(true); },
+    onSuccess: (s) => {
+      setSetup(s);
+      setOpen(true);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -55,7 +74,9 @@ export default function SecurityView() {
   const disableMut = useMutation({
     mutationFn: () => disableTwoFactor(),
     onSuccess: () => {
-      toast.success(t("security.disabled", "Two-factor authentication disabled"));
+      toast.success(
+        t("security.disabled", "Two-factor authentication disabled")
+      );
       qc.invalidateQueries({ queryKey: ["security", "2fa"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -69,7 +90,10 @@ export default function SecurityView() {
           {t("security.title", "Security Settings")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {t("security.subtitle", "Manage your account security and two-factor authentication")}
+          {t(
+            "security.subtitle",
+            "Manage your account security and two-factor authentication"
+          )}
         </p>
       </div>
 
@@ -77,9 +101,14 @@ export default function SecurityView() {
         <CardContent className="space-y-4 p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">{t("security.twoFactor", "Two-Factor Authentication")}</h2>
+              <h2 className="text-lg font-semibold">
+                {t("security.twoFactor", "Two-Factor Authentication")}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                {t("security.twoFactorSub", "Add an extra layer of security to your account")}
+                {t(
+                  "security.twoFactorSub",
+                  "Add an extra layer of security to your account"
+                )}
               </p>
             </div>
             {isLoading ? (
@@ -90,11 +119,16 @@ export default function SecurityView() {
                 {t("security.enabledLabel", "Enabled")}
               </Badge>
             ) : (
-              <Badge variant="outline">{t("security.disabledLabel", "Disabled")}</Badge>
+              <Badge variant="outline">
+                {t("security.disabledLabel", "Disabled")}
+              </Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {t("security.use", "Use an authenticator app like Google Authenticator or Authy to generate verification codes.")}
+            {t(
+              "security.use",
+              "Use an authenticator app like Google Authenticator or Authy to generate verification codes."
+            )}
           </p>
           {status?.enabled ? (
             <Button
@@ -102,7 +136,9 @@ export default function SecurityView() {
               disabled={!can.update || disableMut.isPending}
               onClick={() => can.update && setConfirmDisable(true)}
             >
-              {disableMut.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {disableMut.isPending && (
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+              )}
               <Shield className="me-2 h-4 w-4" />
               {t("security.disable", "Disable 2FA")}
             </Button>
@@ -112,7 +148,9 @@ export default function SecurityView() {
               disabled={!can.update || setupMut.isPending}
               onClick={() => can.update && setupMut.mutate()}
             >
-              {setupMut.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {setupMut.isPending && (
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+              )}
               <ShieldCheck className="me-2 h-4 w-4" />
               {t("security.enable", "Enable 2FA")}
             </Button>
@@ -120,32 +158,92 @@ export default function SecurityView() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setCode(""); setSetup(null); } }}>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) {
+            setCode("");
+            setSetup(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{t("security.scanQr", "Scan QR Code")}</DialogTitle>
             <DialogDescription>
-              {t("security.scanQrDesc", "Scan the QR code with your authenticator app, then enter the 6-digit code below.")}
+              {t(
+                "security.scanQrDesc",
+                "Scan the QR code with your authenticator app, then enter the 6-digit code below."
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {setup?.qrCode ? (
-              <div className="flex justify-center rounded-lg border bg-white p-4">
-                {setup.qrCode.startsWith("<svg") ? (
-                  <div className="h-48 w-48" dangerouslySetInnerHTML={{ __html: setup.qrCode }} />
-                ) : (
-                  <img src={setup.qrCode} alt="2FA QR code" className="h-48 w-48 object-contain" />
-                )}
-              </div>
-            ) : (
-              <div className="flex h-48 items-center justify-center rounded-lg border text-sm text-muted-foreground">
-                {t("security.noQr", "No QR code returned by server")}
-              </div>
-            )}
+            {(() => {
+              // Resolve a renderable QR. Order of preference:
+              // 1. A pre-rendered image the backend sent (data URL / SVG / URL).
+              // 2. The otpauth:// URI (`qr_uri`) — rendered to an image exactly
+              //    like the OLD project did, via the qrserver.com generator.
+              // 3. As a last resort, build an otpauth URI from the raw secret so
+              //    a code is always scannable.
+              const preRendered = setup?.qrCode;
+              const otpUri =
+                setup?.qrUri ||
+                (setup?.secret
+                  ? `otpauth://totp/${encodeURIComponent(
+                      "rgeeb"
+                    )}?secret=${encodeURIComponent(setup.secret)}&issuer=${encodeURIComponent(
+                      "rgeeb"
+                    )}`
+                  : undefined);
+              const generatedSrc = otpUri
+                ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                    otpUri
+                  )}`
+                : undefined;
+
+              if (preRendered) {
+                return (
+                  <div className="flex justify-center rounded-lg border bg-white p-4">
+                    {preRendered.startsWith("<svg") ? (
+                      <div
+                        className="h-48 w-48"
+                        dangerouslySetInnerHTML={{ __html: preRendered }}
+                      />
+                    ) : (
+                      <img
+                        src={preRendered}
+                        alt="2FA QR code"
+                        className="h-48 w-48 object-contain"
+                      />
+                    )}
+                  </div>
+                );
+              }
+              if (generatedSrc) {
+                return (
+                  <div className="flex justify-center rounded-lg border bg-white p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={generatedSrc}
+                      alt="2FA QR code"
+                      className="h-48 w-48 object-contain"
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div className="flex h-48 items-center justify-center rounded-lg border text-sm text-muted-foreground">
+                  {t("security.noQr", "No QR code returned by server")}
+                </div>
+              );
+            })()}
             {setup?.secret && (
               <div className="flex items-center gap-2 rounded-md border bg-muted p-2 text-xs">
                 <KeyRound className="h-3.5 w-3.5" />
-                <code className="flex-1 truncate font-mono">{setup.secret}</code>
+                <code className="flex-1 truncate font-mono">
+                  {setup.secret}
+                </code>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -160,10 +258,14 @@ export default function SecurityView() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>{t("security.verificationCode", "Verification Code")}</Label>
+              <Label>
+                {t("security.verificationCode", "Verification Code")}
+              </Label>
               <Input
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 maxLength={6}
                 inputMode="numeric"
                 placeholder="123456"
@@ -173,18 +275,33 @@ export default function SecurityView() {
             {setup?.recoveryCodes && setup.recoveryCodes.length > 0 && (
               <div className="rounded-lg border bg-amber-50 p-3 dark:bg-amber-950/20">
                 <p className="mb-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
-                  {t("security.recoveryCodes", "Recovery Codes — save these somewhere safe")}
+                  {t(
+                    "security.recoveryCodes",
+                    "Recovery Codes — save these somewhere safe"
+                  )}
                 </p>
                 <div className="grid grid-cols-2 gap-1 font-mono text-xs text-amber-900 dark:text-amber-200">
-                  {setup.recoveryCodes.map((c) => <div key={c}>{c}</div>)}
+                  {setup.recoveryCodes.map((c) => (
+                    <div key={c}>{c}</div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel", "Cancel")}</Button>
-            <Button disabled={!can.update || code.length !== 6 || enableMut.isPending} onClick={() => can.update && enableMut.mutate()}>
-              {enableMut.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              disabled={!can.update || code.length !== 6 || enableMut.isPending}
+              onClick={() => can.update && enableMut.mutate()}
+            >
+              {enableMut.isPending && (
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+              )}
               {t("security.confirm", "Confirm & Enable")}
             </Button>
           </DialogFooter>
@@ -193,11 +310,20 @@ export default function SecurityView() {
       <ConfirmDeleteDialog
         open={confirmDisable}
         onOpenChange={setConfirmDisable}
-        title={t("security.confirmDisableTitle", "Disable Two-Factor Authentication")}
-        description={t("security.confirmDisableDesc", "Are you sure you want to disable 2FA? This will reduce your account security.")}
+        title={t(
+          "security.confirmDisableTitle",
+          "Disable Two-Factor Authentication"
+        )}
+        description={t(
+          "security.confirmDisableDesc",
+          "Are you sure you want to disable 2FA? This will reduce your account security."
+        )}
         confirmLabel={t("security.disable", "Disable 2FA")}
         cancelLabel={t("common.cancel", "Cancel")}
-        onConfirm={() => { disableMut.mutate(); setConfirmDisable(false); }}
+        onConfirm={() => {
+          disableMut.mutate();
+          setConfirmDisable(false);
+        }}
       />
     </div>
   );

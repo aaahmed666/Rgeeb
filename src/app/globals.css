@@ -949,6 +949,165 @@ button,
   }
 }
 
+/* ── PDF capture styles ────────────────────────────────────────────────────
+   Applied to <html> only while html2canvas is rasterizing the DOM for a PDF
+   export (see src/lib/pdfExport.ts). These mirror the @media print rules but
+   apply on screen during capture, so the snapshot is always the clean light
+   layout regardless of the active theme or viewport width. Without this the
+   dark theme tokens and the responsive "stacked card" table transform would
+   leak into the exported PDF — the original "broken layout" bug. */
+.pdf-capture .no-print {
+  display: none !important;
+}
+.pdf-capture .print-only {
+  display: block !important;
+}
+
+/* Force the light palette even when the .dark theme is active on screen. */
+.pdf-capture .dark,
+.pdf-capture.dark {
+  --background: oklch(0.99 0.005 80);
+  --foreground: oklch(0.22 0.04 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.04 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.04 255);
+  --primary-foreground: oklch(0.18 0.03 255);
+  --secondary: oklch(0.96 0.01 250);
+  --muted: oklch(0.96 0.008 250);
+  --muted-foreground: oklch(0.5 0.03 255);
+  --border: oklch(0.91 0.012 250);
+  --input: oklch(0.91 0.012 250);
+}
+.pdf-capture,
+.pdf-capture body {
+  background: #ffffff !important;
+}
+
+/* Force real table rendering — the responsive stacked-card transform
+   (max-width:768px) must never reach the PDF, or columns break apart. */
+.pdf-capture .table-responsive-wrapper {
+  overflow: visible !important;
+}
+.pdf-capture .table-responsive-wrapper table {
+  display: table !important;
+  width: 100% !important;
+  table-layout: auto !important;
+}
+.pdf-capture .table-responsive-wrapper thead {
+  display: table-header-group !important;
+}
+.pdf-capture .table-responsive-wrapper tbody {
+  display: table-row-group !important;
+}
+.pdf-capture .table-responsive-wrapper tr {
+  display: table-row !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.pdf-capture .table-responsive-wrapper th,
+.pdf-capture .table-responsive-wrapper td {
+  display: table-cell !important;
+  justify-content: initial !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.pdf-capture .table-responsive-wrapper td::before {
+  content: none !important;
+  display: none !important;
+}
+/* Preserve colored badges, rings and bars in the raster. */
+.pdf-capture * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* ── Standalone print/PDF layout used by the off-screen export builder ───────
+   A self-contained, theme-independent table style for the leaderboard PDF so
+   it does not depend on app component classes being present off-screen. */
+.pdf-doc {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Noto Naskh Arabic", sans-serif;
+  color: #0f172a;
+  background: #ffffff;
+  padding: 8px 4px;
+}
+.pdf-doc .pdf-doc__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+.pdf-doc .pdf-doc__subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+.pdf-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.pdf-doc thead th {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+  border-bottom: 2px solid #e2e8f0;
+  text-align: start;
+}
+.pdf-doc tbody td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+.pdf-doc tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+.pdf-doc .pdf-doc__rank {
+  font-weight: 700;
+  color: #475569;
+}
+.pdf-doc .pdf-doc__rank--1 {
+  color: #d97706;
+}
+.pdf-doc .pdf-doc__rank--2 {
+  color: #64748b;
+}
+.pdf-doc .pdf-doc__rank--3 {
+  color: #b45309;
+}
+.pdf-doc .pdf-doc__name {
+  font-weight: 600;
+  color: #1e293b;
+}
+.pdf-doc .pdf-doc__score {
+  font-weight: 700;
+}
+.pdf-doc .pdf-doc__score--high {
+  color: #059669;
+}
+.pdf-doc .pdf-doc__score--mid {
+  color: #d97706;
+}
+.pdf-doc .pdf-doc__score--low {
+  color: #e11d48;
+}
+.pdf-doc .pdf-doc__late {
+  color: #e11d48;
+  font-weight: 600;
+}
+.pdf-doc[dir="rtl"] thead th,
+.pdf-doc[dir="rtl"] tbody td {
+  text-align: right;
+}
+
 /* ── Sidebar navigation scrollbar ─────────────────────────────────────────
    Replace the default chunky OS scrollbar inside the sidebar with a thin,
    theme-aware one that only becomes visible on hover/scroll. */
