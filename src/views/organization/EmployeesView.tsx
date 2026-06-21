@@ -1057,8 +1057,10 @@ function EmployeeDrawer({
             className="flex-1 gap-2"
             disabled={
               !form.name ||
-              !form.email ||
-              (!isEdit && !form.password) ||
+              // Match the legacy project: email is required only when a role is
+              // assigned; attendance-only employees (no role) need neither
+              // email nor password. Password is always optional.
+              (Boolean(form.role_id) && !form.email) ||
               mut.isPending
             }
             onClick={() => mut.mutate()}

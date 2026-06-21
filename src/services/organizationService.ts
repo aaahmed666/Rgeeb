@@ -375,9 +375,15 @@ function buildEmployeeFormData(
   fd.append("name", nameEn);
   fd.append("name_en", nameEn);
   if (input.name_ar) fd.append("name_ar", input.name_ar);
-  fd.append("email", input.email || "");
+  // Match the legacy project exactly: for attendance-only employees (no
+  // role_id), email and password are not needed and are stripped entirely.
+  // Only when a role is assigned are email (required) and password sent.
+  const hasRole = Boolean(input.role_id);
+  if (hasRole) {
+    fd.append("email", input.email || "");
+    if (input.password) fd.append("password", input.password);
+  }
   if (input.phone) fd.append("phone", input.phone);
-  if (input.password) fd.append("password", input.password);
   if (input.branch_id) fd.append("branch_id", input.branch_id);
   if (input.department_id) fd.append("department_id", input.department_id);
   if (input.role_id) fd.append("role_id", input.role_id);
@@ -397,14 +403,17 @@ function buildEmployeeFormData(
     fd.append("certificate_end_date", input.certificate_end_date);
   if (input.avatar_file) fd.append("avatar_file", input.avatar_file);
   // working_hours[N][day], [is_day_off], [start_time], [end_time]
+  // Matches the legacy project exactly:
+  //  - `day` is lowercased ("sunday".."saturday"); the UI may hold capitalized
+  //    labels ("Sunday").
+  //  - start_time / end_time are sent for EVERY day, including days off, with
+  //    the same "09:00"/"17:00" fallback the old project used (backend may
+  //    return null for day-off rows, but always expects the fields present).
   (input.working_hours ?? []).forEach((wh, i) => {
-    fd.append(`working_hours[${i}][day]`, wh.day);
+    fd.append(`working_hours[${i}][day]`, String(wh.day).toLowerCase());
     fd.append(`working_hours[${i}][is_day_off]`, wh.is_day_off ? "1" : "0");
-    if (!wh.is_day_off) {
-      if (wh.start_time)
-        fd.append(`working_hours[${i}][start_time]`, wh.start_time);
-      if (wh.end_time) fd.append(`working_hours[${i}][end_time]`, wh.end_time);
-    }
+    fd.append(`working_hours[${i}][start_time]`, wh.start_time || "09:00");
+    fd.append(`working_hours[${i}][end_time]`, wh.end_time || "17:00");
   });
   return fd;
 }
