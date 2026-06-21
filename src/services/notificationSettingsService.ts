@@ -1,14 +1,20 @@
 /**
  * notificationSettingsService.ts
  *
- * Postman spec:
- *   GET  /customer/notification-settings         → list settings
- *   POST /customer/notification-settings         → { channel, enabled }
- *   POST /customer/notification-settings/test    → { channel }
+ * Backend contract (matches the working legacy project):
+ *   GET    /customer/notification-settings              → { data: NotificationChannelSetting[] }
+ *   POST   /customer/notification-settings              → one call PER CHANNEL with:
+ *            { channel, enabled, config, alert_types, cooldown_minutes,
+ *              quiet_hours_start, quiet_hours_end }
+ *   POST   /customer/notification-settings/test         → { channel }
+ *   POST   /customer/notification-settings/verify-telegram → { bot_token, chat_id }
+ *   DELETE /customer/notification-settings/:id
  *
- * FIX: updateNotificationSettings now sends { channel, enabled } per Postman.
- *      We still maintain the rich frontend state shape for the UI, but the
- *      actual API calls use the minimal { channel, enabled } format.
+ * The backend VALIDATES `channel` and `config` as required on every save POST.
+ * Channel-specific data lives inside `config`:
+ *   telegram → { bot_token, chat_id, summary_enabled, summary_interval_minutes,
+ *                wait_violation_enabled, wait_violation_minutes }
+ *   email    → { recipients }
  */
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
@@ -27,6 +33,27 @@ export interface NotificationSettings {
   quietHoursEnd: string;
   deliverySummary: boolean;
   waitViolationAlerts: boolean;
+}
+
+/** Raw per-channel record as returned by the backend list endpoint. */
+interface ChannelConfig {
+  bot_token?: string;
+  chat_id?: string;
+  recipients?: string[];
+  summary_enabled?: boolean;
+  summary_interval_minutes?: number;
+  wait_violation_enabled?: boolean;
+  wait_violation_minutes?: number;
+}
+interface NotificationChannelSetting {
+  id?: number;
+  channel: "telegram" | "email";
+  enabled: boolean;
+  config: ChannelConfig;
+  alert_types: string[] | null;
+  cooldown_minutes: number;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
 }
 
 const DEFAULTS: NotificationSettings = {
@@ -60,8 +87,47 @@ function arr(v: unknown): string[] {
   return [];
 }
 
-function mapSettings(r: Record<string, unknown> | null | undefined): NotificationSettings {
-  if (!r) return DEFAULTS;
+/**
+ * Accepts either:
+ *  - the legacy array of per-channel settings (preferred / real backend), or
+ *  - a flat object already shaped like NotificationSettings (tolerated).
+ */
+function mapSettings(
+  raw: unknown
+): NotificationSettings {
+  if (!raw) return DEFAULTS;
+
+  // Array of channel settings → merge telegram + email into the flat UI shape.
+  if (Array.isArray(raw)) {
+    const list = raw as Array<Record<string, unknown>>;
+    const tg = list.find((x) => x.channel === "telegram");
+    const em = list.find((x) => x.channel === "email");
+    const tgCfg = (tg?.config ?? {}) as ChannelConfig;
+    const emCfg = (em?.config ?? {}) as ChannelConfig;
+
+    // Shared scheduling fields come from whichever channel record exists.
+    const shared = tg ?? em ?? {};
+    const sharedAlertTypes = (shared.alert_types as string[] | null | undefined) ?? null;
+
+    return {
+      telegramEnabled:     b(tg?.enabled),
+      telegramBotToken:    s(tgCfg.bot_token),
+      telegramChatId:      s(tgCfg.chat_id),
+      telegramVerified:    Boolean(tg),
+      emailEnabled:        b(em?.enabled),
+      emailRecipients:     arr(emCfg.recipients),
+      allAlertTypes:       !sharedAlertTypes || sharedAlertTypes.length === 0,
+      alertTypes:          arr(sharedAlertTypes),
+      cooldownMinutes:     Number(shared.cooldown_minutes ?? 5) || 5,
+      quietHoursStart:     s(shared.quiet_hours_start),
+      quietHoursEnd:       s(shared.quiet_hours_end),
+      deliverySummary:     b(tgCfg.summary_enabled),
+      waitViolationAlerts: b(tgCfg.wait_violation_enabled, true),
+    };
+  }
+
+  // Flat object fallback.
+  const r = raw as Record<string, unknown>;
   return {
     telegramEnabled:    b(r.telegram_enabled ?? r.telegramEnabled),
     telegramBotToken:   s(r.telegram_bot_token ?? r.telegramBotToken),
@@ -82,77 +148,110 @@ function mapSettings(r: Record<string, unknown> | null | undefined): Notificatio
 export async function fetchNotificationSettings(): Promise<NotificationSettings> {
   const res = await apiFetch<unknown>(endpoints.notificationSettings.get);
   const data =
-    (res as { data?: Record<string, unknown> })?.data ??
-    (res as Record<string, unknown>) ??
+    (res as { data?: unknown })?.data ??
+    (res as unknown) ??
     null;
   return mapSettings(data);
 }
 
 /**
- * POST /customer/notification-settings { channel, enabled }
- * Postman uses simple { channel, enabled } format.
- * We accept a patch object and translate to one call per changed channel.
+ * Build the per-channel POST body the backend expects.
+ * `channel` and `config` are REQUIRED — this is what the old project sends.
+ */
+function buildTelegramBody(f: NotificationSettings): NotificationChannelSetting {
+  return {
+    channel: "telegram",
+    enabled: f.telegramEnabled,
+    config: {
+      bot_token: f.telegramBotToken,
+      chat_id: f.telegramChatId,
+      summary_enabled: f.deliverySummary,
+      summary_interval_minutes: 30,
+      wait_violation_enabled: f.waitViolationAlerts,
+      wait_violation_minutes: 5,
+    },
+    alert_types: f.allAlertTypes ? null : f.alertTypes,
+    cooldown_minutes: f.cooldownMinutes,
+    quiet_hours_start: f.quietHoursStart || null,
+    quiet_hours_end: f.quietHoursEnd || null,
+  };
+}
+
+function buildEmailBody(f: NotificationSettings): NotificationChannelSetting {
+  return {
+    channel: "email",
+    enabled: f.emailEnabled,
+    config: {
+      recipients: f.emailRecipients,
+    },
+    alert_types: f.allAlertTypes ? null : f.alertTypes,
+    cooldown_minutes: f.cooldownMinutes,
+    quiet_hours_start: f.quietHoursStart || null,
+    quiet_hours_end: f.quietHoursEnd || null,
+  };
+}
+
+/**
+ * Saves notification settings. Because each channel is a separate backend
+ * record, we issue one POST per channel that the patch touches.
+ *
+ * A patch coming from a single "Save Telegram" / "Save Email" button only has
+ * that channel's fields; the "Save All" button passes the full object. We
+ * detect which channels to write by which fields are present, and merge the
+ * patch onto current settings so each `config` is complete.
  */
 export async function updateNotificationSettings(
   patch: Partial<NotificationSettings>
 ): Promise<NotificationSettings> {
-  // Map rich patch → array of { channel, enabled } calls
+  // Merge patch onto current state so every config we POST is complete.
+  const current = await fetchNotificationSettings();
+  const merged: NotificationSettings = { ...current, ...patch };
+
+  const touchesTelegram =
+    patch.telegramEnabled !== undefined ||
+    patch.telegramBotToken !== undefined ||
+    patch.telegramChatId !== undefined ||
+    patch.deliverySummary !== undefined ||
+    patch.waitViolationAlerts !== undefined;
+
+  const touchesEmail =
+    patch.emailEnabled !== undefined ||
+    patch.emailRecipients !== undefined;
+
+  const touchesShared =
+    patch.allAlertTypes !== undefined ||
+    patch.alertTypes !== undefined ||
+    patch.cooldownMinutes !== undefined ||
+    patch.quietHoursStart !== undefined ||
+    patch.quietHoursEnd !== undefined;
+
   const calls: Promise<unknown>[] = [];
 
-  if (patch.telegramEnabled !== undefined) {
+  // Shared fields live on both channel records, so a shared-only change must
+  // write both channels to stay consistent (mirrors legacy behaviour).
+  if (touchesTelegram || touchesShared) {
     calls.push(
       apiFetch(endpoints.notificationSettings.update, {
         method: "POST",
-        body: { channel: "telegram", enabled: patch.telegramEnabled },
+        body: buildTelegramBody(merged) as unknown as Record<string, unknown>,
       })
     );
   }
-  if (patch.emailEnabled !== undefined) {
+  if (touchesEmail || touchesShared) {
     calls.push(
       apiFetch(endpoints.notificationSettings.update, {
         method: "POST",
-        body: { channel: "email", enabled: patch.emailEnabled },
-      })
-    );
-  }
-  // For fields beyond enabled/disabled (bot_token, chat_id, etc.)
-  // send as-is using the same endpoint — backend may accept extended body
-  const extra: Record<string, unknown> = {};
-  if (patch.telegramBotToken !== undefined) extra.telegram_bot_token = patch.telegramBotToken;
-  if (patch.telegramChatId   !== undefined) extra.telegram_chat_id   = patch.telegramChatId;
-  if (patch.emailRecipients  !== undefined) extra.email_recipients    = patch.emailRecipients;
-  if (patch.allAlertTypes    !== undefined) extra.all_alert_types     = patch.allAlertTypes;
-  if (patch.alertTypes       !== undefined) extra.alert_types         = patch.alertTypes;
-  if (patch.cooldownMinutes  !== undefined) extra.cooldown_minutes    = patch.cooldownMinutes;
-  if (patch.quietHoursStart  !== undefined) extra.quiet_hours_start   = patch.quietHoursStart;
-  if (patch.quietHoursEnd    !== undefined) extra.quiet_hours_end     = patch.quietHoursEnd;
-  if (patch.deliverySummary  !== undefined) extra.delivery_summary    = patch.deliverySummary;
-  if (patch.waitViolationAlerts !== undefined) extra.wait_violation_alerts = patch.waitViolationAlerts;
-
-  if (Object.keys(extra).length > 0) {
-    calls.push(
-      apiFetch(endpoints.notificationSettings.update, {
-        method: "POST",
-        body: extra,
+        body: buildEmailBody(merged) as unknown as Record<string, unknown>,
       })
     );
   }
 
   if (calls.length === 0) {
-    return fetchNotificationSettings();
+    return current;
   }
 
-  const results = await Promise.allSettled(calls);
-  // Use the last successful response for state refresh
-  const lastOk = [...results].reverse().find((r) => r.status === "fulfilled");
-  const data =
-    lastOk?.status === "fulfilled"
-      ? ((lastOk.value as { data?: Record<string, unknown> })?.data ??
-         (lastOk.value as Record<string, unknown>) ??
-         null)
-      : null;
-
-  return data ? mapSettings(data) : fetchNotificationSettings();
+  await Promise.all(calls);
+  return fetchNotificationSettings();
 }
 
 /**
@@ -165,18 +264,28 @@ export async function testNotificationChannel(channel: "telegram" | "email"): Pr
   });
 }
 
-// Legacy helpers kept for backward-compat with NotificationSettingsView
-export async function verifyTelegram(): Promise<void> {
-  await apiFetch(endpoints.notificationSettings.verifyTelegram, { method: "POST" });
+/**
+ * POST /customer/notification-settings/verify-telegram { bot_token, chat_id }
+ * Credentials are optional so existing call sites (verifyMut.mutate()) keep
+ * working; when omitted the caller is expected to have already persisted them.
+ */
+export async function verifyTelegram(
+  creds?: { botToken: string; chatId: string }
+): Promise<void> {
+  const body = creds
+    ? { bot_token: creds.botToken, chat_id: creds.chatId }
+    : undefined;
+  await apiFetch(endpoints.notificationSettings.verifyTelegram, {
+    method: "POST",
+    ...(body ? { body } : {}),
+  });
 }
 
 export async function sendTestTelegram(): Promise<void> {
   await testNotificationChannel("telegram");
 }
 
-export async function sendTestEmail(email: string): Promise<void> {
-  await apiFetch(endpoints.notificationSettings.testEmail, {
-    method: "POST",
-    body: { email, channel: "email" },
-  });
+export async function sendTestEmail(_email: string): Promise<void> {
+  // Backend test route keys off the channel; recipients come from saved config.
+  await testNotificationChannel("email");
 }

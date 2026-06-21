@@ -112,7 +112,9 @@ describe('NotificationSettingsService', () => {
       );
     });
 
-    it('should convert camelCase to snake_case in request', async () => {
+    it('should send channel + config in request body', async () => {
+      // First call is the GET used to merge current state; subsequent calls
+      // are the per-channel POSTs.
       vi.mocked(apiFetch).mockResolvedValue(mockSettings);
 
       const patch: Partial<NotificationSettings> = {
@@ -122,14 +124,22 @@ describe('NotificationSettingsService', () => {
 
       await updateNotificationSettings(patch);
 
-      const callArgs = vi.mocked(apiFetch).mock.calls[0];
-      const body = callArgs[1]?.body as Record<string, unknown>;
+      // Collect every POST body (skip the GET merge call).
+      const postBodies = vi
+        .mocked(apiFetch)
+        .mock.calls.filter((c) => c[1]?.method === 'POST')
+        .map((c) => c[1]?.body as Record<string, unknown>);
 
-      expect(body.telegram_bot_token).toBe('new-token');
-      expect(body.email_recipients).toEqual(['new@example.com']);
+      const tg = postBodies.find((bdy) => bdy.channel === 'telegram');
+      const em = postBodies.find((bdy) => bdy.channel === 'email');
+
+      expect(tg).toBeDefined();
+      expect((tg!.config as Record<string, unknown>).bot_token).toBe('new-token');
+      expect(em).toBeDefined();
+      expect((em!.config as Record<string, unknown>).recipients).toEqual(['new@example.com']);
     });
 
-    it('should only include modified fields in request', async () => {
+    it('should write both channels when a shared field changes', async () => {
       vi.mocked(apiFetch).mockResolvedValue(mockSettings);
 
       const patch: Partial<NotificationSettings> = {
@@ -138,11 +148,15 @@ describe('NotificationSettingsService', () => {
 
       await updateNotificationSettings(patch);
 
-      const callArgs = vi.mocked(apiFetch).mock.calls[0];
-      const body = callArgs[1]?.body as Record<string, unknown>;
+      const postBodies = vi
+        .mocked(apiFetch)
+        .mock.calls.filter((c) => c[1]?.method === 'POST')
+        .map((c) => c[1]?.body as Record<string, unknown>);
 
-      expect(body.cooldown_minutes).toBe(15);
-      expect(Object.keys(body).length).toBe(1);
+      // Shared field is mirrored to both telegram and email records.
+      expect(postBodies.some((bdy) => bdy.channel === 'telegram')).toBe(true);
+      expect(postBodies.some((bdy) => bdy.channel === 'email')).toBe(true);
+      postBodies.forEach((bdy) => expect(bdy.cooldown_minutes).toBe(15));
     });
 
     it('should handle update error', async () => {
@@ -202,7 +216,7 @@ describe('NotificationSettingsService', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'POST',
-          body: expect.objectContaining({ email: 'test@example.com' }),
+          body: expect.objectContaining({ channel: 'email' }),
         })
       );
     });

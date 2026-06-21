@@ -75,10 +75,31 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   // any of those is granted.
   productivity: ["productivity", "analytics", "roles"],
   // ── Foodics ──
-  foodics: ["foodics"],
-  foodics_connection: ["foodics"],
-  foodics_orders: ["foodics"],
-  foodics_dashboard: ["foodics"],
+  // Backend grants Foodics access via the `foodics.connect` permission plus
+  // granular child namespaces (foodics.orders, foodics.dashboard, …). The OLD
+  // project showed the whole group if the user had ANY of these. We list every
+  // real namespace as a candidate so a grant on any one reveals the menu.
+  foodics: [
+    "foodics",
+    "foodics_connect",
+    "foodics_orders",
+    "foodics_refund_verifications",
+    "foodics_drawer_audits",
+    "foodics_prep_times",
+    "foodics_conversion",
+    "foodics_inventory",
+    "foodics_inventory_zones",
+    "foodics_dashboard",
+  ],
+  foodics_connection: ["foodics", "foodics_connect"],
+  foodics_orders: ["foodics", "foodics_orders"],
+  foodics_refund: ["foodics", "foodics_refund_verifications"],
+  foodics_cash_drawer: ["foodics", "foodics_drawer_audits"],
+  foodics_prep_time: ["foodics", "foodics_prep_times"],
+  foodics_footfall: ["foodics", "foodics_conversion"],
+  foodics_inventory: ["foodics", "foodics_inventory", "foodics_inventory_zones"],
+  foodics_dashboard: ["foodics", "foodics_dashboard"],
+  foodics_health: ["foodics", "foodics_dashboard"],
   // ── Event Timeline / Notifications ──
   event_timeline: ["alerts", "notifications"],
   notifications: ["notifications", "notification"],

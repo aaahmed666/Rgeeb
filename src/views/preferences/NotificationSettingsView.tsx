@@ -51,7 +51,7 @@ export default function NotificationSettingsView() {
   });
 
   const verifyMut = useMutation({
-    mutationFn: () => verifyTelegram(),
+    mutationFn: (creds?: { botToken: string; chatId: string }) => verifyTelegram(creds),
     onSuccess: () => { toast.success(t("notifSettings.verified", "Telegram verified")); qc.invalidateQueries({ queryKey: ["notification-settings"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -114,7 +114,7 @@ export default function NotificationSettingsView() {
               <p className="text-xs text-muted-foreground">{t("notifSettings.chatIdHint", "Group or channel chat ID")}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" disabled={verifyMut.isPending} onClick={() => verifyMut.mutate()}>
+              <Button variant="outline" disabled={verifyMut.isPending} onClick={() => verifyMut.mutate({ botToken: form.telegramBotToken, chatId: form.telegramChatId })}>
                 {verifyMut.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="me-2 h-4 w-4" />}
                 {t("notifSettings.verify", "Verify")}
               </Button>

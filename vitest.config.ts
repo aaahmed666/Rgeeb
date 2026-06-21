@@ -36,6 +36,7 @@ export default defineConfig({
       '__tests__/services/chat-settings.test.ts',
       '__tests__/services/notification-settings.test.ts',
       '__tests__/integration/auth-flow.integration.test.tsx',
+      '__tests__/lib/foodics_parity.test.ts',
     ],
     exclude: ['node_modules', 'dist', '.next'],
     testTimeout: 10000,
