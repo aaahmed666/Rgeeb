@@ -1,6 +1,6 @@
+"use client";
 import Link from "next/link";
-
-export const metadata = { title: "Privacy Policy — RGEEB" };
+import { useTranslation } from "react-i18next";
 
 /**
  * Minimal Privacy Policy page.
@@ -8,16 +8,13 @@ export const metadata = { title: "Privacy Policy — RGEEB" };
  * Replace the placeholder copy with the real legal text before launch.
  */
 export default function PrivacyPage() {
+  const { t } = useTranslation();
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6 sm:p-10">
-      <h1 className="text-2xl font-bold">Privacy Policy</h1>
-      <p className="text-sm text-muted-foreground">
-        This page describes how RGEEB collects, uses, and protects your data.
-        The full policy text will be published here. For questions, please
-        contact support.
-      </p>
+      <h1 className="text-2xl font-bold">{t("legal.privacyTitle")}</h1>
+      <p className="text-sm text-muted-foreground">{t("legal.privacyBody")}</p>
       <Link href="/login" className="text-sm font-medium text-primary underline">
-        Back to sign in
+        {t("common.backToSignIn")}
       </Link>
     </main>
   );

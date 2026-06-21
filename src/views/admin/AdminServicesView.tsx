@@ -127,7 +127,7 @@ function ServiceDialog({
               dir="ltr"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              placeholder="Service name in English"
+              placeholder={t("packages.serviceNameEn")}
             />
           </div>
           <div className="space-y-1.5">
@@ -144,7 +144,7 @@ function ServiceDialog({
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Service description"
+              placeholder={t("packages.serviceDescription")}
               rows={3}
             />
           </div>

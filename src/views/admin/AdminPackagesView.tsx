@@ -183,7 +183,7 @@ function PackageDialog({
                 dir="ltr"
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
-                placeholder="English name"
+                placeholder={t("packages.englishName")}
               />
             </div>
           </div>
@@ -202,7 +202,7 @@ function PackageDialog({
             <Textarea
               value={descEn}
               onChange={(e) => setDescEn(e.target.value)}
-              placeholder="English description"
+              placeholder={t("packages.englishDescription")}
               rows={2}
             />
           </div>
@@ -231,7 +231,7 @@ function PackageDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Max Cameras</Label>
+              <Label>{t("packages.maxCameras")}</Label>
               <Input
                 type="number"
                 min={0}
@@ -241,7 +241,7 @@ function PackageDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Max Branches</Label>
+              <Label>{t("packages.maxBranches")}</Label>
               <Input
                 type="number"
                 min={0}
@@ -252,19 +252,19 @@ function PackageDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Category</Label>
+            <Label>{t("packages.category")}</Label>
             <AsyncPaginatedSelect
               endpoint="/admin/categories"
               labelKey="name_en"
               valueKey="id"
               value={categoryId || null}
               onChange={(v) => setCategoryId(v ?? "")}
-              placeholder="Select category (optional)"
+              placeholder={t("packages.selectCategoryOptional")}
               isClearable
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Services</Label>
+            <Label>{t("packages.services")}</Label>
             <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
               {servicesQ.isLoading ? (
                 <div className="p-2 text-sm text-muted-foreground">
@@ -294,7 +294,7 @@ function PackageDialog({
               )}
               {!servicesQ.isLoading && !servicesQ.data?.length && (
                 <div className="p-2 text-sm text-muted-foreground">
-                  No services available
+                  {t("packages.noServicesAvailable")}
                 </div>
               )}
             </div>

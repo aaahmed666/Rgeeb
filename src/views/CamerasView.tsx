@@ -194,9 +194,9 @@ export default function CamerasView() {
             <Camera className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-base font-bold sm:text-lg">Cameras</h1>
+            <h1 className="text-base font-bold sm:text-lg">{t("cameras.title")}</h1>
             <p className="text-xs text-muted-foreground">
-              Manage surveillance cameras across branches
+              {t("cameras.subtitle")}
             </p>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function CamerasView() {
             onClick={() => checkOnlineMut.mutate()}
             disabled={checkOnlineMut.isPending}
           >
-            <Activity className="mr-1.5 h-4 w-4" /> Check Online
+            <Activity className="mr-1.5 h-4 w-4" /> {t("cameras.checkOnline")}
           </Button>
           <Button
             variant="outline"
@@ -350,7 +350,7 @@ export default function CamerasView() {
                   )}
                 </Badge>
               ) : (
-                <span className="text-xs text-muted-foreground">Unknown</span>
+                <span className="text-xs text-muted-foreground">{t("common.unknown")}</span>
               ),
           },
           {
@@ -419,7 +419,7 @@ export default function CamerasView() {
                 <Input
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Main Entrance Cam"
+                  placeholder={t("cameras.namePlaceholder", "Main Entrance Cam")}
                 />
               </div>
               <div className="grid gap-1.5">
@@ -464,7 +464,7 @@ export default function CamerasView() {
                 <Input
                   value={form.location ?? ""}
                   onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                  placeholder="Entrance, Lobby..."
+                  placeholder={t("cameras.locationPlaceholder", "Entrance, Lobby...")}
                 />
               </div>
               <div className="grid gap-1.5">
@@ -540,7 +540,7 @@ export default function CamerasView() {
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={() => saveMut.mutate(form)}
@@ -570,7 +570,7 @@ export default function CamerasView() {
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => deleteId && deleteMut.mutate(deleteId)}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

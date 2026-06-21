@@ -71,7 +71,48 @@
     "prev": "Previous",
     "page": "Page",
     "previous": "Previous",
-    "id": "ID"
+    "id": "ID",
+    "tryAgain": "Try Again",
+    "goHome": "Go home",
+    "backToSignIn": "Back to sign in",
+    "backToDashboard": "Back to Dashboard",
+    "returnToDashboard": "Return to Dashboard",
+    "accessDenied": "Access Denied",
+    "somethingWentWrong": "Something went wrong",
+    "pageNotFound": "Page Not Found",
+    "changeLanguage": "Change language",
+    "toggleTheme": "Toggle theme",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "clearSearch": "Clear search",
+    "list": "List",
+    "grid": "Grid",
+    "listView": "List view",
+    "gridView": "Grid view",
+    "tableView": "Table view",
+    "boardView": "Board view",
+    "details": "Details",
+    "download": "Download",
+    "print": "Print",
+    "export": "Export",
+    "configure": "Configure",
+    "companyLogo": "Company logo",
+    "areYouSure": "Are you sure?",
+    "version": "Version",
+    "build": "Build",
+    "license": "License",
+    "live": "LIVE",
+    "admin": "Admin",
+    "noServicesAvailable": "No services available",
+    "noDataForPeriod": "No data for this period",
+    "date": "Date",
+    "employee": "Employee",
+    "loadFailed": "Failed to load",
+    "unknown": "Unknown",
+    "parent": "Parent",
+    "child": "Child",
+    "preview": "Preview",
+    "enterNameEn": "Enter name in English"
   },
   "sidebar": {
     "statistics": "Statistics",
@@ -374,7 +415,10 @@
     "autoRefreshOff": "Enable auto-refresh",
     "live": "LIVE",
     "recentActivity": "Recent Activity",
-    "serviceBreakdown": "Service Breakdown"
+    "serviceBreakdown": "Service Breakdown",
+    "violations": "Violations",
+    "peakHour": "Peak Hour",
+    "exportReport": "Export report"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -576,7 +620,11 @@
     "fireDetection": "Fire Detection",
     "smokeDetection": "Smoke Detection",
     "noLiveData": "Live statistics are not available for this service. Assign an API ID to enable real-time monitoring.",
-    "noLiveMetrics": "Live metrics not available — assign an API ID to enable monitoring."
+    "noLiveMetrics": "Live metrics not available — assign an API ID to enable monitoring.",
+    "apiRequests": "API Requests",
+    "tokens": "Tokens",
+    "daily": "Daily",
+    "monthly": "Monthly"
   },
   "monitoring": {
     "title": "Monitoring",
@@ -1212,7 +1260,13 @@
     "noPermission": "You don't have permission to view this page.",
     "loadFailed": "Failed to load",
     "pageLoadFailed": "Failed to load page",
-    "tryAgain": "There was an error loading this page. Please try again."
+    "tryAgain": "There was an error loading this page. Please try again.",
+    "pageDidntLoad": "This page didn't load",
+    "globalErrorDesc": "Something went wrong. Try refreshing or head back home.",
+    "notFoundTitle": "Page not found",
+    "notFoundDesc": "The page you're looking for doesn't exist or has been moved.",
+    "pageErrorDesc": "An error occurred while loading this page. Please try again.",
+    "serviceNotFound": "Service not found."
   },
   "reportCenter": {
     "title": "Report Center",
@@ -1250,7 +1304,22 @@
     "scheduleRemoved": "Schedule removed",
     "deleteFailed": "Failed to delete report",
     "scheduleFailed": "Failed to schedule report",
-    "selectTemplatePlaceholder": "Select report template"
+    "selectTemplatePlaceholder": "Select report template",
+    "createScheduledReport": "Create Scheduled Report",
+    "excel": "Excel",
+    "frequency": "Frequency",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "recipientsPlaceholder": "Recipients (comma-separated emails)",
+    "generatedReports": "Generated Reports",
+    "generatedReportsDesc": "Previously generated reports available for download",
+    "scheduledReports": "Scheduled Reports",
+    "scheduledReportsDesc": "Automatically generated and emailed reports",
+    "addSchedule": "Add Schedule",
+    "cancel": "Cancel",
+    "refresh": "Refresh",
+    "delete": "Delete"
   },
   "subscription": {
     "title": "Subscription",
@@ -1372,7 +1441,15 @@
     "branch": "Branch",
     "department": "Department",
     "noRecords": "No attendance records",
-    "exportAttendance": "Export"
+    "exportAttendance": "Export",
+    "present": "Present",
+    "late": "Late",
+    "absent": "Absent",
+    "searchPlaceholder": "Search employee, branch...",
+    "checkIn": "Check In",
+    "checkOut": "Check Out",
+    "duration": "Duration",
+    "faceVerified": "Face Verified"
   },
   "cameras": {
     "title": "Cameras",
@@ -1407,7 +1484,9 @@
     "deleteSuccess": "Camera deleted",
     "onlineRefreshed": "Online status refreshed",
     "onlineCheckFailed": "Failed to check online status",
-    "deleteFailed": "Delete failed"
+    "deleteFailed": "Delete failed",
+    "checkOnline": "Check Online",
+    "unknown": "Unknown"
   },
   "escalationAlerts": {
     "title": "Escalation & Alerts",
@@ -2000,7 +2079,9 @@
     "workingHoursSubtitle": "Set schedule for each day of the week",
     "placeholder_nameEn": "Enter name in English",
     "placeholder_phone": "05XXXXXXXX",
-    "placeholder_email": "employee@example.com"
+    "placeholder_email": "employee@example.com",
+    "employeePhoto": "Employee Photo",
+    "dropImage": "Drop image here or click to upload"
   },
   "branches": {
     "title": "Branches",
@@ -2551,7 +2632,12 @@
     "allLoaded": "All tasks loaded",
     "confirm": "Confirm Change",
     "confirmMove": "Move this task?",
-    "empty": "No tasks"
+    "empty": "No tasks",
+    "repeatEveryDays": "Repeat every (days)",
+    "deleteTask": "Delete Task",
+    "editTask": "Edit task",
+    "deleteTaskAria": "Delete task",
+    "deleteTaskConfirm": "Are you sure you want to delete \"{{title}}\"? This cannot be undone."
   },
   "categories": {
     "edit": "Edit Category",
@@ -2743,7 +2829,8 @@
     "subtitle": "View and filter all system events across branches and cameras",
     "alerts": "Alerts",
     "found": "{{n}} events found",
-    "noEvents": "No events found"
+    "noEvents": "No events found",
+    "detectionAlt": "Detection"
   },
   "visitors": {
     "enter": "Entry",
@@ -2940,5 +3027,38 @@
     "consumed": "Consumed",
     "renew": "Renew",
     "upgrade": "Upgrade"
+  },
+  "legal": {
+    "privacyTitle": "Privacy Policy",
+    "privacyBody": "This page describes how RGEEB collects, uses, and protects your data. The full policy text will be published here. For questions, please contact support.",
+    "termsTitle": "Terms of Service",
+    "termsBody": "These terms govern your use of the RGEEB platform. The full legal text will be published here. For questions, please contact support."
+  },
+  "tasksUi": {
+    "pagination": "Pagination",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "details": "Details",
+    "edit": "Edit",
+    "delete": "Delete",
+    "refresh": "Refresh",
+    "previous": "Previous",
+    "next": "Next",
+    "close": "Close"
+  },
+  "packages": {
+    "maxCameras": "Max Cameras",
+    "maxBranches": "Max Branches",
+    "category": "Category",
+    "services": "Services",
+    "selectCategoryOptional": "Select category (optional)",
+    "englishName": "English name",
+    "englishDescription": "English description",
+    "optionalDescription": "Optional description",
+    "serviceNameEn": "Service name in English",
+    "serviceDescription": "Service description"
+  },
+  "security2fa": {
+    "qrCodeAlt": "2FA QR code"
   }
 }

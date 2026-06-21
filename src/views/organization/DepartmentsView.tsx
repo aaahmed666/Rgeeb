@@ -356,7 +356,7 @@ function DepartmentDrawer({
             <div className="space-y-1.5">
               <Label>{t("departments.nameEn", "English Name")}</Label>
               <Input
-                placeholder="Enter name in English"
+                placeholder={t("common.enterNameEn")}
                 value={form.name_en}
                 onChange={(e) => setForm({ ...form, name_en: e.target.value })}
               />

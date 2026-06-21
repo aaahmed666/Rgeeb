@@ -221,7 +221,7 @@ function ScheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarClock className="h-5 w-5 text-violet-600" />
-            Create Scheduled Report
+            {t("reportCenter.createScheduledReport")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
@@ -242,7 +242,7 @@ function ScheduleDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Format
+                {t("reportCenter.format")}
               </label>
               <Select
                 value={format}
@@ -253,14 +253,14 @@ function ScheduleDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="excel">Excel</SelectItem>
+                  <SelectItem value="excel">{t("reportCenter.excel")}</SelectItem>
                   <SelectItem value="csv">CSV</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Frequency
+                {t("reportCenter.frequency")}
               </label>
               <Select
                 value={frequency}
@@ -270,16 +270,16 @@ function ScheduleDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="daily">{t("reportCenter.daily")}</SelectItem>
+                  <SelectItem value="weekly">{t("reportCenter.weekly")}</SelectItem>
+                  <SelectItem value="monthly">{t("reportCenter.monthly")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <Textarea
-            placeholder="Recipients (comma-separated emails)"
+            placeholder={t("reportCenter.recipientsPlaceholder")}
             value={recipients}
             onChange={(e) => setRecipients(e.target.value)}
             rows={3}
@@ -291,7 +291,7 @@ function ScheduleDialog({
               onClick={onClose}
               disabled={isLoading}
             >
-              Cancel
+              {t("reportCenter.cancel")}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -539,7 +539,7 @@ export default function ReportCenterView() {
                   extraParams={{ active: 1 }}
                   value={branch || null}
                   onChange={(v) => setBranch(v ?? "")}
-                  placeholder="All Branches"
+                  placeholder={t("common.allBranches")}
                   isClearable
                 />
               </div>
@@ -580,7 +580,7 @@ export default function ReportCenterView() {
                     <SelectItem value="excel">
                       <span className="flex items-center gap-2">
                         <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                        Excel
+                        {t("reportCenter.excel")}
                       </span>
                     </SelectItem>
                     <SelectItem value="csv">
@@ -671,9 +671,9 @@ export default function ReportCenterView() {
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
               <div>
-                <CardTitle className="text-base">Generated Reports</CardTitle>
+                <CardTitle className="text-base">{t("reportCenter.generatedReports")}</CardTitle>
                 <CardDescription>
-                  Previously generated reports available for download
+                  {t("reportCenter.generatedReportsDesc")}
                 </CardDescription>
               </div>
               <Button
@@ -691,7 +691,7 @@ export default function ReportCenterView() {
                     generated.isFetching && "animate-spin"
                   )}
                 />
-                Refresh
+                {t("reportCenter.refresh")}
               </Button>
             </CardHeader>
             <CardContent className="p-0">
@@ -755,7 +755,7 @@ export default function ReportCenterView() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          title="Download"
+                          title={t("common.download")}
                           disabled={!can.read}
                           onClick={() => {
                             if (!can.read) return;
@@ -777,7 +777,7 @@ export default function ReportCenterView() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                          title="Delete"
+                          title={t("reportCenter.delete")}
                           disabled={!can.delete}
                           onClick={() =>
                             can.delete && deleteGenMut.mutate(h.id)
@@ -799,9 +799,9 @@ export default function ReportCenterView() {
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
               <div>
-                <CardTitle className="text-base">Scheduled Reports</CardTitle>
+                <CardTitle className="text-base">{t("reportCenter.scheduledReports")}</CardTitle>
                 <CardDescription>
-                  Automatically generated and emailed reports
+                  {t("reportCenter.scheduledReportsDesc")}
                 </CardDescription>
               </div>
               <Button
@@ -811,7 +811,7 @@ export default function ReportCenterView() {
                 size="sm"
               >
                 <Plus className="h-4 w-4" />
-                Add Schedule
+                {t("reportCenter.addSchedule")}
               </Button>
             </CardHeader>
             <CardContent className="p-0">
@@ -839,7 +839,7 @@ export default function ReportCenterView() {
                   },
                   {
                     key: "frequency",
-                    header: "Frequency",
+                    header: t("reportCenter.frequency"),
                     render: (s) => <FrequencyChip frequency={s.frequency} />,
                   },
                   {

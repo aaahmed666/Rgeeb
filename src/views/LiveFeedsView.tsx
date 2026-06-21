@@ -63,7 +63,7 @@ export default function LiveFeedsView() {
             size="sm"
             variant={view === "list" ? "default" : "ghost"}
             onClick={() => setView("list")}
-            aria-label="List view"
+            aria-label={t("common.listView")}
           >
             <List className="h-4 w-4" />
           </Button>
@@ -71,7 +71,7 @@ export default function LiveFeedsView() {
             size="sm"
             variant={view === "grid" ? "default" : "ghost"}
             onClick={() => setView("grid")}
-            aria-label="Grid view"
+            aria-label={t("common.gridView")}
           >
             <LayoutGrid className="h-4 w-4" />
           </Button>
@@ -96,7 +96,7 @@ export default function LiveFeedsView() {
               extraParams={{ active: 1 }}
               value={branchId === ALL ? null : branchId}
               onChange={(v) => setBranchId(v ?? ALL)}
-              placeholder="All Branches"
+              placeholder={t("common.allBranches")}
               isClearable
             />
             </div>

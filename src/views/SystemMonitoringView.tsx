@@ -95,7 +95,7 @@ export default function SystemMonitoringView() {
           variant="outline"
           size="icon"
           onClick={refresh}
-          aria-label="Refresh"
+          aria-label={t("tasksUi.refresh")}
         >
           <RefreshCw
             className={cn("h-4 w-4", pulseQ.isFetching && "animate-spin")}

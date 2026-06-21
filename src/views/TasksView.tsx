@@ -183,7 +183,7 @@ function NumberedPagination({
 
       <nav
         className="inline-flex items-center gap-1"
-        aria-label="Pagination"
+        aria-label={t("tasksUi.pagination")}
       >
         {/* Prev */}
         <Button
@@ -192,7 +192,7 @@ function NumberedPagination({
           className="h-8 w-8"
           disabled={page <= 1}
           onClick={() => onPageChange(Math.max(1, page - 1))}
-          aria-label="Previous page"
+          aria-label={t("tasksUi.previousPage")}
         >
           <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
         </Button>
@@ -229,7 +229,7 @@ function NumberedPagination({
           className="h-8 w-8"
           disabled={page >= totalPages}
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-          aria-label="Next page"
+          aria-label={t("tasksUi.nextPage")}
         >
           <ChevronRight className="h-4 w-4 rtl:rotate-180" />
         </Button>
@@ -593,7 +593,7 @@ export default function TasksView() {
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            aria-label="Details"
+            aria-label={t("tasksUi.details")}
             onClick={() => setDetailTask(task)}
           >
             <Eye className="h-3.5 w-3.5 text-muted-foreground" />
@@ -603,7 +603,7 @@ export default function TasksView() {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              aria-label="Edit"
+              aria-label={t("tasksUi.edit")}
               onClick={() => openEditTask(task)}
             >
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -615,7 +615,7 @@ export default function TasksView() {
               size="icon"
               className="h-8 w-8"
               onClick={() => setDeleteId(task.id)}
-              aria-label="Delete"
+              aria-label={t("tasksUi.delete")}
             >
               <Trash2 className="h-3.5 w-3.5 text-destructive" />
             </Button>
@@ -661,7 +661,7 @@ export default function TasksView() {
               size="sm"
               variant={view === "table" ? "default" : "ghost"}
               onClick={() => setView("table")}
-              aria-label="Table view"
+              aria-label={t("common.tableView")}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -669,7 +669,7 @@ export default function TasksView() {
               size="sm"
               variant={view === "board" ? "default" : "ghost"}
               onClick={() => setView("board")}
-              aria-label="Board view"
+              aria-label={t("common.boardView")}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -678,7 +678,7 @@ export default function TasksView() {
             variant="outline"
             size="icon"
             onClick={() => dataQ.refetch()}
-            aria-label="Refresh"
+            aria-label={t("tasksUi.refresh")}
           >
             <RefreshCw
               className={cn("h-4 w-4", dataQ.isFetching && "animate-spin")}

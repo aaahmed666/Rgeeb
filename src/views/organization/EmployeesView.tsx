@@ -716,20 +716,20 @@ function EmployeeDrawer({
               {photoPreview ? (
                 <img
                   src={photoPreview}
-                  alt="Preview"
+                  alt={t("common.preview")}
                   className="h-full w-full object-cover"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary">
                   <Upload className="h-6 w-6" />
                   <span className="text-[10px] font-medium">
-                    Employee Photo
+                    {t("employees.employeePhoto")}
                   </span>
                 </div>
               )}
             </button>
             <p className="text-xs text-muted-foreground text-center">
-              Drop image here or click to upload
+              {t("employees.dropImage")}
               <br />
               PNG, JPG, JPEG, GIF, WEBP (Max 5MB)
             </p>

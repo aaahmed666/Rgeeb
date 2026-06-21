@@ -173,7 +173,7 @@ export default function DetectionFeedView() {
               size="sm"
               variant={view === "list" ? "default" : "ghost"}
               onClick={() => setView("list")}
-              aria-label="List"
+              aria-label={t("common.list")}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -181,7 +181,7 @@ export default function DetectionFeedView() {
               size="sm"
               variant={view === "grid" ? "default" : "ghost"}
               onClick={() => setView("grid")}
-              aria-label="Grid"
+              aria-label={t("common.grid")}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -190,7 +190,7 @@ export default function DetectionFeedView() {
             variant="outline"
             size="icon"
             onClick={() => dataQ.refetch()}
-            aria-label="Refresh"
+            aria-label={t("tasksUi.refresh")}
           >
             <RefreshCw
               className={cn("h-4 w-4", dataQ.isFetching && "animate-spin")}
@@ -348,7 +348,7 @@ export default function DetectionFeedView() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setDeleteId(d.id)}
-                  aria-label="Delete"
+                  aria-label={t("tasksUi.delete")}
                   className={!can.delete ? "hidden" : ""}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -389,7 +389,7 @@ export default function DetectionFeedView() {
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(d.id)}
-                      aria-label="Delete"
+                      aria-label={t("tasksUi.delete")}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -423,7 +423,7 @@ export default function DetectionFeedView() {
             variant="outline"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            aria-label="Previous"
+            aria-label={t("tasksUi.previous")}
           >
             <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
           </Button>
@@ -435,7 +435,7 @@ export default function DetectionFeedView() {
             variant="outline"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            aria-label="Next"
+            aria-label={t("tasksUi.next")}
           >
             <ChevronRight className="h-4 w-4 rtl:rotate-180" />
           </Button>

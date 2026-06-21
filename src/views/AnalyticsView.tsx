@@ -182,7 +182,7 @@ export default function AnalyticsView() {
                 extraParams={{ active: 1 }}
                 value={branchId === "all" ? null : branchId}
                 onChange={(v: string | null) => setBranchId(v ?? "all")}
-                placeholder="All Branches"
+                placeholder={t("common.allBranches")}
                 isClearable
               />
             <Button

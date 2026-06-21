@@ -621,7 +621,7 @@ function BoardCard({
               e.stopPropagation();
               onDelete();
             }}
-            aria-label="Delete"
+            aria-label={t("tasksUi.delete")}
           >
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </Button>

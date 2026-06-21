@@ -17,13 +17,13 @@ const LABELS: Record<string, string> = {
 };
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const current = i18n.resolvedLanguage ?? i18n.language ?? "en";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Change language">
+        <Button variant="ghost" size="icon" aria-label={t("common.changeLanguage")}>
           <Globe className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>

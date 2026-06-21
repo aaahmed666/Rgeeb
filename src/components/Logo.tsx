@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 interface LogoProps {
   className?: string;
@@ -14,7 +15,8 @@ interface LogoProps {
  */
 export function Logo({ className = "h-8 w-auto", variant = "auto" }: LogoProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const effective = variant === "auto" ? theme : variant;
   const src = effective === "dark" ? "/logo-dark.png" : "/logo-light.png";
-  return <img src={src} alt="Company logo" className={className} />;
+  return <img src={src} alt={t("common.companyLogo")} className={className} />;
 }

@@ -351,7 +351,7 @@ function TaskForm({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Repeat every (days)</Label>
+                  <Label>{t("kanban.repeatEveryDays")}</Label>
                   <Input
                     type="number"
                     min={1}
@@ -439,7 +439,7 @@ function TaskForm({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
@@ -472,6 +472,7 @@ function DeleteConfirm({
   onCancel: () => void;
   isDeleting: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-2xl space-y-4">
@@ -480,13 +481,9 @@ function DeleteConfirm({
             <Trash2 className="h-5 w-5 text-destructive" />
           </div>
           <div>
-            <h3 className="font-semibold">Delete Task</h3>
+            <h3 className="font-semibold">{t("kanban.deleteTask")}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Are you sure you want to delete{" "}
-              <span className="font-medium text-foreground">
-                "{task.title}"
-              </span>
-              ? This cannot be undone.
+              {t("kanban.deleteTaskConfirm", { title: task.title })}
             </p>
           </div>
         </div>
@@ -496,7 +493,7 @@ function DeleteConfirm({
             onClick={onCancel}
             disabled={isDeleting}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
@@ -1068,7 +1065,7 @@ function BoardCard({
                 size="icon"
                 className="h-7 w-7"
                 onClick={onEdit}
-                aria-label="Edit task"
+                aria-label={t("kanban.editTask")}
               >
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
@@ -1079,7 +1076,7 @@ function BoardCard({
                 size="icon"
                 className="h-7 w-7"
                 onClick={onDelete}
-                aria-label="Delete task"
+                aria-label={t("kanban.deleteTaskAria")}
               >
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>

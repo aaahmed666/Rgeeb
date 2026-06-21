@@ -128,6 +128,7 @@ async function fetchDetections(params: Record<string, string | number | undefine
 // ─── Timeline item component ──────────────────────────────────────────────────
 
 function TimelineItem({ det, isLast }: { det: Detection; isLast: boolean }) {
+  const { t } = useTranslation();
   const sev = getSeverity(det.type);
   const Icon = sev.Icon;
 
@@ -178,7 +179,7 @@ function TimelineItem({ det, isLast }: { det: Detection; isLast: boolean }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={det.image}
-              alt="Detection"
+              alt={t("eventTimeline.detectionAlt")}
               className="max-h-32 rounded-lg object-cover shadow-sm"
             />
           </div>

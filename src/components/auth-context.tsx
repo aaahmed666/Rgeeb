@@ -380,6 +380,7 @@ export function useAuthTranslations(): AuthTranslations {
 
 export function AuthTopBar() {
   const { lang, setLang, theme, setTheme, isRtl } = useAuthUI();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -415,7 +416,7 @@ export function AuthTopBar() {
         <button
           className={`auth-tb-btn${lang === "en" ? " auth-tb-active" : ""}`}
           onClick={() => setLang("en")}
-          aria-label="English"
+          aria-label={t("common.english")}
         >
           <svg
             width="14"
@@ -439,7 +440,7 @@ export function AuthTopBar() {
         <button
           className={`auth-tb-btn${lang === "ar" ? " auth-tb-active" : ""}`}
           onClick={() => setLang("ar")}
-          aria-label="Arabic"
+          aria-label={t("common.arabic")}
         >
           <span
             style={{
@@ -460,7 +461,7 @@ export function AuthTopBar() {
         <button
           className={`auth-tb-icon-btn${theme === "light" ? " auth-tb-active" : ""}`}
           onClick={() => setTheme("light")}
-          aria-label="Light mode"
+          aria-label={t("common.lightMode")}
         >
           <svg
             width="15"
@@ -483,7 +484,7 @@ export function AuthTopBar() {
         <button
           className={`auth-tb-icon-btn${theme === "dark" ? " auth-tb-active" : ""}`}
           onClick={() => setTheme("dark")}
-          aria-label="Dark mode"
+          aria-label={t("common.darkMode")}
         >
           <svg
             width="15"

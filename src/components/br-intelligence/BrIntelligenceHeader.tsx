@@ -396,6 +396,7 @@ export function RowOfHeatmap({
 }
 
 export function HourlyChart({ data }: { data: HourlyPeak[] }) {
+  const { t } = useTranslation();
   if (data.length === 0) return <Skeleton className="h-40 w-full" />;
   const max = Math.max(...data.map((d) => d.detections));
   const peakHour = data.reduce(
@@ -442,15 +443,15 @@ export function HourlyChart({ data }: { data: HourlyPeak[] }) {
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-indigo-500" />
-          Detections
+          {t("intel.detections")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-rose-400" />
-          Violations
+          {t("intel.violations")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-orange-500" />
-          Peak Hour
+          {t("intel.peakHour")}
         </span>
       </div>
     </div>
@@ -1208,6 +1209,7 @@ export function StatPill({
 }
 
 export function ForecastChartV2({ forecast }: { forecast: TrendForecast }) {
+  const { t } = useTranslation();
   const pts = forecast?.points ?? [];
   if (pts.length === 0) return <Skeleton className="h-48 w-full" />;
   const W = 800;
@@ -1369,11 +1371,11 @@ export function ForecastChartV2({ forecast }: { forecast: TrendForecast }) {
       <div className="mt-2 flex items-center justify-center gap-5 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-5 bg-indigo-500" />
-          Historical
+          {t("intel.historical")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-5 border-t-2 border-dashed border-indigo-500" />
-          Forecast
+          {t("intel.forecast")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-4 rounded-sm bg-indigo-200/60" />

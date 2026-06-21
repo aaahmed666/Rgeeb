@@ -190,7 +190,7 @@ export default function AdminClientsView() {
               <div className="flex gap-1.5">
                 {/* active is boolean on AdminUser */}
                 <StatusPill status={u.active !== false ? "active" : "inactive"} />
-                {u.mainAdmin && <Badge variant="secondary" className="text-xs">Admin</Badge>}
+                {u.mainAdmin && <Badge variant="secondary" className="text-xs">{t("common.admin")}</Badge>}
               </div>
             ),
           },

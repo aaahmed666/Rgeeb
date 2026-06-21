@@ -161,7 +161,7 @@ function CategoryDialog({
               dir="ltr"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              placeholder="English name"
+              placeholder={t("packages.englishName")}
             />
           </div>
           <div className="space-y-1.5">
@@ -169,7 +169,7 @@ function CategoryDialog({
             <Input
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="Optional description"
+              placeholder={t("packages.optionalDescription")}
             />
           </div>
           <div className="space-y-1.5">

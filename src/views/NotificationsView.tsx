@@ -170,7 +170,7 @@ export default function NotificationsView() {
               listQ.refetch();
               unreadQ.refetch();
             }}
-            aria-label="Refresh"
+            aria-label={t("tasksUi.refresh")}
           >
             <RefreshCw
               className={cn("h-4 w-4", listQ.isFetching && "animate-spin")}
@@ -284,7 +284,7 @@ export default function NotificationsView() {
               variant="outline"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              aria-label="Previous"
+              aria-label={t("tasksUi.previous")}
             >
               <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
             </Button>
@@ -296,7 +296,7 @@ export default function NotificationsView() {
               variant="outline"
               disabled={page >= lastPage}
               onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-              aria-label="Next"
+              aria-label={t("tasksUi.next")}
             >
               <ChevronRight className="h-4 w-4 rtl:rotate-180" />
             </Button>

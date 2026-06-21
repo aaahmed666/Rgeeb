@@ -479,15 +479,15 @@ export function HourlyChart({ data }: { data: HourlyPeak[] }) {
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-indigo-500" />
-          Detections
+          {t("intel.detections")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-rose-400" />
-          Violations
+          {t("intel.violations")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-orange-500" />
-          Peak Hour
+          {t("intel.peakHour")}
         </span>
       </div>
     </div>
@@ -1349,7 +1349,7 @@ export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
               className="rounded-md border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
-              aria-label="Previous page"
+              aria-label={t("tasksUi.previousPage")}
             >
               <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
             </button>
@@ -1357,7 +1357,7 @@ export function BranchHealthTable({ rows }: { rows: BranchHealth[] }) {
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={safePage >= totalPages - 1}
               className="rounded-md border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
-              aria-label="Next page"
+              aria-label={t("tasksUi.nextPage")}
             >
               <ChevronRight className="h-4 w-4 rtl:rotate-180" />
             </button>

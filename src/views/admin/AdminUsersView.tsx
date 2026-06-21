@@ -508,7 +508,7 @@ export default function AdminUsersView() {
                     variant="secondary"
                     className="text-xs"
                   >
-                    Admin
+                    {t("common.admin")}
                   </Badge>
                 )}
               </div>

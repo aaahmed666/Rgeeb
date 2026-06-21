@@ -264,7 +264,7 @@ export default function BrIntelligenceView() {
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <Brain className="h-12 w-12 text-muted-foreground mb-4" />
         <p className="text-lg font-semibold text-muted-foreground">
-          Access Denied
+          {t("common.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
           You don&apos;t have permission to view Branch Intelligence.
@@ -401,7 +401,7 @@ export default function BrIntelligenceView() {
                   console.error("Export failed:", e);
                 }
               }}
-              title="Export report"
+              title={t("intel.exportReport")}
               className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10"
             >
               <FileSpreadsheet className="h-4 w-4" />
@@ -409,7 +409,7 @@ export default function BrIntelligenceView() {
             <button
               onClick={() => void handleExportPdf()}
               disabled={exportingPdf}
-              title="Print"
+              title={t("common.print")}
               className="rounded-md border border-white/20 bg-white/5 p-2 text-white/80 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Printer className="h-4 w-4" />

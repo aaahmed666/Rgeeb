@@ -288,7 +288,7 @@ export default function ProductivityView() {
             title={t("productivity.excel", "Excel")}
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
-            Excel
+            {t("reportCenter.excel")}
           </button>
         </div>
       </div>

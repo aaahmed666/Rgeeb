@@ -718,7 +718,7 @@ export function AIAssistant() {
               setMinimized(false);
             }}
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100"
-            aria-label="close"
+            aria-label={t("tasksUi.close")}
           >
             <X className="h-3.5 w-3.5" />
           </button>

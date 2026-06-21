@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { StructuredApiError } from "@/lib/api-types";
@@ -20,10 +21,12 @@ interface ErrorFallbackProps {
 export function ErrorFallback({
   error,
   onRetry,
-  title = "Something went wrong",
+  title,
   showDetails = false,
   compact = false,
 }: ErrorFallbackProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("errors.somethingWentWrong");
   if (!error) return null;
 
   const message = isStructuredError(error)
@@ -58,7 +61,7 @@ export function ErrorFallback({
       <div className="flex items-start gap-4">
         <AlertCircle className="mt-1 h-6 w-6 flex-shrink-0 text-destructive" />
         <div className="flex-1">
-          <h3 className="font-semibold text-destructive">{title}</h3>
+          <h3 className="font-semibold text-destructive">{resolvedTitle}</h3>
           <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
           {showDetails && details && (
@@ -88,7 +91,7 @@ export function ErrorFallback({
               className="mt-4"
             >
               <RefreshCw className="me-2 h-4 w-4" />
-              Try Again
+              {t("common.tryAgain")}
             </Button>
           )}
         </div>

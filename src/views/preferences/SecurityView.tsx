@@ -213,7 +213,7 @@ export default function SecurityView() {
                     ) : (
                       <img
                         src={preRendered}
-                        alt="2FA QR code"
+                        alt={t("security2fa.qrCodeAlt")}
                         className="h-48 w-48 object-contain"
                       />
                     )}
@@ -226,7 +226,7 @@ export default function SecurityView() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={generatedSrc}
-                      alt="2FA QR code"
+                      alt={t("security2fa.qrCodeAlt")}
                       className="h-48 w-48 object-contain"
                     />
                   </div>

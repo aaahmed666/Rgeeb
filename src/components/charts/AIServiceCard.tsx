@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useTranslation } from "react-i18next";
 
 interface AIServiceCardProps {
   name: string;
@@ -23,6 +24,7 @@ const STATUS_STYLES: Record<AIServiceCardProps["status"], string> = {
 };
 
 export function AIServiceCard(p: AIServiceCardProps) {
+  const { t } = useTranslation();
   const pct = Math.min(100, (p.usage.requests / p.quota.requests) * 100);
   return (
     <Card>
@@ -40,7 +42,7 @@ export function AIServiceCard(p: AIServiceCardProps) {
       <CardContent className="space-y-4">
         <div>
           <div className="mb-1 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">API Requests</span>
+            <span className="text-muted-foreground">{t("aiServices.apiRequests")}</span>
             <span className="font-medium">
               {p.usage.requests.toLocaleString()} / {p.quota.requests.toLocaleString()}
             </span>
@@ -48,23 +50,23 @@ export function AIServiceCard(p: AIServiceCardProps) {
           <Progress value={pct} />
         </div>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Tokens</span>
+          <span className="text-muted-foreground">{t("aiServices.tokens")}</span>
           <span className="font-medium">{p.usage.tokens.toLocaleString()}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-md bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">Daily</p>
+            <p className="text-xs text-muted-foreground">{t("aiServices.daily")}</p>
             <p className="font-semibold">${p.cost.daily.toFixed(2)}</p>
           </div>
           <div className="rounded-md bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">Monthly</p>
+            <p className="text-xs text-muted-foreground">{t("aiServices.monthly")}</p>
             <p className="font-semibold">${p.cost.monthly.toFixed(2)}</p>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">Last used: {p.lastUsed}</p>
         <div className="flex gap-2">
           <Button size="sm" className="flex-1" onClick={p.onConfigure}>
-            Configure
+            {t("aiServices.configure")}
           </Button>
           <Button
             size="sm"
@@ -72,7 +74,7 @@ export function AIServiceCard(p: AIServiceCardProps) {
             className="flex-1"
             onClick={p.onDisconnect}
           >
-            Disconnect
+            {t("aiServices.disconnect")}
           </Button>
         </div>
       </CardContent>

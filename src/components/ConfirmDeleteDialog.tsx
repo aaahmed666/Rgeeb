@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,12 +29,17 @@ export function ConfirmDeleteDialog({
   open,
   onOpenChange,
   onConfirm,
-  title = "Are you sure?",
-  description = "This action cannot be undone.",
-  confirmLabel = "Delete",
-  cancelLabel = "Cancel",
+  title,
+  description,
+  confirmLabel,
+  cancelLabel,
   isLoading = false,
 }: ConfirmDeleteDialogProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("common.areYouSure");
+  const resolvedDescription = description ?? t("validation.deleteConfirm");
+  const resolvedConfirm = confirmLabel ?? t("common.delete");
+  const resolvedCancel = cancelLabel ?? t("common.cancel");
   return (
     <AlertDialog
       open={open}
@@ -41,12 +47,12 @@ export function ConfirmDeleteDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{resolvedTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{resolvedDescription}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="gap-2 sm:gap-3">
           <AlertDialogCancel disabled={isLoading}>
-            {cancelLabel}
+            {resolvedCancel}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
@@ -54,7 +60,7 @@ export function ConfirmDeleteDialog({
             className="gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-70"
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {confirmLabel}
+            {resolvedConfirm}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -782,7 +782,7 @@ export default function DashboardView() {
               </div>
               <Badge className="gap-1 bg-red-500/15 text-red-500 hover:bg-red-500/20">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
-                LIVE
+                {t("common.live")}
               </Badge>
             </div>
             <ul className="max-h-72 space-y-2 overflow-y-auto pe-1">

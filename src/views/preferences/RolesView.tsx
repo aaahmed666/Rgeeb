@@ -982,6 +982,7 @@ function PermissionGroup({
   onToggleChild: (p: Permission, g: GroupedPermission, v: boolean) => void;
   isChildDisabled: (p: Permission, g: GroupedPermission) => boolean;
 }) {
+  const { t } = useTranslation();
   const selCount = group.perms.filter((p) => selected.has(p.id)).length;
   const allSel =
     group.perms.length > 0 && group.perms.every((p) => selected.has(p.id));
@@ -1050,7 +1051,7 @@ function PermissionGroup({
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 border-indigo-300 text-indigo-600 dark:border-indigo-700 dark:text-indigo-300"
                     >
-                      Parent
+                      {t("common.parent")}
                     </Badge>
                   )}
                 </div>
@@ -1094,7 +1095,7 @@ function PermissionGroup({
                             variant="outline"
                             className="text-[10px] px-1.5 py-0 border-rose-300 text-rose-600 dark:border-rose-700 dark:text-rose-300"
                           >
-                            Child
+                            {t("common.child")}
                           </Badge>
                         </div>
                         <Switch

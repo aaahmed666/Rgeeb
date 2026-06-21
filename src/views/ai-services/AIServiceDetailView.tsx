@@ -59,7 +59,7 @@ function StaticDetailView({ service }: Props) {
           href="/dashboard/ai-services"
           className="hover:text-foreground transition-colors"
         >
-          AI Services
+          {t("aiServices.title")}
         </Link>
         <span>/</span>
         <Link

@@ -331,6 +331,7 @@ export default function StatisticsView() {
 }
 
 function ReportContent({ data }: { data: ReportPayload }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -363,7 +364,7 @@ function ReportContent({ data }: { data: ReportPayload }) {
 
       <DataTable
         data={data.rows.map((r, i) => ({ id: i, ...r }))}
-        emptyMessage="No data"
+        emptyMessage={t("common.noData")}
         columns={data.columns.map((c) => ({
           key: c.key,
           header: c.label,

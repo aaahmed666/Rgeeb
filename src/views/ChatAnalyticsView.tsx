@@ -726,13 +726,14 @@ function IntentBarList({ slices }: { slices: DistributionSlice[] }) {
 
 /* ─── EmptyChart ─────────────────────────────────────────────────────────── */
 function EmptyChart() {
+  const { t } = useTranslation();
   return (
     <div className="flex h-36 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-muted-foreground/20 text-muted-foreground/60">
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M3 3v18h18" strokeLinecap="round" />
         <path d="M7 14l4-4 3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="text-xs">No data for this period</span>
+      <span className="text-xs">{t("common.noDataForPeriod")}</span>
     </div>
   );
 }

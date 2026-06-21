@@ -225,15 +225,15 @@ export default function SettingsView() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Version</span>
+                <span className="text-muted-foreground">{t("common.version")}</span>
                 <span>1.0.0</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Build</span>
+                <span className="text-muted-foreground">{t("common.build")}</span>
                 <span>2026.05.21</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">License</span>
+                <span className="text-muted-foreground">{t("common.license")}</span>
                 <span>MIT</span>
               </div>
             </CardContent>

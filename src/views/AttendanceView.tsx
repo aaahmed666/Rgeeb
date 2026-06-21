@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   UserCheck,
@@ -28,6 +29,7 @@ import { useAuth } from "@/lib/auth";
 const PER_PAGE = 15;
 
 export default function AttendanceView() {
+  const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const { searchValue: search, debouncedValue: debouncedSearch, handleSearchChange } = useDebounceSearch("", 300);
   const [page, setPage] = React.useState(1);
@@ -76,19 +78,19 @@ export default function AttendanceView() {
     if (s === "present" || s === "on_time")
       return (
         <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30">
-          Present
+          {t("attendance.present")}
         </Badge>
       );
     if (s === "late")
       return (
         <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30">
-          Late
+          {t("attendance.late")}
         </Badge>
       );
     if (s === "absent")
       return (
         <Badge className="bg-red-500/15 text-red-700 border-red-500/30">
-          Absent
+          {t("attendance.absent")}
         </Badge>
       );
     return <Badge variant="secondary">{status ?? "—"}</Badge>;
@@ -106,10 +108,10 @@ export default function AttendanceView() {
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <UserCheck className="h-12 w-12 text-muted-foreground mb-4" />
         <p className="text-lg font-semibold text-muted-foreground">
-          Access Denied
+          {t("common.accessDenied")}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          You don&apos;t have permission to view Attendance records.
+          {t("common.noPermission")}
         </p>
       </div>
     );
@@ -124,9 +126,9 @@ export default function AttendanceView() {
             <UserCheck className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-base font-bold sm:text-lg">Attendance</h1>
+            <h1 className="text-base font-bold sm:text-lg">{t("attendance.title")}</h1>
             <p className="text-xs text-muted-foreground">
-              Track employee check-ins and check-outs
+              {t("attendance.subtitle")}
             </p>
           </div>
         </div>
@@ -201,7 +203,7 @@ export default function AttendanceView() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Search employee, branch..."
+                placeholder={t("attendance.searchPlaceholder")}
                 value={search}
                 onChange={(e) => {
                   handleSearchChange(e.target.value);
@@ -224,27 +226,27 @@ export default function AttendanceView() {
             data={paged}
             isLoading={listQ.isLoading}
             isError={listQ.isError}
-            errorMessage={listQ.error instanceof Error ? listQ.error.message : "Failed to load"}
-            emptyMessage="No attendance records found"
+            errorMessage={listQ.error instanceof Error ? listQ.error.message : t("common.loadFailed")}
+            emptyMessage={t("attendance.noRecords")}
             columns={[
               {
                 key: "employeeName",
-                header: "Employee",
+                header: t("attendance.employee"),
                 render: (r) => <span className="font-medium">{r.employeeName ?? "—"}</span>,
               },
               {
                 key: "branchName",
-                header: "Branch",
+                header: t("common.branch"),
                 render: (r) => r.branchName ?? "—",
               },
               {
                 key: "date",
-                header: "Date",
+                header: t("common.date"),
                 render: (r) => r.date ?? "—",
               },
               {
                 key: "checkIn",
-                header: "Check In",
+                header: t("attendance.checkIn"),
                 render: (r) => (
                   <span className="font-mono text-xs">
                     {r.checkIn ? new Date(r.checkIn).toLocaleTimeString() : "—"}
@@ -253,7 +255,7 @@ export default function AttendanceView() {
               },
               {
                 key: "checkOut",
-                header: "Check Out",
+                header: t("attendance.checkOut"),
                 render: (r) => (
                   <span className="font-mono text-xs">
                     {r.checkOut ? new Date(r.checkOut).toLocaleTimeString() : "—"}
@@ -262,17 +264,17 @@ export default function AttendanceView() {
               },
               {
                 key: "duration",
-                header: "Duration",
+                header: t("attendance.duration"),
                 render: (r) => formatDuration(r.duration),
               },
               {
                 key: "status",
-                header: "Status",
+                header: t("common.status"),
                 render: (r) => statusBadge(r.status),
               },
               {
                 key: "faceVerified",
-                header: "Face Verified",
+                header: t("attendance.faceVerified"),
                 render: (r) =>
                   r.faceVerified !== undefined ? (
                     <Badge

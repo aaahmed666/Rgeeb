@@ -5,6 +5,7 @@ import { Search, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface SearchInputProps {
   /** Current search value */
@@ -47,11 +48,13 @@ export function SearchInput({
   value,
   onChange,
   onClear,
-  placeholder = "Search…",
+  placeholder,
   isSearching = false,
   className,
   iconPosition = "left",
 }: SearchInputProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("common.search");
   const hasValue = value.length > 0;
 
   return (
@@ -67,7 +70,7 @@ export function SearchInput({
 
       <Input
         type="text"
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         value={value}
         onChange={onChange}
         className={cn(
@@ -88,7 +91,7 @@ export function SearchInput({
             size="sm"
             onClick={onClear}
             className="h-6 w-6 p-0 hover:bg-muted"
-            aria-label="Clear search"
+            aria-label={t("common.clearSearch")}
           >
             <X className="h-4 w-4" />
           </Button>

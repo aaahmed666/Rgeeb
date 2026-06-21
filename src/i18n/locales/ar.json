@@ -71,7 +71,48 @@
     "prev": "السابق",
     "page": "الصفحة",
     "previous": "السابق",
-    "id": "المعرّف"
+    "id": "المعرّف",
+    "tryAgain": "حاول مرة أخرى",
+    "goHome": "العودة للرئيسية",
+    "backToSignIn": "العودة لتسجيل الدخول",
+    "backToDashboard": "العودة للوحة التحكم",
+    "returnToDashboard": "العودة للوحة التحكم",
+    "accessDenied": "تم رفض الوصول",
+    "somethingWentWrong": "حدث خطأ ما",
+    "pageNotFound": "الصفحة غير موجودة",
+    "changeLanguage": "تغيير اللغة",
+    "toggleTheme": "تبديل المظهر",
+    "lightMode": "الوضع الفاتح",
+    "darkMode": "الوضع الداكن",
+    "clearSearch": "مسح البحث",
+    "list": "قائمة",
+    "grid": "شبكة",
+    "listView": "عرض القائمة",
+    "gridView": "عرض الشبكة",
+    "tableView": "عرض الجدول",
+    "boardView": "عرض اللوحة",
+    "details": "التفاصيل",
+    "download": "تنزيل",
+    "print": "طباعة",
+    "export": "تصدير",
+    "configure": "تكوين",
+    "companyLogo": "شعار الشركة",
+    "areYouSure": "هل أنت متأكد؟",
+    "version": "الإصدار",
+    "build": "النسخة",
+    "license": "الترخيص",
+    "live": "مباشر",
+    "admin": "مدير",
+    "noServicesAvailable": "لا توجد خدمات متاحة",
+    "noDataForPeriod": "لا توجد بيانات لهذه الفترة",
+    "date": "التاريخ",
+    "employee": "الموظف",
+    "loadFailed": "تعذّر التحميل",
+    "unknown": "غير معروف",
+    "parent": "أصل",
+    "child": "فرعي",
+    "preview": "معاينة",
+    "enterNameEn": "أدخل الاسم بالإنجليزية"
   },
   "sidebar": {
     "statistics": "الإحصائيات",
@@ -374,7 +415,10 @@
     "autoRefreshOff": "تفعيل التحديث التلقائي",
     "live": "مباشر",
     "recentActivity": "النشاط الأخير",
-    "serviceBreakdown": "توزيع الخدمات"
+    "serviceBreakdown": "توزيع الخدمات",
+    "violations": "المخالفات",
+    "peakHour": "ساعة الذروة",
+    "exportReport": "تصدير التقرير"
   },
   "dashboard": {
     "title": "اللوحة الرئيسية",
@@ -576,7 +620,11 @@
     "fireDetection": "كشف الحريق",
     "smokeDetection": "كشف الدخان",
     "noLiveData": "الإحصائيات المباشرة غير متاحة لهذه الخدمة. قم بتعيين معرّف API لتفعيل المراقبة الفورية.",
-    "noLiveMetrics": "المقاييس المباشرة غير متاحة — قم بتعيين معرّف API لتفعيل المراقبة."
+    "noLiveMetrics": "المقاييس المباشرة غير متاحة — قم بتعيين معرّف API لتفعيل المراقبة.",
+    "apiRequests": "طلبات الواجهة البرمجية",
+    "tokens": "الرموز",
+    "daily": "يومي",
+    "monthly": "شهري"
   },
   "monitoring": {
     "title": "المراقبة",
@@ -1247,7 +1295,13 @@
     "noPermission": "ليس لديك صلاحية لعرض هذه الصفحة.",
     "loadFailed": "فشل التحميل",
     "pageLoadFailed": "فشل تحميل الصفحة",
-    "tryAgain": "حدث خطأ أثناء تحميل هذه الصفحة. يرجى المحاولة مرة أخرى."
+    "tryAgain": "حدث خطأ أثناء تحميل هذه الصفحة. يرجى المحاولة مرة أخرى.",
+    "pageDidntLoad": "تعذّر تحميل هذه الصفحة",
+    "globalErrorDesc": "حدث خطأ ما. حاول تحديث الصفحة أو العودة للرئيسية.",
+    "notFoundTitle": "الصفحة غير موجودة",
+    "notFoundDesc": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "pageErrorDesc": "حدث خطأ أثناء تحميل هذه الصفحة. يرجى المحاولة مرة أخرى.",
+    "serviceNotFound": "الخدمة غير موجودة."
   },
   "reportCenter": {
     "title": "مركز التقارير",
@@ -1285,7 +1339,22 @@
     "scheduleRemoved": "تمت إزالة الجدول",
     "deleteFailed": "فشل حذف التقرير",
     "scheduleFailed": "فشل جدولة التقرير",
-    "selectTemplatePlaceholder": "اختر قالب التقرير"
+    "selectTemplatePlaceholder": "اختر قالب التقرير",
+    "createScheduledReport": "إنشاء تقرير مجدول",
+    "excel": "إكسل",
+    "frequency": "التكرار",
+    "daily": "يومي",
+    "weekly": "أسبوعي",
+    "monthly": "شهري",
+    "recipientsPlaceholder": "المستلمون (رسائل بريد مفصولة بفواصل)",
+    "generatedReports": "التقارير المُنشأة",
+    "generatedReportsDesc": "التقارير المُنشأة سابقاً المتاحة للتنزيل",
+    "scheduledReports": "التقارير المجدولة",
+    "scheduledReportsDesc": "تقارير يتم إنشاؤها وإرسالها بالبريد تلقائياً",
+    "addSchedule": "إضافة جدولة",
+    "cancel": "إلغاء",
+    "refresh": "تحديث",
+    "delete": "حذف"
   },
   "subscription": {
     "title": "الاشتراك",
@@ -1407,7 +1476,15 @@
     "branch": "الفرع",
     "department": "القسم",
     "noRecords": "لا توجد سجلات حضور",
-    "exportAttendance": "تصدير"
+    "exportAttendance": "تصدير",
+    "present": "حاضر",
+    "late": "متأخر",
+    "absent": "غائب",
+    "searchPlaceholder": "ابحث عن موظف أو فرع...",
+    "checkIn": "تسجيل الدخول",
+    "checkOut": "تسجيل الخروج",
+    "duration": "المدة",
+    "faceVerified": "تم التحقق بالوجه"
   },
   "cameras": {
     "title": "الكاميرات",
@@ -1442,7 +1519,9 @@
     "deleteSuccess": "تم حذف الكاميرا",
     "onlineRefreshed": "تم تحديث الحالة",
     "onlineCheckFailed": "فشل التحقق من الحالة",
-    "deleteFailed": "فشل الحذف"
+    "deleteFailed": "فشل الحذف",
+    "checkOnline": "فحص الاتصال",
+    "unknown": "غير معروف"
   },
   "escalationAlerts": {
     "title": "التصعيد والتنبيهات",
@@ -2000,7 +2079,9 @@
     "workingHoursSubtitle": "حدد الجدول الزمني لكل يوم من أيام الأسبوع",
     "placeholder_nameEn": "أدخل الاسم بالإنجليزية",
     "placeholder_phone": "05XXXXXXXX",
-    "placeholder_email": "employee@example.com"
+    "placeholder_email": "employee@example.com",
+    "employeePhoto": "صورة الموظف",
+    "dropImage": "أفلت الصورة هنا أو انقر للرفع"
   },
   "branches": {
     "title": "الفروع",
@@ -2448,7 +2529,12 @@
     "empty": "لا توجد مهام",
     "title": "لوحة كانبان",
     "subtitle": "اسحب وأفلت المهام بين المراحل",
-    "loadingMore": "جارٍ التحميل…"
+    "loadingMore": "جارٍ التحميل…",
+    "repeatEveryDays": "التكرار كل (أيام)",
+    "deleteTask": "حذف المهمة",
+    "editTask": "تعديل المهمة",
+    "deleteTaskAria": "حذف المهمة",
+    "deleteTaskConfirm": "هل أنت متأكد أنك تريد حذف \"{{title}}\"؟ لا يمكن التراجع عن هذا."
   },
   "notifSettings": {
     "addOneRecipient": "أضف مستلماً واحداً على الأقل",
@@ -2743,7 +2829,8 @@
     "subtitle": "عرض وتصفية جميع أحداث النظام عبر الفروع والكاميرات",
     "alerts": "التنبيهات",
     "found": "تم العثور على {{n}} حدثاً",
-    "noEvents": "لا توجد أحداث"
+    "noEvents": "لا توجد أحداث",
+    "detectionAlt": "اكتشاف"
   },
   "visitors": {
     "enter": "دخول",
@@ -2940,5 +3027,38 @@
     "consumed": "المُستهلك",
     "renew": "تجديد",
     "upgrade": "ترقية"
+  },
+  "legal": {
+    "privacyTitle": "سياسة الخصوصية",
+    "privacyBody": "تصف هذه الصفحة كيفية جمع RGEEB لبياناتك واستخدامها وحمايتها. سيتم نشر النص الكامل للسياسة هنا. للاستفسارات، يرجى التواصل مع الدعم.",
+    "termsTitle": "شروط الخدمة",
+    "termsBody": "تحكم هذه الشروط استخدامك لمنصة RGEEB. سيتم نشر النص القانوني الكامل هنا. للاستفسارات، يرجى التواصل مع الدعم."
+  },
+  "tasksUi": {
+    "pagination": "ترقيم الصفحات",
+    "previousPage": "الصفحة السابقة",
+    "nextPage": "الصفحة التالية",
+    "details": "التفاصيل",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "refresh": "تحديث",
+    "previous": "السابق",
+    "next": "التالي",
+    "close": "إغلاق"
+  },
+  "packages": {
+    "maxCameras": "الحد الأقصى للكاميرات",
+    "maxBranches": "الحد الأقصى للفروع",
+    "category": "الفئة",
+    "services": "الخدمات",
+    "selectCategoryOptional": "اختر الفئة (اختياري)",
+    "englishName": "الاسم بالإنجليزية",
+    "englishDescription": "الوصف بالإنجليزية",
+    "optionalDescription": "وصف اختياري",
+    "serviceNameEn": "اسم الخدمة بالإنجليزية",
+    "serviceDescription": "وصف الخدمة"
+  },
+  "security2fa": {
+    "qrCodeAlt": "رمز QR للمصادقة الثنائية"
   }
 }
