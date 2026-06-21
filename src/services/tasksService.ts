@@ -46,7 +46,6 @@ export interface TaskItem {
   scheduledDate?: string;
   time?: string;
   description?: string;
-  projectId?: string;
   departmentId?: string;
   recurringEveryDays?: number;
   startDate?: string;
@@ -96,7 +95,6 @@ export interface TaskPayload {
   title?: string;
   description?: string;
   type?: "manual" | "recurring" | string;
-  project_id?: string | number;
   department_id?: string | number;
   priority?: string;
   status?: string;
@@ -148,7 +146,6 @@ function buildTaskBody(
   fd.append("title", String(payload.title ?? payload.name));
   if (payload.description) fd.append("description", payload.description);
   if (payload.type) fd.append("type", payload.type);
-  if (payload.project_id) fd.append("project_id", String(payload.project_id));
   if (payload.department_id)
     fd.append("department_id", String(payload.department_id));
   if (payload.priority) fd.append("priority", payload.priority);
@@ -260,7 +257,6 @@ function mapTask(x: unknown, i: number): TaskItem {
     scheduledDate: r.scheduled_date ? String(r.scheduled_date) : undefined,
     time: r.time ? String(r.time) : undefined,
     description: r.description ? String(r.description) : undefined,
-    projectId: r.project_id ? String(r.project_id) : undefined,
     departmentId: r.department_id ? String(r.department_id) : undefined,
     recurringEveryDays: r.recurring_every_days
       ? num(r.recurring_every_days)
@@ -610,7 +606,6 @@ export const tasksService = {
         scheduled_date: current?.scheduledDate,
         start_date: current?.startDate,
         end_date: current?.endDate,
-        project_id: current?.projectId,
         department_id: current?.departmentId,
         recurring_every_days: current?.recurringEveryDays,
         assigned_user_ids: current?.assignedUserIds,
@@ -750,34 +745,6 @@ export const tasksService = {
           return {
             id: String(x.id ?? i),
             name: String(x.name ?? `Dept ${i + 1}`),
-          } satisfies LookupOption;
-        });
-      })(),
-      [] as LookupOption[]
-    ),
-
-  /** For SELECT DROPDOWNS prefer: <AsyncPaginatedSelect endpoint="/customer/projects" />
-   *  This method is still used for non-select contexts. */
-  listProjects: (params?: {
-    page?: number;
-    per_page?: number;
-    keyword?: string;
-  }) =>
-    safe(
-      (async () => {
-        const query = params?.page
-          ? {
-              page: params.page,
-              per_page: params.per_page ?? 20,
-              ...(params.keyword ? { keyword: params.keyword } : {}),
-            }
-          : { all: 1 };
-        const raw = await api.get<unknown>(endpoints.projects.list, { query });
-        return unwrapList(raw).map((p, i) => {
-          const x = p as Record<string, unknown>;
-          return {
-            id: String(x.id ?? i),
-            name: String(x.name ?? x.title ?? `Project ${i + 1}`),
           } satisfies LookupOption;
         });
       })(),

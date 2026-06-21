@@ -52,7 +52,6 @@ import {
   Crown,
   Camera,
   UserCheck,
-  FolderKanban,
   Plug,
   Globe,
   Link2,
@@ -612,20 +611,6 @@ export function AppSidebar() {
           icon: UserCheck,
           label: t("navigation.attendance", "Attendance"),
           permission: "attendance",
-        },
-      ],
-    },
-    {
-      href: "/dashboard/projects",
-      icon: FolderKanban,
-      label: t("navigation.projects", "Projects"),
-      permission: "projects",
-      children: [
-        {
-          href: "/dashboard/projects",
-          icon: FolderKanban,
-          label: t("navigation.projects", "All Projects"),
-          permission: "projects",
         },
       ],
     },

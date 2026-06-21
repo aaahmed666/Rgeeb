@@ -47,7 +47,6 @@ import {
   Crown,
   Camera,
   UserCheck,
-  FolderKanban,
   Plug,
   Globe,
   Link2,

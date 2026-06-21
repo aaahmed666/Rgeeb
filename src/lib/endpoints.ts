@@ -302,16 +302,6 @@ export const endpoints = {
     delete: (id: string | number) => `/customer/task-templates/${id}`,
   },
 
-  // ── Projects ─────────────────────────────────────────────────────────────────
-  projects: {
-    list: "/customer/projects",
-    single: "/customer/projects/single",
-    create: "/customer/projects/create",
-    update: "/customer/projects/update",
-    cancel: "/customer/projects/cancel",
-    delete: "/customer/projects/delete",
-  },
-
   // ── Productivity ─────────────────────────────────────────────────────────────
   productivity: {
     summary: "/customer/productivity/summary",

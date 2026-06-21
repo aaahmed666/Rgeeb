@@ -55,7 +55,6 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   employees: ["employees"],
   cameras: ["cameras"],
   attendance: ["attendances", "attendance"],
-  projects: ["projects"],
   // ── Customer Island (parity with old ACL subject "island") ──
   island: ["island", "customer_island"],
   customer_island: ["island", "customer_island"],

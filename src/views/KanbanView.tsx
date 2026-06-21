@@ -158,7 +158,6 @@ function TaskForm({
   const [endDate, setEndDate] = React.useState(initial?.endDate ?? "");
   const [isDraft, setIsDraft] = React.useState(initial?.isDraft ?? false);
 
-  const [projectId, setProjectId] = React.useState(initial?.projectId ?? "");
   const [departmentId, setDepartmentId] = React.useState(
     initial?.departmentId ?? ""
   );
@@ -190,7 +189,6 @@ function TaskForm({
       type,
       priority,
       status,
-      project_id: projectId || undefined,
       department_id: departmentId || undefined,
       time: time || undefined,
       scheduled_date: scheduledDate || undefined,
@@ -301,20 +299,8 @@ function TaskForm({
               </div>
             </div>
 
-            {/* Project + Department */}
+            {/* Department */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{t("projects.projectName")}</Label>
-                <AsyncPaginatedSelect
-                  endpoint="/customer/projects"
-                  labelKey="name"
-                  valueKey="id"
-                  value={projectId || null}
-                  onChange={(v) => setProjectId(v ?? "")}
-                  placeholder={`— ${t("common.noData")} —`}
-                  isClearable
-                />
-              </div>
               <div className="space-y-1.5">
                 <Label>{t("navigation.departments")}</Label>
                 <AsyncPaginatedSelect
