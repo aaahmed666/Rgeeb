@@ -22,7 +22,7 @@ import { faceLoginRequest } from "@/services/authService";
 /**
  * Face login flow:
  *  1. Opens webcam, captures a JPEG frame
- *  2. Sends image → POST /customer/face-login (FormData — fixed BUG-001)
+ *  2. Sends image → POST /face-login (PUBLIC route — NOT under /customer) (FormData — fixed BUG-001)
  *  3. On success, stores token, applies user directly from response (fixed BUG-003)
  *  4. Redirects based on role determined from response (not from stale closure)
  */

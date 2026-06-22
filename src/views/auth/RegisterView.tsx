@@ -9,12 +9,11 @@ import { useAuth } from "@/lib/auth";
 import { useAuthUI, AuthTopBar } from "@/components/auth-context";
 import {
   fetchCategories,
-  fetchCities,
-  fetchCountries,
   // fetchPackages, // removed with package-selection step
 } from "@/services/lookupsService";
 import { sendOtpRequest } from "@/services/authService";
 import { AuthPaginatedSelect } from "@/components/AsyncPaginatedSelect";
+import { endpoints } from "@/lib/endpoints";
 // import { subscribeToPackage } from "@/services/subscriptionService"; // removed with payment step
 import { EmailSentIllustration, Icon } from "@/app/assets/icons/auth-icon";
 import "./auth-shared.css";
@@ -162,15 +161,6 @@ export default function RegisterView() {
     t("auth.register.strengthStrong"),
   ];
 
-  const countriesQ = useQuery({
-    queryKey: ["countries"],
-    queryFn: fetchCountries,
-  });
-  const citiesQ = useQuery({
-    queryKey: ["cities", basic.nationality],
-    queryFn: () => fetchCities(basic.nationality),
-    enabled: !!basic.nationality,
-  });
   const categoriesQ = useQuery({
     queryKey: ["categories"],
     queryFn: () => fetchCategories(i18n.language),
@@ -815,10 +805,9 @@ export default function RegisterView() {
                   <div style={{ position: "relative" }}>
                     <AuthPaginatedSelect
                       isDark={isDark}
-                      options={(countriesQ.data ?? []).map((c: any) => ({
-                        value: String(c.id),
-                        label: localised(c.name_en, c.name_ar, c.name),
-                      }))}
+                      endpoint={endpoints.lookups.countries}
+                      labelKey={isRtl ? "name_ar" : "name_en"}
+                      valueKey="id"
                       value={basic.nationality || null}
                       onChange={(v) => {
                         setBasic((b) => ({
@@ -828,11 +817,7 @@ export default function RegisterView() {
                         }));
                         setFieldErrors((fe) => ({ ...fe, nationality: "" }));
                       }}
-                      placeholder={
-                        countriesQ.isLoading
-                          ? t("common.loading")
-                          : t("auth.register.selectCountry")
-                      }
+                      placeholder={t("auth.register.selectCountry")}
                       hasError={!!fieldErrors.nationality}
                       isClearable={false}
                     />
@@ -856,10 +841,14 @@ export default function RegisterView() {
                     <AuthPaginatedSelect
                       isDark={isDark}
                       isDisabled={!basic.nationality}
-                      options={(citiesQ.data ?? []).map((c: any) => ({
-                        value: String(c.id),
-                        label: localised(c.name_en, c.name_ar, c.name),
-                      }))}
+                      endpoint={endpoints.lookups.cities}
+                      labelKey={isRtl ? "name_ar" : "name_en"}
+                      valueKey="id"
+                      extraParams={
+                        basic.nationality
+                          ? { country_id: basic.nationality }
+                          : undefined
+                      }
                       value={basic.city_id || null}
                       onChange={(v) => {
                         setBasic((b) => ({ ...b, city_id: v ?? "" }));
@@ -868,9 +857,7 @@ export default function RegisterView() {
                       placeholder={
                         !basic.nationality
                           ? t("auth.register.selectCountryFirst")
-                          : citiesQ.isLoading
-                            ? t("common.loading")
-                            : t("auth.register.selectCity")
+                          : t("auth.register.selectCity")
                       }
                       hasError={!!fieldErrors.city_id}
                       isClearable={false}

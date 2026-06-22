@@ -20,6 +20,8 @@ import {
   LineChart,
   MapPin,
   RefreshCw,
+  Settings as SettingsIcon,
+  ShieldCheck,
   UserCheck,
   Users,
 } from "lucide-react";
@@ -30,14 +32,66 @@ import SharedDateRangePicker from "@/components/Shareddaterangepicker";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 
 const TABS = [
-  { slug: "dashboard", labelKey: "island.tabs.dashboard", fallback: "Island Dashboard", icon: LayoutDashboard },
-  { slug: "traffic", labelKey: "island.tabs.traffic", fallback: "Traffic Analytics", icon: LineChart },
-  { slug: "conversion", labelKey: "island.tabs.conversion", fallback: "Conversion Funnel", icon: FilterIcon },
-  { slug: "employee-presence", labelKey: "island.tabs.presence", fallback: "Employee Presence", icon: UserCheck },
-  { slug: "response-time", labelKey: "island.tabs.responseTime", fallback: "Response Time", icon: Clock3 },
-  { slug: "demographics", labelKey: "island.tabs.demographics", fallback: "Demographics", icon: Users },
-  { slug: "heatmap", labelKey: "island.tabs.heatmap", fallback: "Heatmap Analysis", icon: MapPin },
-  { slug: "violations", labelKey: "island.tabs.violations", fallback: "Violations", icon: AlertTriangle },
+  {
+    slug: "dashboard",
+    labelKey: "island.tabs.dashboard",
+    fallback: "Overview",
+    icon: LayoutDashboard,
+  },
+  {
+    slug: "traffic",
+    labelKey: "island.tabs.traffic",
+    fallback: "Traffic Analytics",
+    icon: LineChart,
+  },
+  {
+    slug: "conversion",
+    labelKey: "island.tabs.conversion",
+    fallback: "Conversion Funnel",
+    icon: FilterIcon,
+  },
+  {
+    slug: "employee-presence",
+    labelKey: "island.tabs.presence",
+    fallback: "Employee Presence",
+    icon: UserCheck,
+  },
+  {
+    slug: "response-time",
+    labelKey: "island.tabs.responseTime",
+    fallback: "Response Time",
+    icon: Clock3,
+  },
+  {
+    slug: "demographics",
+    labelKey: "island.tabs.demographics",
+    fallback: "Demographics",
+    icon: Users,
+  },
+  {
+    slug: "heatmap",
+    labelKey: "island.tabs.heatmap",
+    fallback: "Heatmap Analysis",
+    icon: MapPin,
+  },
+  {
+    slug: "violations",
+    labelKey: "island.tabs.violations",
+    fallback: "Violations",
+    icon: AlertTriangle,
+  },
+  {
+    slug: "compliance",
+    labelKey: "island.tabs.compliance",
+    fallback: "Compliance",
+    icon: ShieldCheck,
+  },
+  {
+    slug: "settings",
+    labelKey: "island.tabs.settings",
+    fallback: "Settings",
+    icon: SettingsIcon,
+  },
 ] as const;
 
 export interface IslandQueryFilters {
@@ -104,9 +158,7 @@ export default function IslandHeader({
         <div className="flex flex-wrap items-center gap-2">
           <div className="w-56">
             <SharedDateRangePicker
-              value={
-                from && to ? [new Date(from), new Date(to)] : null
-              }
+              value={from && to ? [new Date(from), new Date(to)] : null}
               onChange={(range) => {
                 if (range) {
                   setQuery({

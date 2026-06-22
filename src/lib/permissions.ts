@@ -55,9 +55,15 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   employees: ["employees"],
   cameras: ["cameras"],
   attendance: ["attendances", "attendance"],
-  // ── Customer Island (parity with old ACL subject "island") ──
-  island: ["island", "customer_island"],
-  customer_island: ["island", "customer_island"],
+  // ── Customer Island / Store (backend ACL namespace is `store.*`) ──
+  // Branded "Store" in the UI; historically keyed "island". The backend grants
+  // access via granular `store.*` leaves (store.dashboard, store.traffic, …,
+  // store.settings.read) with NO bare `store`/`store.read` — the read-prefix
+  // rule in permissionMatchesAction lets any `store.*` grant reveal the menu and
+  // open every page (sidebar ↔ guard both call hasPermission("island")).
+  island: ["island", "customer_island", "store"],
+  customer_island: ["island", "customer_island", "store"],
+  store: ["store", "island", "customer_island"],
   // ── Preferences ──
   preferences: ["roles", "notification_settings", "settings"],
   roles: ["roles"],
@@ -68,6 +74,9 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   // ── Reports & Other ──
   report_center: ["reports"],
   subscription: ["subscriptions"],
+  // Fatoorah (payment link) — backend grants fatoorah.link / .status / .unlink
+  // (non-CRUD leaves). Listing the namespace lets the read-prefix rule reveal it.
+  fatoorah: ["fatoorah", "subscriptions"],
   // Productivity sits under Insights. The OLD project gated it on `roles`
   // (same as Branch Intelligence), and the backend doesn't expose a dedicated
   // `productivity` namespace — so map it to the namespaces the other visible
@@ -103,6 +112,18 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   // ── Event Timeline / Notifications ──
   event_timeline: ["alerts", "notifications"],
   notifications: ["notifications", "notification"],
+  // ── Customer Lifecycle (CRM) ──
+  customer_lifecycle: ["customer_lifecycle", "crm"],
+  crm_dashboard: ["customer_lifecycle", "crm"],
+  crm_customers: ["customer_lifecycle", "crm"],
+  crm_lifecycle: ["customer_lifecycle", "crm"],
+  crm_subscriptions: ["customer_lifecycle", "crm"],
+  crm_branches: ["customer_lifecycle", "crm"],
+  crm_cameras: ["customer_lifecycle", "crm"],
+  crm_ai_services: ["customer_lifecycle", "crm"],
+  crm_modules: ["customer_lifecycle", "crm"],
+  crm_integrations: ["customer_lifecycle", "crm"],
+  crm_renewals: ["customer_lifecycle", "crm"],
 };
 
 /** Resolve a route key to the list of namespaces that grant access to it. */
@@ -146,7 +167,12 @@ export function permissionMatchesAction(
       (c) =>
         np === `${c}_${act}` || // exact namespace.action  (e.g. task_management_read)
         np === `${c}_*` || // namespace.*  → namespace_*
-        np === c // whole namespace granted with no action suffix (admin-style)
+        np === c || // whole namespace granted with no action suffix (admin-style)
+        // View/read is the lowest privilege: holding ANY permission inside the
+        // namespace (even a non-CRUD leaf like store.dashboard,
+        // foodics.dashboard.overview, fatoorah.status) implies you may view it.
+        // We do NOT widen create/update/delete this way — those stay strict.
+        (act === "read" && np.startsWith(`${c}_`))
     );
   });
 }

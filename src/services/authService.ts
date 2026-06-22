@@ -173,7 +173,7 @@ export async function sendOtpRequest(
 }
 
 /**
- * POST /customer/face-login
+ * POST /face-login (PUBLIC route — NOT under /customer)
  * Sends the captured frame as a base64 data URL in the `image` field.
  * FIX: wrapped in FormData so multipart-expecting backends also accept it.
  */

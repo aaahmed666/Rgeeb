@@ -31,7 +31,7 @@ export const endpoints = {
     resetPassword: "/customer/profile/update", // step-3 of forgot-password
 
     // Face login
-    face: "/customer/face-login", // POST face recognition login
+    face: "/face-login", // POST face recognition login
     facePublic: "/face-login", // POST public face login (no session)
     faceRegister: "/face/register", // POST enroll a face
 

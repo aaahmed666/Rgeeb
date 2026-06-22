@@ -66,6 +66,7 @@ import {
   Landmark,
   MapPin,
   Filter,
+  HeartHandshake,
 } from "lucide-react";
 import {
   HardHatIcon as HardHat,
@@ -244,17 +245,73 @@ export function AppSidebar() {
     {
       href: "/dashboard/customer-island/dashboard",
       icon: Landmark,
-      label: t("navigation.customerIsland", "Customer Island"),
+      label: t("navigation.customerIsland", "Store"),
       permission: "island",
       children: [
-        { href: "/dashboard/customer-island/dashboard", icon: LayoutDashboard, label: t("island.tabs.dashboard", "Island Dashboard"), permission: "island" },
-        { href: "/dashboard/customer-island/traffic", icon: TrendingUp, label: t("island.tabs.traffic", "Traffic Analytics"), permission: "island" },
-        { href: "/dashboard/customer-island/conversion", icon: Filter, label: t("island.tabs.conversion", "Conversion Funnel"), permission: "island" },
-        { href: "/dashboard/customer-island/employee-presence", icon: UserCheck, label: t("island.tabs.presence", "Employee Presence"), permission: "island" },
-        { href: "/dashboard/customer-island/response-time", icon: Clock, label: t("island.tabs.responseTime", "Response Time"), permission: "island" },
-        { href: "/dashboard/customer-island/demographics", icon: Users, label: t("island.tabs.demographics", "Demographics"), badge: { text: "NEW", tone: "new" }, permission: "island" },
-        { href: "/dashboard/customer-island/heatmap", icon: MapPin, label: t("island.tabs.heatmap", "Heatmap Analysis"), badge: { text: "NEW", tone: "new" }, permission: "island" },
-        { href: "/dashboard/customer-island/violations", icon: AlertTriangle, label: t("island.tabs.violations", "Violations"), badge: { text: "NEW", tone: "new" }, permission: "island" },
+        {
+          href: "/dashboard/customer-island/dashboard",
+          icon: LayoutDashboard,
+          label: t("island.tabs.dashboard", "Overview"),
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/traffic",
+          icon: TrendingUp,
+          label: t("island.tabs.traffic", "Traffic Analytics"),
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/conversion",
+          icon: Filter,
+          label: t("island.tabs.conversion", "Conversion Funnel"),
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/employee-presence",
+          icon: UserCheck,
+          label: t("island.tabs.presence", "Employee Presence"),
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/response-time",
+          icon: Clock,
+          label: t("island.tabs.responseTime", "Response Time"),
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/demographics",
+          icon: Users,
+          label: t("island.tabs.demographics", "Demographics"),
+          badge: { text: "NEW", tone: "new" },
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/heatmap",
+          icon: MapPin,
+          label: t("island.tabs.heatmap", "Heatmap"),
+          badge: { text: "NEW", tone: "new" },
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/violations",
+          icon: AlertTriangle,
+          label: t("island.tabs.violations", "Violations"),
+          badge: { text: "NEW", tone: "new" },
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/compliance",
+          icon: ShieldCheck,
+          label: t("island.tabs.compliance", "Compliance"),
+          badge: { text: "NEW", tone: "new" },
+          permission: "island",
+        },
+        {
+          href: "/dashboard/customer-island/settings",
+          icon: Settings,
+          label: t("island.tabs.settings", "Settings"),
+          permission: "island",
+        },
       ],
     },
   ];
@@ -729,6 +786,79 @@ export function AppSidebar() {
     },
   ];
 
+  // ── Customer Lifecycle (CRM) ──
+  const customerLifecycleGroup: GroupItem[] = [
+    {
+      href: "/dashboard/customer-lifecycle",
+      icon: HeartHandshake,
+      label: t("customerLifecycle.title", "Customer Lifecycle"),
+      permission: "customer_lifecycle",
+      children: [
+        {
+          href: "/dashboard/customer-lifecycle",
+          icon: LayoutDashboard,
+          label: t("customerLifecycle.dashboard", "Dashboard"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/customers",
+          icon: Users,
+          label: t("customerLifecycle.customers", "Customers"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/lifecycle",
+          icon: TrendingUp,
+          label: t("customerLifecycle.lifecycle", "Lifecycle"),
+          badge: { text: "NEW", tone: "new" },
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/subscriptions",
+          icon: Crown,
+          label: t("customerLifecycle.subscriptions", "Subscriptions"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/branches",
+          icon: Building,
+          label: t("customerLifecycle.branches", "Branches"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/cameras",
+          icon: Camera,
+          label: t("customerLifecycle.cameras", "Cameras"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/ai-services",
+          icon: Cpu,
+          label: t("customerLifecycle.aiServices", "AI Services"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/modules",
+          icon: Package,
+          label: t("customerLifecycle.modules", "Modules"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/integrations",
+          icon: Plug,
+          label: t("customerLifecycle.integrations", "Integrations"),
+          permission: "customer_lifecycle",
+        },
+        {
+          href: "/dashboard/customer-lifecycle/renewals",
+          icon: RotateCcw,
+          label: t("customerLifecycle.renewals", "Renewals"),
+          permission: "customer_lifecycle",
+        },
+      ],
+    },
+  ];
+
   const admin: LeafItem[] = [
     {
       href: "/dashboard/admin",
@@ -817,6 +947,15 @@ export function AppSidebar() {
   const settingsVisible = isAdmin
     ? []
     : (settingsGroup.map(filterGroup).filter(Boolean) as GroupItem[]);
+  // Customer Lifecycle is a mock module hidden from real platform admins by
+  // default. It becomes visible when the account carries an explicit
+  // `customer_lifecycle` grant (e.g. the CRM demo account) — regardless of
+  // admin classification — or for any non-admin that passes the permission.
+  const crmExplicitlyGranted = hasPermission("customer_lifecycle");
+  const customerLifecycleVisible =
+    isAdmin && !crmExplicitlyGranted
+      ? []
+      : (customerLifecycleGroup.map(filterGroup).filter(Boolean) as GroupItem[]);
 
   // ── Collapsed hover flyout (Portal-based to escape overflow:hidden) ────────
   const CollapsedFlyout = ({
@@ -1275,6 +1414,23 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{settingsVisible.map(renderGroupItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {customerLifecycleVisible.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel
+              className={cn(
+                "text-[11px] font-semibold uppercase tracking-wider text-primary/80",
+                isRtl && "text-right"
+              )}
+            >
+              <HeartHandshake className="me-1 inline h-3 w-3" />
+              {t("sidebar.customerLifecycle", "Customer Lifecycle")}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{customerLifecycleVisible.map(renderGroupItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

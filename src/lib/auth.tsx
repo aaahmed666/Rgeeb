@@ -112,6 +112,18 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
     new Set([...directPerms, ...fromRoles.perms].map((p) => p.toLowerCase()))
   );
 
+  // ── CRM (Customer Lifecycle) demo access ──
+  // The Customer Lifecycle module is frontend-only (mock data) and the backend
+  // does not yet expose a `customer_lifecycle` permission, so it's hidden for
+  // everyone by default. Grant view access to a dedicated demo account so the
+  // module can be opened end-to-end. Add more emails here as needed.
+  const CRM_DEMO_EMAILS = ["admin-crm@admin.com"];
+  if (email && CRM_DEMO_EMAILS.includes(email.toLowerCase())) {
+    if (!permissions.includes("customer_lifecycle.read")) {
+      permissions.push("customer_lifecycle.read");
+    }
+  }
+
   // Admin detection:
   //  1. type === "admin"          — direct field in login response
   //  2. role name === "rgeeb admin"

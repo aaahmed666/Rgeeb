@@ -108,6 +108,37 @@ export interface IslandViolation {
   notes?: string;
 }
 
+/* ─── Compliance (parity with old `fetchIslandCompliance`) ─── */
+
+export interface IslandComplianceData {
+  compliance_score: number;
+  ppe_violations_total: number;
+  ppe_breakdown: {
+    no_glove: number;
+    no_mask: number;
+    no_hairnet: number;
+    other: number;
+  };
+  ppe_hourly: Array<{ hour: number; count: number }>;
+  phone_incidents_total: number;
+  phone_hourly: Array<{ hour: number; count: number }>;
+}
+
+/* ─── Settings (parity with old fetch/update IslandSettings) ─── */
+
+export interface IslandSettings {
+  store_queue_threshold: number;
+  store_queue_alert_enabled: boolean;
+  store_employee_absent_alert_enabled: boolean;
+  has_telegram_setting: boolean;
+}
+
+export interface IslandSettingsUpdate {
+  store_queue_threshold?: number;
+  store_queue_alert_enabled?: boolean;
+  store_employee_absent_alert_enabled?: boolean;
+}
+
 /* ─── Param builder (mirrors old buildParams exactly) ─── */
 
 function buildParams(filters: IslandFilters): Record<string, string | number> {
@@ -210,6 +241,50 @@ export const islandService = {
       items: paginator?.data ?? [],
       total: paginator?.total ?? 0,
     };
+  },
+
+  /** Compliance — PPE + phone-usage analytics (old `fetchIslandCompliance`). */
+  compliance: (f: IslandFilters) => get<IslandComplianceData>("compliance", f),
+
+  /** Store settings — GET (old `fetchIslandSettings`, no params). */
+  settings: async (): Promise<IslandSettings> => {
+    const raw = await fetchWithBaseFallback("settings", {});
+    return unwrap<IslandSettings>(raw);
+  },
+
+  /**
+   * Update store settings.
+   * The OLD project used PUT /customer/island/settings; the CURRENT backend
+   * (per the Postman collection) serves the write on POST to the same URL.
+   * We POST to the resolved base and unwrap the Laravel envelope.
+   */
+  updateSettings: async (
+    payload: IslandSettingsUpdate
+  ): Promise<IslandSettings> => {
+    const base = resolvedBase ?? PRIMARY_BASE;
+    try {
+      const raw = await apiFetch<unknown>(`${base}/settings`, {
+        method: "POST",
+        body: payload,
+      });
+      resolvedBase = base;
+      return unwrap<IslandSettings>(raw);
+    } catch (err) {
+      // Mirror the GET fallback: retry on the legacy base if the route 404s.
+      if (
+        err instanceof ApiError &&
+        err.status === 404 &&
+        base !== LEGACY_BASE
+      ) {
+        const raw = await apiFetch<unknown>(`${LEGACY_BASE}/settings`, {
+          method: "POST",
+          body: payload,
+        });
+        resolvedBase = LEGACY_BASE;
+        return unwrap<IslandSettings>(raw);
+      }
+      throw err;
+    }
   },
 };
 
