@@ -13,13 +13,13 @@ export interface ReportDateRange {
 }
 
 const PATHS: Record<TaskReportType, { path: string; ext: "pdf" | "csv" }> = {
-  performance: { path: endpoints.taskReports.performance, ext: "pdf" },
-  "sla-compliance": { path: endpoints.taskReports.slaCompliance, ext: "pdf" },
+  performance: { path: endpoints.taskReports.downloadPerformance, ext: "pdf" },
+  "sla-compliance": { path: endpoints.taskReports.downloadSla, ext: "pdf" },
   "verification-accuracy": {
-    path: endpoints.taskReports.verificationAccuracy,
+    path: endpoints.taskReports.downloadVerification,
     ext: "pdf",
   },
-  "export-csv": { path: endpoints.taskReports.exportCsv, ext: "csv" },
+  "export-csv": { path: endpoints.taskReports.downloadExportExcel, ext: "csv" },
 };
 
 export async function downloadTaskReport(
@@ -27,15 +27,23 @@ export async function downloadTaskReport(
   range: ReportDateRange
 ): Promise<void> {
   const cfg = PATHS[type];
-  const url = new URL(`${API_BASE_URL}${cfg.path}`);
+
   // Backend contract (Postman: /customer/task-reports/*) expects `from` / `to`.
   // Sending `date_from` / `date_to` made the backend ignore the range.
-  url.searchParams.set("from", range.dateFrom);
-  url.searchParams.set("to", range.dateTo);
-  url.searchParams.set("format", cfg.ext);
+  const params = new URLSearchParams({
+    from: range.dateFrom,
+    to: range.dateTo,
+    format: cfg.ext,
+  });
 
+  // Pass the relative URL STRING straight to fetch() — fetch resolves it
+  // against the document origin. Wrapping it in `new URL()` first throws
+  // "Failed to construct 'URL': Invalid URL", because on the client
+  // API_BASE_URL is the relative proxy path "/api" and `new URL()` needs an
+  // absolute base. This matches the pattern used by the other working
+  // downloads in this app (Branch Intelligence, Report Center, Productivity).
   const token = getAuthToken();
-  const res = await fetch(url.toString(), {
+  const res = await fetch(`${API_BASE_URL}${cfg.path}?${params}`, {
     headers: {
       Accept: cfg.ext === "pdf" ? "application/pdf" : "text/csv",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

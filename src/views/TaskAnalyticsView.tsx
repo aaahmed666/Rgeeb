@@ -19,7 +19,7 @@ import {
   Trophy,
   Users,
   Zap,
-ShieldAlert,
+  ShieldAlert,
 } from "lucide-react";
 import {
   Area,
@@ -115,7 +115,6 @@ export default function TaskAnalyticsView() {
   const totalCreated = ai.tasksCreated;
   const totalAssigned = workers.reduce((s, w) => s + w.tasks, 0);
   const totalCompleted = workers.reduce((s, w) => s + w.done, 0);
-
 
   // Read guard via aliases in auth.tsx
   return (
@@ -552,36 +551,56 @@ export default function TaskAnalyticsView() {
             value={grade(sla.compliance)}
             sub={`${sla.compliance.toFixed(0)}% ${t("taskAnalytics.slaCompliance", "SLA Compliance")}`}
           />
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <InsightRow
-              icon={Trophy}
-              tone="emerald"
-              label={t("taskAnalytics.bestBranch", "BEST BRANCH")}
-              value={bestBranch?.name ?? "—"}
-              sub={`${bestBranch?.rate.toFixed(1) ?? 0}% ${t("taskAnalytics.completionRate", "completion rate")}`}
-            />
-            <InsightRow
-              icon={Building2}
-              tone="amber"
-              label={t("taskAnalytics.busiestBranch", "BUSIEST BRANCH")}
-              value={busiestBranch?.name ?? "—"}
-              sub={`${busiestBranch?.tasks ?? 0} ${t("taskAnalytics.tasksThisPeriod", "tasks this period")}`}
-            />
-            <InsightRow
-              icon={Zap}
-              tone="blue"
-              label={t("taskAnalytics.fastestResponder", "FASTEST RESPONDER")}
-              value={fastest?.name ?? "—"}
-              sub={`${formatMinutes(fastest?.avgTime ?? 0)} ${t("taskAnalytics.avgCompletion", "Avg Completion")}`}
-            />
-            <InsightRow
-              icon={AlertTriangle}
-              tone="rose"
-              label={t("taskAnalytics.needsAttention", "NEEDS ATTENTION")}
-              value={worstBranch?.name ?? "—"}
-              sub={`${worstBranch?.rate.toFixed(1) ?? 0}% ${t("taskAnalytics.completionLowest", "completion — lowest")}`}
-            />
-          </div>
+          {/* Secondary insights only render when their data exists — mirrors
+              the old project, which built each card as `x ? {…} : null` and
+              dropped the nulls, so an org with no branches/workers shows only
+              "Overall Health" instead of a grid of "—" placeholders. */}
+          {(bestBranch ||
+            busiestBranch ||
+            fastest ||
+            (worstBranch && worstBranch !== bestBranch)) && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {bestBranch && (
+                <InsightRow
+                  icon={Trophy}
+                  tone="emerald"
+                  label={t("taskAnalytics.bestBranch", "BEST BRANCH")}
+                  value={bestBranch.name}
+                  sub={`${bestBranch.rate.toFixed(1)}% ${t("taskAnalytics.completionRate", "completion rate")}`}
+                />
+              )}
+              {busiestBranch && (
+                <InsightRow
+                  icon={Building2}
+                  tone="amber"
+                  label={t("taskAnalytics.busiestBranch", "BUSIEST BRANCH")}
+                  value={busiestBranch.name}
+                  sub={`${busiestBranch.tasks} ${t("taskAnalytics.tasksThisPeriod", "tasks this period")}`}
+                />
+              )}
+              {fastest && (
+                <InsightRow
+                  icon={Zap}
+                  tone="blue"
+                  label={t(
+                    "taskAnalytics.fastestResponder",
+                    "FASTEST RESPONDER"
+                  )}
+                  value={fastest.name}
+                  sub={`${formatMinutes(fastest.avgTime ?? 0)} ${t("taskAnalytics.avgCompletion", "Avg Completion")}`}
+                />
+              )}
+              {worstBranch && worstBranch !== bestBranch && (
+                <InsightRow
+                  icon={AlertTriangle}
+                  tone="rose"
+                  label={t("taskAnalytics.needsAttention", "NEEDS ATTENTION")}
+                  value={worstBranch.name}
+                  sub={`${worstBranch.rate.toFixed(1)}% ${t("taskAnalytics.completionLowest", "completion — lowest")}`}
+                />
+              )}
+            </div>
+          )}
         </div>
       </Card>
     </div>

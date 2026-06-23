@@ -358,14 +358,45 @@ export const tasksService = {
           ])
         );
       };
+      // The breakdowns (by_status / by_type / by_priority) and `overdue` are
+      // returned directly under `data` (siblings of `pagination`) on the list
+      // payload — NOT inside a `summary` object and NOT as top-level
+      // in_progress/completed fields. Reading only `summary` left the cards at 0
+      // (and the view fell back to the differently-scoped /tasks/dashboard
+      // endpoint). Pull from `summary`, then `data.*`, then the top level.
+      const byStatus = toNumMap(
+        summaryRaw.by_status ??
+          summaryRaw.byStatus ??
+          dataMeta.by_status ??
+          raw?.by_status
+      );
       const summary: TaskSummary = {
         total: num(summaryRaw.total ?? total, total),
-        inProgress: num(summaryRaw.in_progress ?? summaryRaw.inProgress),
-        completed: num(summaryRaw.completed),
-        overdue: num(summaryRaw.overdue),
-        byStatus: toNumMap(summaryRaw.by_status ?? summaryRaw.byStatus),
-        byType: toNumMap(summaryRaw.by_type ?? summaryRaw.byType),
-        byPriority: toNumMap(summaryRaw.by_priority ?? summaryRaw.byPriority),
+        inProgress: num(
+          summaryRaw.in_progress ??
+            summaryRaw.inProgress ??
+            byStatus.in_progress
+        ),
+        completed: num(summaryRaw.completed ?? byStatus.completed),
+        overdue: num(
+          summaryRaw.overdue ??
+            dataMeta.overdue ??
+            raw?.overdue ??
+            byStatus.overdue
+        ),
+        byStatus,
+        byType: toNumMap(
+          summaryRaw.by_type ??
+            summaryRaw.byType ??
+            dataMeta.by_type ??
+            raw?.by_type
+        ),
+        byPriority: toNumMap(
+          summaryRaw.by_priority ??
+            summaryRaw.byPriority ??
+            dataMeta.by_priority ??
+            raw?.by_priority
+        ),
       };
       return { items, total, page, perPage, summary };
     } catch {

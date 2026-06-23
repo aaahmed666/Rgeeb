@@ -43,8 +43,12 @@ function n(v: unknown): number {
 }
 
 function mapTemplate(raw: Record<string, unknown>): TaskTemplate {
-  const cat = (s(raw.category) ?? "other").toLowerCase() as TaskTemplateCategory;
-  const pri = (s(raw.priority) ?? "medium").toLowerCase() as TaskTemplatePriority;
+  const cat = (
+    s(raw.category) ?? "other"
+  ).toLowerCase() as TaskTemplateCategory;
+  const pri = (
+    s(raw.priority) ?? "medium"
+  ).toLowerCase() as TaskTemplatePriority;
   return {
     id: String(raw.id ?? ""),
     nameEn: s(raw.name_en) ?? s(raw.name) ?? "",
@@ -67,11 +71,16 @@ export async function fetchTaskTemplates(): Promise<TaskTemplate[]> {
   return (arr as Record<string, unknown>[]).map(mapTemplate);
 }
 
-export async function createTaskTemplate(input: TaskTemplateInput): Promise<TaskTemplate> {
-  const res = await apiFetch<Record<string, unknown>>(endpoints.taskTemplates.list, {
-    method: "POST",
-    body: input,
-  });
+export async function createTaskTemplate(
+  input: TaskTemplateInput
+): Promise<TaskTemplate> {
+  const res = await apiFetch<Record<string, unknown>>(
+    endpoints.taskTemplates.list,
+    {
+      method: "POST",
+      body: input,
+    }
+  );
   return mapTemplate((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
@@ -79,13 +88,23 @@ export async function deleteTaskTemplate(id: string): Promise<void> {
   await apiFetch(endpoints.taskTemplates.delete(id), { method: "DELETE" });
 }
 
+/**
+ * Create a task from a template.
+ *
+ * Mirrors the OLD project's working contract:
+ *   POST /customer/task-templates/create-task
+ *   body: { template_id, variables }
+ *
+ * (The previous `/customer/task-templates/{id}/use` endpoint with a
+ * { branch_id, customer_name } body did not match the backend.)
+ */
 export async function useTemplate(
   id: string,
-  vars: { branch_id?: string; customer_name?: string },
+  variables: Record<string, string> = {}
 ): Promise<{ taskId?: string }> {
   const res = await apiFetch<Record<string, unknown>>(
-    endpoints.taskTemplates.use(id),
-    { method: "POST", body: vars },
+    endpoints.taskTemplates.createTask,
+    { method: "POST", body: { template_id: id, variables } }
   );
   const data = (res?.data as Record<string, unknown>) ?? res ?? {};
   return { taskId: s(data.id) ?? s(data.task_id) };

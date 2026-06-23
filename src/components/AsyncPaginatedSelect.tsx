@@ -30,6 +30,17 @@ interface Additional {
   page: number;
 }
 
+/**
+ * Stable className prefix for the underlying react-select. Without it,
+ * react-select only emits emotion-hashed classes whose human-readable label
+ * (e.g. "-MenuList") is present in dev but STRIPPED in production builds.
+ * `closeMenuOnScroll` below relies on detecting scrolls inside the menu, so we
+ * need class names that exist in every build — setting classNamePrefix makes
+ * react-select emit deterministic `${prefix}__menu`, `${prefix}__menu-list`,
+ * `${prefix}__option`, … classes.
+ */
+const SELECT_CLASS_PREFIX = "rgeeb-aps";
+
 function unwrapList(raw: unknown): Record<string, unknown>[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw as Record<string, unknown>[];
@@ -61,9 +72,9 @@ function unwrapPagination(
     );
     const totalPages = Number(
       pagination.total_pages ??
-      pagination.totalPages ??
-      pagination.last_page ??
-      1
+        pagination.totalPages ??
+        pagination.last_page ??
+        1
     );
     return { hasMore: current < totalPages, nextPage: current + 1 };
   }
@@ -185,11 +196,17 @@ export function AuthPaginatedSelect({
   // stale position. Closing on scroll keeps it anchored correctly on reopen.
   const closeMenuOnScroll = React.useCallback((e: Event) => {
     const target = e.target as Node | null;
-    // Ignore scroll events originating inside the menu list itself.
+    // Keep the menu OPEN while scrolling inside the options list — that scroll
+    // is what drives the paginated load-more. Only close when an OUTSIDE
+    // container (page/dialog body) scrolls, so a fixed/portalled menu doesn't
+    // float at a stale position. We match the stable classNamePrefix classes
+    // (present in every build) rather than emotion's dev-only label suffix.
     if (
       target &&
       target instanceof HTMLElement &&
-      target.closest('[class*="-MenuList"], [class*="menu"]')
+      target.closest(
+        `.${SELECT_CLASS_PREFIX}__menu-list, .${SELECT_CLASS_PREFIX}__menu`
+      )
     ) {
       return false;
     }
@@ -246,10 +263,10 @@ export function AuthPaginatedSelect({
             value: String(match[valueKey] ?? match.id ?? value),
             label: String(
               match[labelKey] ??
-              match.name ??
-              match.name_en ??
-              match.title ??
-              value
+                match.name ??
+                match.name_en ??
+                match.title ??
+                value
             ),
             raw: match,
           });
@@ -309,11 +326,11 @@ export function AuthPaginatedSelect({
           value: String(item[valueKey] ?? item.id ?? ""),
           label: String(
             item[labelKey] ??
-            item.name ??
-            item.name_en ??
-            item.title ??
-            item[valueKey] ??
-            ""
+              item.name ??
+              item.name_en ??
+              item.title ??
+              item[valueKey] ??
+              ""
           ),
           raw: item,
         }));
@@ -581,6 +598,7 @@ export function AuthPaginatedSelect({
     >
       <AsyncPaginate
         inputId={id}
+        classNamePrefix={SELECT_CLASS_PREFIX}
         isMulti={isMulti}
         value={isMulti ? resolvedOptions : resolvedOption}
         onChange={handleChange}

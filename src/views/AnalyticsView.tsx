@@ -11,7 +11,8 @@ import {
   Eye,
   RefreshCw,
   ShieldAlert,
-  Video } from "lucide-react";
+  Video,
+} from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,8 @@ import {
   type BranchRow,
   type CameraRow,
   type ServiceBreakdown,
-  type TrendPoint } from "@/services/analyticsService";
+  type TrendPoint,
+} from "@/services/analyticsService";
 
 type RangeKey = "7" | "14" | "30" | "custom";
 
@@ -80,7 +82,7 @@ export default function AnalyticsView() {
     let cancelled = false;
     const filters = {
       dateFrom: from,
-      dateTo:   to,
+      dateTo: to,
       branchId: branchId === "all" ? undefined : branchId,
     };
     setLoading(true);
@@ -91,19 +93,29 @@ export default function AnalyticsView() {
       analyticsService.getByService(filters),
       analyticsService.getByCamera(filters),
       analyticsService.getByBranch(filters),
-    ]).then(([s, tr, sv, cm, br]) => {
-      if (cancelled) return;
-      setSummary(s);
-      setTrends(tr);
-      setByService(sv);
-      setByCamera(cm);
-      setByBranch(br);
-    }).catch((err) => {
-      if (!cancelled) setLoadError(err instanceof Error ? err.message : t("errors.somethingWentWrong", "Something went wrong"));
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
-    return () => { cancelled = true; };
+    ])
+      .then(([s, tr, sv, cm, br]) => {
+        if (cancelled) return;
+        setSummary(s);
+        setTrends(tr);
+        setByService(sv);
+        setByCamera(cm);
+        setByBranch(br);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setLoadError(
+            err instanceof Error
+              ? err.message
+              : t("errors.somethingWentWrong", "Something went wrong")
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [from, to, branchId, t]);
 
   useEffect(() => {
@@ -119,8 +131,15 @@ export default function AnalyticsView() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
         <ShieldAlert className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
-        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don't have permission to view this page.")}</p>
+        <p className="text-lg font-semibold">
+          {t("errors.unauthorized", "Access Denied")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "common.noPermission",
+            "You don't have permission to view this page."
+          )}
+        </p>
       </div>
     );
   }
@@ -128,7 +147,12 @@ export default function AnalyticsView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Banner */}
-      <div className="overflow-hidden rounded-2xl p-6 text-white shadow-lg" style={{ background: "linear-gradient(to right, #fb923c, #f97316, #06b6d4)" }}>
+      <div
+        className="overflow-hidden rounded-2xl p-6 text-white shadow-lg"
+        style={{
+          background: "linear-gradient(to right, #fb923c, #f97316, #06b6d4)",
+        }}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
@@ -152,7 +176,10 @@ export default function AnalyticsView() {
               {(["7", "14", "30"] as RangeKey[]).map((k) => (
                 <button
                   key={k}
-                  onClick={() => { setRange(k); setDateRange(null); }}
+                  onClick={() => {
+                    setRange(k);
+                    setDateRange(null);
+                  }}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-sm font-medium transition",
                     range === k
@@ -176,15 +203,15 @@ export default function AnalyticsView() {
               />
             </div>
             <AsyncPaginatedSelect
-                endpoint="/customer/branches"
-                labelKey="name"
-                valueKey="id"
-                extraParams={{ active: 1 }}
-                value={branchId === "all" ? null : branchId}
-                onChange={(v: string | null) => setBranchId(v ?? "all")}
-                placeholder={t("common.allBranches")}
-                isClearable
-              />
+              endpoint="/customer/branches"
+              labelKey="name"
+              valueKey="id"
+              extraParams={{ active: 1 }}
+              value={branchId === "all" ? null : branchId}
+              onChange={(v: string | null) => setBranchId(v ?? "all")}
+              placeholder={t("common.allBranches")}
+              isClearable
+            />
             <Button
               variant="outline"
               size="icon"
@@ -193,7 +220,9 @@ export default function AnalyticsView() {
               className="bg-white/15 border-white/30 text-white hover:bg-white/25"
               aria-label={t("common.refresh")}
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
         </div>
@@ -203,7 +232,10 @@ export default function AnalyticsView() {
       {loadError && !loading && (
         <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <span>{loadError}</span>
-          <button onClick={() => loadData()} className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30">
+          <button
+            onClick={() => loadData()}
+            className="ml-4 rounded-md bg-destructive/20 px-3 py-1 text-xs font-medium hover:bg-destructive/30"
+          >
             {t("common.retry")}
           </button>
         </div>
@@ -231,25 +263,23 @@ export default function AnalyticsView() {
         <KpiCard
           label={t("analytics.complianceScore", "Compliance Score")}
           value={
-            loading
-              ? null
-              : (summary?.total_detections ?? 0) === 0
-                ? "—"
-                : `${(summary?.compliance_score ?? 0).toFixed(1)}%`
+            loading ? null : `${(summary?.compliance_score ?? 0).toFixed(1)}%`
           }
           hint={
-            (summary?.total_detections ?? 0) === 0
-              ? t("analytics.noData", "No data for this period")
-              : (summary?.compliance_score ?? 0) >= 80
-                ? t("analytics.excellent", "Excellent")
-                : t("analytics.needsImprovement", "Needs Improvement")
+            (summary?.compliance_score ?? 0) >= 80
+              ? t("analytics.excellent", "Excellent")
+              : (summary?.compliance_score ?? 0) >= 50
+                ? t("analytics.needsImprovement", "Needs Improvement")
+                : t("analytics.critical", "Critical")
           }
           icon={<CheckCircle2 className="h-5 w-5" />}
           tint="bg-emerald-500/10 text-emerald-600"
           valueClass={
-            (summary?.total_detections ?? 0) === 0
-              ? "text-muted-foreground"
-              : "text-emerald-600"
+            (summary?.compliance_score ?? 0) >= 80
+              ? "text-emerald-600"
+              : (summary?.compliance_score ?? 0) >= 50
+                ? "text-amber-600"
+                : "text-rose-600"
           }
         />
         <KpiCard
@@ -287,44 +317,46 @@ export default function AnalyticsView() {
               </div>
             </div>
             <div className="relative flex h-64 items-end gap-2">
-              {loading
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      className="h-full flex-1"
-                    />
-                  ))
-                : trends.length === 0
-                  ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <BarChart3 className="h-10 w-10 opacity-20" />
-                      <p className="text-sm">{t("analytics.noData", "No detection data for this period")}</p>
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    className="h-full flex-1"
+                  />
+                ))
+              ) : trends.length === 0 ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <BarChart3 className="h-10 w-10 opacity-20" />
+                  <p className="text-sm">
+                    {t("analytics.noData", "No detection data for this period")}
+                  </p>
+                </div>
+              ) : (
+                trends.map((p, i) => (
+                  <div
+                    key={p.date ?? i}
+                    className="flex flex-1 flex-col items-center gap-1"
+                  >
+                    <div className="relative flex w-full flex-1 items-end">
+                      <div
+                        className="w-full rounded-t bg-gradient-to-t from-slate-700 to-slate-400"
+                        style={{
+                          height: `${(p.detections / maxDet) * 100}%`,
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-0 w-full rounded-t bg-rose-400/80"
+                        style={{
+                          height: `${(p.violations / maxDet) * 100}%`,
+                        }}
+                      />
                     </div>
-                  )
-                  : trends.map((p, i) => (
-                    <div
-                      key={p.date ?? i}
-                      className="flex flex-1 flex-col items-center gap-1"
-                    >
-                      <div className="relative flex w-full flex-1 items-end">
-                        <div
-                          className="w-full rounded-t bg-gradient-to-t from-slate-700 to-slate-400"
-                          style={{
-                            height: `${(p.detections / maxDet) * 100}%`,
-                          }}
-                        />
-                        <div
-                          className="absolute bottom-0 w-full rounded-t bg-rose-400/80"
-                          style={{
-                            height: `${(p.violations / maxDet) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">
-                        {p.date}
-                      </span>
-                    </div>
-                  ))}
+                    <span className="text-[10px] text-muted-foreground">
+                      {p.date}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -338,58 +370,58 @@ export default function AnalyticsView() {
               {t("analytics.detectionDistribution", "Detection distribution")}
             </p>
             <div className="space-y-3">
-              {loading
-                ? Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      className="h-10"
-                    />
-                  ))
-                : byService.length === 0
-                  ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                      {t("analytics.noServiceData", "No service data available")}
-                    </p>
-                  )
-                  : byService.map((s, i) => (
-                    <div
-                      key={s.name ?? i}
-                      className="space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              background: s.color ?? "hsl(220 70% 50%)",
-                            }}
-                          />
-                          {s.name}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          {s.violations ? (
-                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
-                              {s.violations}{" "}
-                              {t("analytics.violationsShort", "violations")}
-                            </span>
-                          ) : null}
-                          <span className="font-semibold tabular-nums">
-                            {(s.count ?? 0).toLocaleString()} ({s.percent ?? 0}
-                            %)
-                          </span>
-                        </span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full"
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    className="h-10"
+                  />
+                ))
+              ) : byService.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  {t("analytics.noServiceData", "No service data available")}
+                </p>
+              ) : (
+                byService.map((s, i) => (
+                  <div
+                    key={s.name ?? i}
+                    className="space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
                           style={{
-                            width: `${s.percent}%`,
                             background: s.color ?? "hsl(220 70% 50%)",
                           }}
                         />
-                      </div>
+                        {s.name}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {s.violations ? (
+                          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                            {s.violations}{" "}
+                            {t("analytics.violationsShort", "violations")}
+                          </span>
+                        ) : null}
+                        <span className="font-semibold tabular-nums">
+                          {(s.count ?? 0).toLocaleString()} ({s.percent ?? 0}
+                          %)
+                        </span>
+                      </span>
                     </div>
-                  ))}
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${s.percent}%`,
+                          background: s.color ?? "hsl(220 70% 50%)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

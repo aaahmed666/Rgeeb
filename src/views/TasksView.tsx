@@ -462,13 +462,26 @@ export default function TasksView() {
   const rangeStart = items.length ? (page - 1) * PER_PAGE + 1 : 0;
   const rangeEnd = Math.min(page * PER_PAGE, total);
 
-  const summary = dashQ.data ??
-    dataQ.data?.summary ?? {
-      total: 0,
-      inProgress: 0,
-      completed: 0,
-      overdue: 0,
-    };
+  // Prefer the list payload's aggregates: data.pagination.total +
+  // data.by_status are the full, correct counts (the values in the API
+  // response). The /customer/tasks/dashboard endpoint is scoped differently
+  // and under-reports here, so it's only a fallback — and supplies `overdue`
+  // when the list payload doesn't include an overdue count.
+  const listSummary = dataQ.data?.summary;
+  const summary: TaskSummary = listSummary
+    ? {
+        ...listSummary,
+        overdue: listSummary.overdue || dashQ.data?.overdue || 0,
+      }
+    : (dashQ.data ?? {
+        total: 0,
+        inProgress: 0,
+        completed: 0,
+        overdue: 0,
+        byStatus: {},
+        byType: {},
+        byPriority: {},
+      });
 
   const locale = i18n.language === "ar" ? "ar" : "en";
   const formatDate = (iso: string) => {
@@ -726,7 +739,9 @@ export default function TasksView() {
       </div>
 
       {/* ── Dashboard Breakdown ── */}
-      {dashQ.data && <DashboardBreakdown summary={dashQ.data} />}
+      {Object.keys(summary.byStatus).length > 0 && (
+        <DashboardBreakdown summary={summary} />
+      )}
 
       {/* ── Filters ── */}
       <Card>

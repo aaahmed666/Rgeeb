@@ -36,12 +36,6 @@ export interface AlertItem {
   image?: string;
 }
 
-const DEMO_CAMERAS: PulseCamera[] = [
-  { id: "1", name: "Camera 1", branch: "Main Branch", status: "online", lastSeen: "Never" },
-];
-
-const DEMO_ALERTS: AlertItem[] = [];
-
 function num(v: unknown, d = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
@@ -51,11 +45,19 @@ function formatTime(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function severityFor(type: string, score: number): AlertItem["severity"] {
-  if (type.includes("violation") || type.includes("fire") || type.includes("smoke")) {
+  if (
+    type.includes("violation") ||
+    type.includes("fire") ||
+    type.includes("smoke")
+  ) {
     return score >= 0.8 ? "critical" : "warning";
   }
   return "info";
@@ -65,7 +67,12 @@ interface PulsePayload {
   detections_today?: number;
   active_workers?: number;
   timestamp?: string;
-  camera_health?: { total?: number; online?: number; degraded?: number; offline?: number };
+  camera_health?: {
+    total?: number;
+    online?: number;
+    degraded?: number;
+    offline?: number;
+  };
   cameras?: Array<{
     id?: number | string;
     name?: string;
@@ -90,7 +97,9 @@ let cached: { at: number; promise: Promise<SystemPulse> } | null = null;
 
 async function fetchPulse(): Promise<SystemPulse> {
   try {
-    const raw = await api.get<PulsePayload | { data: PulsePayload }>(endpoints.monitoring.pulse);
+    const raw = await api.get<PulsePayload | { data: PulsePayload }>(
+      endpoints.monitoring.pulse
+    );
     const d = ((raw as { data?: PulsePayload })?.data ?? raw) as PulsePayload;
 
     const health = d.camera_health ?? {};
@@ -99,13 +108,18 @@ async function fetchPulse(): Promise<SystemPulse> {
     const systemHealth = total > 0 ? Math.round((online / total) * 100) : 0;
 
     const cameras: PulseCamera[] = (d.cameras ?? []).map((c, i) => {
-      const status = (c.is_online === false ? "offline" : (c.status as PulseCamera["status"])) || "online";
+      const status =
+        (c.is_online === false
+          ? "offline"
+          : (c.status as PulseCamera["status"])) || "online";
       const last = c.last_detection_at ?? c.last_heartbeat_at;
       return {
         id: String(c.id ?? i),
         name: String(c.name ?? `Camera ${i + 1}`),
         branch: String(c.branch ?? "—"),
-        status: (["online", "offline", "degraded"].includes(status) ? status : "online") as PulseCamera["status"],
+        status: (["online", "offline", "degraded"].includes(status)
+          ? status
+          : "online") as PulseCamera["status"],
         lastSeen: last ? formatTime(last) : "Never",
       };
     });
@@ -132,7 +146,7 @@ async function fetchPulse(): Promise<SystemPulse> {
       activeWorkers: num(d.active_workers, 0),
       detectionsToday: num(d.detections_today, 0),
       updatedAt: String(d.timestamp ?? new Date().toISOString()),
-      cameras: cameras.length ? cameras : DEMO_CAMERAS,
+      cameras,
       alerts,
     };
   } catch {
@@ -143,8 +157,8 @@ async function fetchPulse(): Promise<SystemPulse> {
       activeWorkers: 0,
       detectionsToday: 0,
       updatedAt: new Date().toISOString(),
-      cameras: DEMO_CAMERAS,
-      alerts: DEMO_ALERTS,
+      cameras: [],
+      alerts: [],
     };
   }
 }

@@ -51,6 +51,7 @@ import {
   deleteTaskRule,
   fetchTaskRuleStats,
   fetchTaskRules,
+  toggleTaskRule,
   updateTaskRule,
   type RulePriority,
   type RuleTaskType,
@@ -112,8 +113,8 @@ export default function AiTaskRulesView() {
   }, [rules, debouncedSearch]);
 
   const toggle = useMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      updateTaskRule(id, { enabled }),
+    mutationFn: ({ rule, enabled }: { rule: TaskRule; enabled: boolean }) =>
+      toggleTaskRule(rule, enabled),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["task-rules"] }),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -134,8 +135,15 @@ export default function AiTaskRulesView() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
         <ShieldAlert className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-semibold">{t("errors.unauthorized", "Access Denied")}</p>
-        <p className="text-sm text-muted-foreground">{t("common.noPermission", "You don\'t have permission to view this page.")}</p>
+        <p className="text-lg font-semibold">
+          {t("errors.unauthorized", "Access Denied")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "common.noPermission",
+            "You don\'t have permission to view this page."
+          )}
+        </p>
       </div>
     );
   }
@@ -143,7 +151,12 @@ export default function AiTaskRulesView() {
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <header className="flex items-center gap-3">
-        <div className="rounded-xl p-3 text-white shadow-lg" style={{ background: "linear-gradient(to bottom right, #334155, #0f172a)" }}>
+        <div
+          className="rounded-xl p-3 text-white shadow-lg"
+          style={{
+            background: "linear-gradient(to bottom right, #334155, #0f172a)",
+          }}
+        >
           <Bot className="h-6 w-6" />
         </div>
         <div>
@@ -192,13 +205,13 @@ export default function AiTaskRulesView() {
             {t("rules.active", "Active Rules")} ({activeCount}/{rules.length})
           </div>
           {can.create && (
-          <Button
-            className="gap-2"
-            onClick={() => setEditing("new")}
-          >
-            <Plus className="h-4 w-4" />
-            {t("rules.addRule", "Add Rule")}
-          </Button>
+            <Button
+              className="gap-2"
+              onClick={() => setEditing("new")}
+            >
+              <Plus className="h-4 w-4" />
+              {t("rules.addRule", "Add Rule")}
+            </Button>
           )}
         </div>
         <CardContent className="p-0">
@@ -206,7 +219,9 @@ export default function AiTaskRulesView() {
             data={filtered}
             isLoading={rulesQ.isLoading}
             isError={rulesQ.isError}
-            errorMessage={rulesQ.error instanceof Error ? rulesQ.error.message : undefined}
+            errorMessage={
+              rulesQ.error instanceof Error ? rulesQ.error.message : undefined
+            }
             emptyMessage={t("rules.empty", "No rules yet")}
             columns={[
               {
@@ -215,7 +230,9 @@ export default function AiTaskRulesView() {
                 render: (r) => (
                   <Switch
                     checked={r.enabled}
-                    onCheckedChange={(v) => toggle.mutate({ id: r.id, enabled: v })}
+                    onCheckedChange={(v) =>
+                      toggle.mutate({ rule: r, enabled: v })
+                    }
                   />
                 ),
               },
@@ -233,7 +250,13 @@ export default function AiTaskRulesView() {
                 key: "taskType",
                 header: t("rules.col.taskType", "Task Type"),
                 render: (r) => (
-                  <Badge variant="outline" className={cn("rounded-full font-mono text-xs", TASK_TYPE_TONE[r.taskType] ?? TASK_TYPE_TONE.manual)}>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "rounded-full font-mono text-xs",
+                      TASK_TYPE_TONE[r.taskType] ?? TASK_TYPE_TONE.manual
+                    )}
+                  >
                     {r.taskType}
                   </Badge>
                 ),
@@ -242,7 +265,13 @@ export default function AiTaskRulesView() {
                 key: "priority",
                 header: t("rules.col.priority", "Priority"),
                 render: (r) => (
-                  <Badge variant="outline" className={cn("rounded-full capitalize", PRIORITY_TONE[r.priority])}>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "rounded-full capitalize",
+                      PRIORITY_TONE[r.priority]
+                    )}
+                  >
                     {r.priority}
                   </Badge>
                 ),
@@ -250,19 +279,33 @@ export default function AiTaskRulesView() {
               {
                 key: "slaMinutes",
                 header: t("rules.col.sla", "SLA (min)"),
-                render: (r) => <span className="tabular-nums">{r.slaMinutes} min</span>,
+                render: (r) => (
+                  <span className="tabular-nums">{r.slaMinutes} min</span>
+                ),
               },
               {
                 key: "dedupMinutes",
                 header: t("rules.col.dedup", "Dedup (min)"),
-                render: (r) => <span className="tabular-nums">{r.dedupMinutes} min</span>,
+                render: (r) => (
+                  <span className="tabular-nums">{r.dedupMinutes} min</span>
+                ),
               },
               {
                 key: "autoAssign",
                 header: t("rules.col.autoAssign", "Auto-Assign"),
                 render: (r) => (
-                  <Badge variant="outline" className={cn("rounded-full", r.autoAssign ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-300" : "border-slate-200 text-slate-500 dark:border-slate-700")}>
-                    {r.autoAssign ? t("common.yes", "Yes") : t("common.no", "No")}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "rounded-full",
+                      r.autoAssign
+                        ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-300"
+                        : "border-slate-200 text-slate-500 dark:border-slate-700"
+                    )}
+                  >
+                    {r.autoAssign
+                      ? t("common.yes", "Yes")
+                      : t("common.no", "No")}
                   </Badge>
                 ),
               },
@@ -274,12 +317,22 @@ export default function AiTaskRulesView() {
                 render: (r) => (
                   <div className="flex justify-end gap-1">
                     {can.update && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setEditing(r)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => setEditing(r)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
                     {can.delete && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-500/10" onClick={() => setDeleteTarget(r)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-red-500 hover:bg-red-500/10"
+                        onClick={() => setDeleteTarget(r)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}

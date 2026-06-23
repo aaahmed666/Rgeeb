@@ -378,30 +378,62 @@ export const productivityService = {
           r as EmployeeDetail | { data: EmployeeDetail }
         ) as unknown as Record<string, unknown>;
         const emp = (raw.employee as Record<string, unknown> | undefined) ?? {};
+        // The backend nests metrics under `scores` and the period under
+        // `period`, and the daily rows under `daily_timeline` (see the old
+        // project's EmployeeDetail shape). Read those nested objects first and
+        // only fall back to flat keys for forward-compatibility.
+        const scores =
+          (raw.scores as Record<string, unknown> | undefined) ?? raw;
+        const period =
+          (raw.period as Record<string, unknown> | undefined) ?? {};
         const name = String(emp.name ?? raw.name ?? "");
-        const timeline = Array.isArray(raw.timeline)
-          ? (raw.timeline as EmployeeDetail["timeline"])
-          : [];
-        const daysPresent = Number(raw.days_present ?? 0);
-        const daysAbsent = Number(raw.days_absent ?? 0);
-        // Denominator = total working days in the period.
-        //   1. backend `days_total` when it provides one;
-        //   2. present + absent when the employee has tracked days;
-        //   3. otherwise the period length (timeline rows, else working days in
-        //      the selected range, defaulting to the last two weeks).
-        // Step 3 is the fix: an employee with no records used to fall through
-        // to present+absent = 0 and render "0/0" instead of "0/10".
+
+        const timelineSource = Array.isArray(raw.daily_timeline)
+          ? (raw.daily_timeline as Record<string, unknown>[])
+          : Array.isArray(raw.timeline)
+            ? (raw.timeline as Record<string, unknown>[])
+            : [];
+        const timeline: EmployeeDetail["timeline"] = timelineSource.map(
+          (row) => {
+            const checkIn = (row.check_in ?? null) as string | null;
+            const onTime = row.on_time as boolean | null | undefined;
+            // Backend gives on_time / late_minutes; derive the UI status.
+            const status: EmployeeTimelineRow["status"] = !checkIn
+              ? "absent"
+              : onTime === false
+                ? "late"
+                : "present";
+            return {
+              date: String(row.date ?? ""),
+              check_in: checkIn,
+              check_out: (row.check_out ?? null) as string | null,
+              hours: Number(row.duration_hours ?? row.hours ?? 0),
+              status: (row.status as EmployeeTimelineRow["status"]) ?? status,
+            };
+          }
+        );
+
+        const daysPresent = Number(scores.days_present ?? 0);
+        const daysAbsent = Number(scores.days_absent ?? 0);
+        // Denominator matches the old project: present + absent (the tracked
+        // working days). Prefer the backend `period.total_days` when present,
+        // and only fall back to the period length when the employee has no
+        // tracked days at all (so a record-less employee shows the period
+        // length instead of "0/0").
         const backendTotal = Number(
-          raw.days_total ?? raw.total_days ?? raw.working_days ?? NaN
+          period.total_days ??
+            raw.days_total ??
+            raw.total_days ??
+            raw.working_days ??
+            NaN
         );
         const trackedDays = daysPresent + daysAbsent;
         const daysTotal = Math.max(
-          Number.isFinite(backendTotal) && backendTotal > 0
-            ? backendTotal
-            : trackedDays > 0
-              ? trackedDays
-              : timeline.length ||
-                workingDaysInPeriod(f.dateFrom, f.dateTo),
+          trackedDays > 0
+            ? trackedDays
+            : Number.isFinite(backendTotal) && backendTotal > 0
+              ? backendTotal
+              : timeline.length || workingDaysInPeriod(f.dateFrom, f.dateTo),
           daysPresent
         );
         const detail: EmployeeDetail = {
@@ -414,12 +446,18 @@ export const productivityService = {
               raw.initials ??
               (name ? name.slice(0, 1).toUpperCase() : "?")
           ),
-          score: Number(raw.overall_score ?? raw.score ?? 0),
+          score: Number(scores.overall_score ?? scores.score ?? 0),
           days_present: daysPresent,
           days_total: daysTotal,
-          attendance_rate: Number(raw.attendance_rate ?? raw.attendance ?? 0),
-          punctuality: Number(raw.punctuality_rate ?? raw.punctuality ?? 0),
-          total_hours: Number(raw.total_hours ?? raw.avg_hours_per_day ?? 0),
+          attendance_rate: Number(
+            scores.attendance_rate ?? scores.attendance ?? 0
+          ),
+          punctuality: Number(
+            scores.punctuality_rate ?? scores.punctuality ?? 0
+          ),
+          total_hours: Number(
+            scores.total_hours ?? scores.avg_hours_per_day ?? 0
+          ),
           timeline,
         };
         return detail;

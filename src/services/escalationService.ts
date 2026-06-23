@@ -5,7 +5,13 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { pickArray as _pickArr, str, bool, id, type RawObject } from "@/lib/raw-response";
+import {
+  pickArray as _pickArr,
+  str,
+  bool,
+  id,
+  type RawObject,
+} from "@/lib/raw-response";
 
 export interface EscalationRule {
   id: string;
@@ -15,6 +21,16 @@ export interface EscalationRule {
   action: string; // e.g. "Remind Worker"
   actionType?: string;
   active: boolean;
+}
+
+/** Payload for create/update — matches the backend save-rule contract. */
+export interface EscalationRuleInput {
+  id?: string | number;
+  name: string;
+  level: number;
+  trigger_minutes: number;
+  action: string;
+  enabled: boolean;
 }
 
 export interface NotificationItem {
@@ -54,7 +70,8 @@ function pickArray(raw: unknown): RawObject[] {
 }
 
 function mapRule(r: RawObject): EscalationRule {
-  const minutes = r.trigger_minutes ?? r.triggerMinutes ?? r.minutes ?? r.delay_minutes;
+  const minutes =
+    r.trigger_minutes ?? r.triggerMinutes ?? r.minutes ?? r.delay_minutes;
   const trigger =
     str(r, "trigger") ??
     (minutes != null ? `+${minutes} min` : (str(r, "trigger_label") ?? ""));
@@ -63,7 +80,8 @@ function mapRule(r: RawObject): EscalationRule {
     level: str(r, "level", "severity") ?? "L1",
     name: str(r, "name", "title", "description") ?? "",
     trigger,
-    action: str(r, "action_label", "actionLabel", "action", "action_type") ?? "",
+    action:
+      str(r, "action_label", "actionLabel", "action", "action_type") ?? "",
     actionType: str(r, "action_type", "actionType"),
     active: bool(r, "active", "is_active", "enabled"),
   };
@@ -86,7 +104,8 @@ function mapLog(l: RawObject): EscalationLogItem {
   return {
     id: id(l),
     taskId: str(l, "task_id", "taskId"),
-    taskTitle: str(l, "task_title", "taskTitle") ?? (task && str(task, "title")),
+    taskTitle:
+      str(l, "task_title", "taskTitle") ?? (task && str(task, "title")),
     level: str(l, "level", "severity"),
     action: str(l, "action", "action_label"),
     triggeredAt: str(l, "triggered_at", "created_at", "createdAt"),
@@ -100,8 +119,17 @@ export const escalationService = {
     const r = await api.get<unknown>(endpoints.escalation.rules);
     return pickArray(r).map(mapRule);
   },
-  async toggleRule(id: string, active: boolean) {
-    return api.patch(endpoints.escalation.rule(id), { active });
+  /**
+   * Create or update an escalation rule (also used to toggle `enabled`).
+   * Mirrors the OLD production contract: POST /customer/escalation/save-rule
+   * with { id?, name, level, trigger_minutes, action, enabled }. Passing an
+   * `id` updates the existing rule; omitting it creates a new one.
+   *
+   * NOTE: there is no PATCH /escalation/rules/{id} endpoint (it 404s) — the
+   * toggle goes through this save-rule call with the full rule payload.
+   */
+  async saveRule(input: EscalationRuleInput) {
+    return api.post(endpoints.escalation.saveRule, input);
   },
   async deleteRule(id: string) {
     try {
