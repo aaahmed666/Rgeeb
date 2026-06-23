@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface ModuleItem {
   name: string;
@@ -23,6 +24,7 @@ const MOCK_MODULES: ModuleItem[] = [
 ];
 
 export default function ModulesView() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
 
   const filtered = MOCK_MODULES.filter((m) =>
@@ -35,16 +37,16 @@ export default function ModulesView() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Modules</h1>
-          <p className="text-sm text-muted-foreground mt-1">Read-only overview of platform extensions and integrated business modules</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("customerLifecycle.modules", "Modules")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("customerLifecycle.mod.subtitle", "Read-only overview of platform extensions and integrated business modules")}</p>
         </div>
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search modules..."
+            placeholder={t("customerLifecycle.mod.searchPlaceholder", "Search modules...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-[40px]"
+            className="ps-9 h-[40px]"
           />
         </div>
       </div>
@@ -64,11 +66,11 @@ export default function ModulesView() {
                     variant="outline"
                     className={cn(
                       "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border-0 flex items-center gap-1",
-                      isActive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+                      isActive ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" : "bg-muted text-muted-foreground"
                     )}
                   >
-                    <span className={cn("w-1.5 h-1.5 rounded-full", isActive ? "bg-emerald-500" : "bg-muted-foreground")} />
-                    {item.status}
+                    <span className={cn("w-1.5 h-1.5 rounded-full", isActive ? "bg-[var(--status-success)]" : "bg-muted-foreground")} />
+                    {isActive ? t("customerLifecycle.status.active", "Active") : t("customerLifecycle.status.inactive", "Inactive")}
                   </Badge>
                 </div>
 
@@ -77,15 +79,15 @@ export default function ModulesView() {
 
                 <div className="space-y-3 pt-4 border-t border-border mt-auto">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">Version</span>
+                    <span className="text-muted-foreground">{t("customerLifecycle.mod.version", "Version")}</span>
                     <span className="font-semibold text-foreground">{item.version}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">Activation Date</span>
+                    <span className="text-muted-foreground">{t("customerLifecycle.mod.activationDate", "Activation Date")}</span>
                     <span className="font-semibold text-foreground">{item.activationDate}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">Last Synced</span>
+                    <span className="text-muted-foreground">{t("customerLifecycle.mod.lastSynced", "Last Synced")}</span>
                     <span className="font-semibold text-foreground">{item.lastSynced}</span>
                   </div>
                 </div>
@@ -94,7 +96,7 @@ export default function ModulesView() {
               <div className="bg-muted/40 px-6 py-3 border-t border-border flex items-center gap-2">
                 <ShieldCheck className={cn("h-4.5 w-4.5 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
                 <span className={cn("text-[10px] font-bold", isActive ? "text-primary" : "text-muted-foreground")}>
-                  {isActive ? "Authorized Module" : "Locked / Requires Setup"}
+                  {isActive ? t("customerLifecycle.mod.authorized", "Authorized Module") : t("customerLifecycle.mod.locked", "Locked / Requires Setup")}
                 </span>
               </div>
             </Card>

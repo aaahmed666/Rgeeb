@@ -41,6 +41,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { CHART, intentStyle } from "./_styles";
 
 import {
   fetchDashboardStats,
@@ -72,14 +74,14 @@ function TrendBadge({ value, label }: { value?: number; label?: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        isUp && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-        !isUp && !isFlat && "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+        isUp && intentStyle("success").soft,
+        !isUp && !isFlat && intentStyle("danger").soft,
         isFlat && "bg-muted text-muted-foreground"
       )}
     >
       <Icon className="h-3 w-3" />
       {value !== undefined ? `${Math.abs(value)}%` : ""}
-      {label && <span className="ml-0.5">{label}</span>}
+      {label && <span className="ms-0.5">{label}</span>}
     </span>
   );
 }
@@ -146,11 +148,12 @@ function KpiCard({ title, value, icon: Icon, trend, trendLabel, iconBg, isLoadin
 /* ── Custom Tooltip for Charts ──────────────────────────────────────────── */
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border bg-background/95 px-3 py-2 text-xs shadow-lg backdrop-blur-sm">
       <p className="font-semibold text-foreground">{label}</p>
-      <p className="text-primary">{payload[0].value.toLocaleString()} customers</p>
+      <p className="text-primary">{payload[0].value.toLocaleString()} {t("customerLifecycle.dash.customersUnit", "customers")}</p>
     </div>
   );
 }
@@ -158,15 +161,16 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 /* ── Error State ────────────────────────────────────────────────────────── */
 
 function DashboardError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useTranslation();
   return (
     <Card className="flex flex-col items-center justify-center p-8 text-center">
       <AlertCircle className="mb-3 h-10 w-10 text-destructive" />
-      <h3 className="text-sm font-semibold text-foreground">Failed to Load</h3>
+      <h3 className="text-sm font-semibold text-foreground">{t("customerLifecycle.common.failedToLoad", "Failed to Load")}</h3>
       <p className="mt-1 max-w-xs text-xs text-muted-foreground">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry} className="mt-4 gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" />
-          Retry
+          {t("customerLifecycle.common.retry", "Retry")}
         </Button>
       )}
     </Card>
@@ -176,6 +180,7 @@ function DashboardError({ message, onRetry }: { message: string; onRetry?: () =>
 /* ── Main DashboardView ─────────────────────────────────────────────────── */
 
 export default function DashboardView() {
+  const { t } = useTranslation();
   const statsQ = useQuery<DashboardStats>({
     queryKey: ["cl-dashboard-stats"],
     queryFn: fetchDashboardStats,
@@ -225,7 +230,7 @@ export default function DashboardView() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-6">
         <DashboardError
-          message="Unable to load dashboard data. Please check your connection and try again."
+          message={t("customerLifecycle.dash.globalError", "Unable to load dashboard data. Please check your connection and try again.")}
           onRetry={() => {
             statsQ.refetch();
             growthQ.refetch();
@@ -245,53 +250,53 @@ export default function DashboardView() {
       {/* ── Page Header ── */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Executive Dashboard
+          {t("customerLifecycle.dash.title", "Executive Dashboard")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Unified intelligence across all customer operations
+          {t("customerLifecycle.dash.subtitle", "Unified intelligence across all customer operations")}
         </p>
       </div>
 
       {/* ── KPI Cards — Row 1 (5 cards) ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
-          title="Total Customers"
+          title={t("customerLifecycle.dash.totalCustomers", "Total Customers")}
           value={s?.totalCustomers ?? 0}
           icon={Users}
           trend={s?.totalCustomersTrend}
-          iconBg="bg-slate-800 dark:bg-slate-700"
+          iconBg="bg-primary"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="Active Customers"
+          title={t("customerLifecycle.dash.activeCustomers", "Active Customers")}
           value={s?.activeCustomers ?? 0}
           icon={UserCheck}
           trend={s?.activeCustomersTrend}
-          iconBg="bg-emerald-500"
+          iconBg="bg-[var(--status-success)]"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="In Onboarding"
+          title={t("customerLifecycle.dash.inOnboarding", "In Onboarding")}
           value={s?.inOnboarding ?? 0}
           icon={UserPlus}
           trendLabel={s?.inOnboardingLabel}
-          iconBg="bg-blue-500"
+          iconBg="bg-[var(--status-info)]"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="Active Subscriptions"
+          title={t("customerLifecycle.dash.activeSubscriptions", "Active Subscriptions")}
           value={s?.activeSubscriptions ?? 0}
           icon={CreditCard}
           trend={s?.activeSubscriptionsTrend}
-          iconBg="bg-violet-500"
+          iconBg="bg-[var(--chart-5)]"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="Upcoming Renewals"
+          title={t("customerLifecycle.dash.upcomingRenewals", "Upcoming Renewals")}
           value={s?.upcomingRenewals ?? 0}
           icon={CalendarClock}
           trendLabel={s?.upcomingRenewalsLabel}
-          iconBg="bg-amber-500"
+          iconBg="bg-[var(--status-warning)]"
           isLoading={statsQ.isLoading}
         />
       </div>
@@ -299,35 +304,35 @@ export default function DashboardView() {
       {/* ── KPI Cards — Row 2 (4 cards) ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Total Branches"
+          title={t("customerLifecycle.dash.totalBranches", "Total Branches")}
           value={s?.totalBranches ?? 0}
           icon={Building}
           trend={s?.totalBranchesTrend}
-          iconBg="bg-orange-500"
+          iconBg="bg-[var(--chart-1)]"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="Total Cameras"
+          title={t("customerLifecycle.dash.totalCameras", "Total Cameras")}
           value={s?.totalCameras ?? 0}
           icon={Camera}
           trend={s?.totalCamerasTrend}
-          iconBg="bg-purple-500"
+          iconBg="bg-[var(--chart-5)]"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="Active AI Services"
+          title={t("customerLifecycle.dash.activeAiServices", "Active AI Services")}
           value={s?.activeAiServices ?? 0}
           icon={Cpu}
           trend={s?.activeAiServicesTrend}
-          iconBg="bg-cyan-500"
+          iconBg="bg-[var(--chart-3)]"
           isLoading={statsQ.isLoading}
         />
         <KpiCard
-          title="Active Integrations"
+          title={t("customerLifecycle.dash.activeIntegrations", "Active Integrations")}
           value={s?.activeIntegrations ?? 0}
           icon={Plug}
           trend={s?.activeIntegrationsTrend}
-          iconBg="bg-teal-500"
+          iconBg="bg-[var(--chart-4)]"
           isLoading={statsQ.isLoading}
         />
       </div>
@@ -339,12 +344,12 @@ export default function DashboardView() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-semibold">Customer Growth</CardTitle>
-                <p className="text-xs text-muted-foreground">Active subscription trend over the last 12 months</p>
+                <CardTitle className="text-base font-semibold">{t("customerLifecycle.dash.customerGrowth", "Customer Growth")}</CardTitle>
+                <p className="text-xs text-muted-foreground">{t("customerLifecycle.dash.customerGrowthSub", "Active subscription trend over the last 12 months")}</p>
               </div>
-              <Badge variant="outline" className="text-xs font-medium text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
-                <ArrowUpRight className="mr-1 h-3 w-3" />
-                12% Growth
+              <Badge variant="outline" className="text-xs font-medium text-[var(--status-success)] border-[var(--status-success)]/30">
+                <ArrowUpRight className="me-1 h-3 w-3" />
+                {t("customerLifecycle.dash.growthPct", "12% Growth")}
               </Badge>
             </div>
           </CardHeader>
@@ -352,14 +357,14 @@ export default function DashboardView() {
             {growthQ.isLoading ? (
               <Skeleton className="h-[260px] w-full rounded-lg" />
             ) : growthQ.isError ? (
-              <DashboardError message="Failed to load growth chart" onRetry={() => growthQ.refetch()} />
+              <DashboardError message={t("customerLifecycle.dash.errGrowth", "Failed to load growth chart")} onRetry={() => growthQ.refetch()} />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={growthQ.data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1a1f2e" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#1a1f2e" stopOpacity={0} />
+                      <stop offset="5%" stopColor={CHART.navy} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={CHART.navy} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
@@ -379,7 +384,7 @@ export default function DashboardView() {
                   <Area
                     type="monotone"
                     dataKey="value"
-                    stroke="#1a1f2e"
+                    stroke={CHART.navy}
                     strokeWidth={2.5}
                     fill="url(#growthGradient)"
                   />
@@ -392,8 +397,8 @@ export default function DashboardView() {
         {/* Subscription Status (Tiers) Donut */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Subscription Status</CardTitle>
-            <p className="text-xs text-muted-foreground">Distribution by plan type</p>
+            <CardTitle className="text-base font-semibold">{t("customerLifecycle.dash.subscriptionStatus", "Subscription Status")}</CardTitle>
+            <p className="text-xs text-muted-foreground">{t("customerLifecycle.dash.byPlanType", "Distribution by plan type")}</p>
           </CardHeader>
           <CardContent>
             {tiersQ.isLoading ? (
@@ -406,7 +411,7 @@ export default function DashboardView() {
                 </div>
               </div>
             ) : tiersQ.isError ? (
-              <DashboardError message="Failed to load subscription data" onRetry={() => tiersQ.refetch()} />
+              <DashboardError message={t("customerLifecycle.dash.errSubscription", "Failed to load subscription data")} onRetry={() => tiersQ.refetch()} />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -429,7 +434,7 @@ export default function DashboardView() {
                     1.4k
                   </text>
                   <text x="50%" y="48%" textAnchor="middle" className="fill-muted-foreground text-[10px]">
-                    Total Users
+                    {t("customerLifecycle.dash.totalUsers", "Total Users")}
                   </text>
                   <Legend
                     verticalAlign="bottom"
@@ -454,14 +459,14 @@ export default function DashboardView() {
         {/* Customer Distribution (by Industry) */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Customer Distribution</CardTitle>
-            <p className="text-xs text-muted-foreground">Segmentation by industry vertical</p>
+            <CardTitle className="text-base font-semibold">{t("customerLifecycle.dash.customerDistribution", "Customer Distribution")}</CardTitle>
+            <p className="text-xs text-muted-foreground">{t("customerLifecycle.dash.byIndustry", "Segmentation by industry vertical")}</p>
           </CardHeader>
           <CardContent>
             {distributionQ.isLoading ? (
               <Skeleton className="h-[260px] w-full rounded-lg" />
             ) : distributionQ.isError ? (
-              <DashboardError message="Failed to load distribution data" onRetry={() => distributionQ.refetch()} />
+              <DashboardError message={t("customerLifecycle.dash.errDistribution", "Failed to load distribution data")} onRetry={() => distributionQ.refetch()} />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -499,8 +504,8 @@ export default function DashboardView() {
         {/* Lifecycle Status */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Lifecycle Status</CardTitle>
-            <p className="text-xs text-muted-foreground">Current stage distribution across all customers</p>
+            <CardTitle className="text-base font-semibold">{t("customerLifecycle.dash.lifecycleStatus", "Lifecycle Status")}</CardTitle>
+            <p className="text-xs text-muted-foreground">{t("customerLifecycle.dash.stageDistribution", "Current stage distribution across all customers")}</p>
           </CardHeader>
           <CardContent>
             {lifecycleQ.isLoading ? (
@@ -510,7 +515,7 @@ export default function DashboardView() {
                 ))}
               </div>
             ) : lifecycleQ.isError ? (
-              <DashboardError message="Failed to load lifecycle data" onRetry={() => lifecycleQ.refetch()} />
+              <DashboardError message={t("customerLifecycle.dash.errLifecycle", "Failed to load lifecycle data")} onRetry={() => lifecycleQ.refetch()} />
             ) : (
               <div className="space-y-3.5">
                 {lifecycleQ.data?.map((item) => (
@@ -550,8 +555,8 @@ export default function DashboardView() {
         {/* Status Distribution */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Status Distribution</CardTitle>
-            <p className="text-xs text-muted-foreground">Current customer states</p>
+            <CardTitle className="text-base font-semibold">{t("customerLifecycle.dash.statusDistribution", "Status Distribution")}</CardTitle>
+            <p className="text-xs text-muted-foreground">{t("customerLifecycle.dash.customerStates", "Current customer states")}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {statusQ.isLoading
@@ -559,7 +564,7 @@ export default function DashboardView() {
                   <Skeleton key={i} className="h-8 w-full rounded" />
                 ))
               : statusQ.isError
-                ? <DashboardError message="Failed to load status data" onRetry={() => statusQ.refetch()} />
+                ? <DashboardError message={t("customerLifecycle.dash.errStatus", "Failed to load status data")} onRetry={() => statusQ.refetch()} />
                 : statusQ.data?.map((item) => {
                     const maxCount = Math.max(
                       ...(statusQ.data?.map((d) => d.count) ?? [1])
@@ -589,9 +594,9 @@ export default function DashboardView() {
         {/* Onboarding Efficiency */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Onboarding Efficiency</CardTitle>
+            <CardTitle className="text-base font-semibold">{t("customerLifecycle.dash.onboardingEfficiency", "Onboarding Efficiency")}</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Average time to full deployment: {onboardingQ.data?.avgDays ?? "—"} days
+              {t("customerLifecycle.dash.avgDeployTime", "Average time to full deployment:")} {onboardingQ.data?.avgDays ?? "—"} {t("customerLifecycle.dash.days", "days")}
             </p>
           </CardHeader>
           <CardContent>
@@ -601,7 +606,7 @@ export default function DashboardView() {
                 <Skeleton className="mx-auto h-4 w-40" />
               </div>
             ) : onboardingQ.isError ? (
-              <DashboardError message="Failed to load onboarding data" onRetry={() => onboardingQ.refetch()} />
+              <DashboardError message={t("customerLifecycle.dash.errOnboarding", "Failed to load onboarding data")} onRetry={() => onboardingQ.refetch()} />
             ) : (
               <div className="flex flex-col items-center gap-4">
                 {/* Gauge */}
@@ -623,25 +628,26 @@ export default function DashboardView() {
                       strokeWidth="10"
                       strokeLinecap="round"
                       strokeDasharray={`${((onboardingQ.data?.velocity ?? 0) / 100) * 264} 264`}
-                      className="stroke-[#f97316] transition-all duration-1000"
+                      style={{ stroke: CHART.primary }}
+                      className="transition-all duration-1000"
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <span className="text-3xl font-bold text-foreground">
                       {onboardingQ.data?.velocity}%
                     </span>
-                    <span className="text-xs text-muted-foreground">Velocity</span>
+                    <span className="text-xs text-muted-foreground">{t("customerLifecycle.dash.velocity", "Velocity")}</span>
                   </div>
                 </div>
                 {/* Bottom label */}
                 <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-2.5">
-                  <Gauge className="h-4 w-4 text-emerald-500" />
+                  <Gauge className="h-4 w-4 text-[var(--status-success)]" />
                   <div>
-                    <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    <p className="text-sm font-semibold text-[var(--status-success)]">
                       {onboardingQ.data?.trendLabel}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {onboardingQ.data?.trend} days faster than last month
+                      {t("customerLifecycle.dash.daysFaster", "{{n}} days faster than last month", { n: onboardingQ.data?.trend })}
                     </p>
                   </div>
                 </div>

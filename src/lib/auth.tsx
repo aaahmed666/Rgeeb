@@ -59,7 +59,7 @@ interface AuthState {
     email: string,
     password: string,
     rememberMe?: boolean
-  ) => Promise<{ isAdmin: boolean }>;
+  ) => Promise<{ isAdmin: boolean; landingPath: string }>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -114,15 +114,13 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
 
   // ── CRM (Customer Lifecycle) demo access ──
   // The Customer Lifecycle module is frontend-only (mock data) and the backend
-  // does not yet expose a `customer_lifecycle` permission, so it's hidden for
-  // everyone by default. Grant view access to a dedicated demo account so the
-  // module can be opened end-to-end. Add more emails here as needed.
-  const CRM_DEMO_EMAILS = ["admin-crm@admin.com"];
-  if (email && CRM_DEMO_EMAILS.includes(email.toLowerCase())) {
-    if (!permissions.includes("customer_lifecycle.read")) {
-      permissions.push("customer_lifecycle.read");
-    }
-  }
+  // does not yet expose a `customer_lifecycle` permission. This dedicated demo
+  // account is scoped to CRM ONLY: it sees the Customer Lifecycle dashboard and
+  // all of its pages, with the same shell/styling as the normal & admin
+  // dashboards, but none of the other modules. When the backend ships real
+  // RBAC, drop this block and grant `customer_lifecycle.*` server-side instead.
+  const CRM_DEMO_EMAILS = ["crm-admin@admin.com"];
+  const isCrmDemo = !!email && CRM_DEMO_EMAILS.includes(email.toLowerCase());
 
   // Admin detection:
   //  1. type === "admin"          — direct field in login response
@@ -136,7 +134,7 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
     String(raw?.role ?? "").toLowerCase(),
     ...fromRoles.roleNames.map((r) => r.toLowerCase()),
   ];
-  const isAdminRole =
+  let isAdminRole =
     typeLower === "admin" ||
     roleNamesLower.some((r) => r === "rgeeb admin") ||
     permissions.some((p) => p.startsWith("admin."));
@@ -144,8 +142,20 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
   // RBAC is considered "provided" when the payload explicitly carried a
   // roles array or a permissions field (even an empty one is an explicit
   // authorization decision by the backend).
-  const rbacProvided =
+  let rbacProvided =
     Array.isArray(raw?.roles) || raw?.permissions !== undefined;
+
+  // Force the CRM demo account into a deterministic, CRM-only shape regardless
+  // of what the backend returns for this email: its permission set is REPLACED
+  // with exactly the CRM read scope (so any analytics/branches/etc. the backend
+  // may attach to this account are dropped), it is never a platform admin, and
+  // rbacProvided=true so the "empty perms → grant all" fallback can't widen it.
+  if (isCrmDemo) {
+    permissions.length = 0;
+    permissions.push("customer_lifecycle.read");
+    isAdminRole = false;
+    rbacProvided = true;
+  }
 
   return {
     id: String(raw?.id ?? raw?.uuid ?? crypto.randomUUID()),
@@ -285,7 +295,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const finalUser = toAuthUser(resolved, email);
     setAuthRole(finalUser.role); // persist so mount effect skips wrong profile call on refresh
     applyUser(finalUser);
-    return { isAdmin: finalUser.role === "admin" };
+
+    // Decide where to land. Admins → admin dashboard. A user scoped to CRM
+    // (e.g. the CRM demo account) → the Customer Lifecycle dashboard, since the
+    // generic /dashboard would show modules they can't access. Everyone else →
+    // the normal dashboard.
+    const isAdminFinal = finalUser.role === "admin";
+    const perms = finalUser.permissions ?? [];
+    const hasCrm = perms.some((p) => p.startsWith("customer_lifecycle"));
+    const crmOnly =
+      !isAdminFinal &&
+      hasCrm &&
+      // no other module permission present
+      !perms.some((p) => !p.startsWith("customer_lifecycle"));
+    const landingPath = isAdminFinal
+      ? "/dashboard/admin"
+      : crmOnly
+        ? "/dashboard/customer-lifecycle"
+        : "/dashboard";
+
+    return { isAdmin: isAdminFinal, landingPath };
   };
 
   const register: AuthState["register"] = async (payload) => {
@@ -304,7 +333,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     //   admin users  → POST /admin/logout
     //   regular users → POST /customer/logout
     const userType = user?.role === "admin" ? "admin" : "user";
-    await logoutRequest(userType);
+    // Best-effort server logout. The backend isn't wired yet, so never let a
+    // failed/rejected request block the client-side sign-out — we still clear
+    // local auth and redirect to /login regardless.
+    try {
+      await logoutRequest(userType);
+    } catch {
+      // ignore — proceed with local logout
+    }
     // clearAuthAndRedirect clears React state and redirects to login.
     applyUser(null);
     clearAuthAndRedirect();

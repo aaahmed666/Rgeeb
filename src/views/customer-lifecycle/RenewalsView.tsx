@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SharedTablePaginated } from "@/components/SharedTablePaginated";
 import { type DataTableColumn } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 import {
   fetchRenewalStats,
@@ -34,9 +35,9 @@ import type {
 /* ── Risk Badge ─────────────────────────────────────────────────────────── */
 
 const RISK_STYLES: Record<string, string> = {
-  red: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  yellow: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  green: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  red: "bg-[var(--status-danger)]/10 text-[var(--status-danger)]",
+  yellow: "bg-[var(--status-warning)]/10 text-[var(--status-warning)]",
+  green: "bg-[var(--status-success)]/10 text-[var(--status-success)]",
 };
 
 /* ── Urgency Section ────────────────────────────────────────────────────── */
@@ -48,15 +49,16 @@ function RenewalSection({
   group: RenewalGroup;
   columns: DataTableColumn<RenewalEntry>[];
 }) {
+  const { t } = useTranslation();
   const urgencyStyles: Record<string, string> = {
-    critical: "border-rose-500/30",
-    warning: "border-amber-500/30",
+    critical: "border-[var(--status-danger)]/30",
+    warning: "border-[var(--status-warning)]/30",
     normal: "border-border",
   };
 
   const urgencyBadgeStyles: Record<string, string> = {
-    critical: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+    critical: "bg-[var(--status-danger)]/10 text-[var(--status-danger)] border-[var(--status-danger)]",
+    warning: "bg-[var(--status-warning)]/10 text-[var(--status-warning)] border-[var(--status-warning)]",
     normal: "bg-muted text-muted-foreground",
   };
 
@@ -69,18 +71,18 @@ function RenewalSection({
             variant="outline"
             className={cn("text-[10px] font-semibold uppercase", urgencyBadgeStyles[group.urgency])}
           >
-            {group.contractCount} Contracts
+            {t("customerLifecycle.rn.contracts", "{{n}} Contracts", { n: group.contractCount })}
           </Badge>
         </div>
         <span className="text-xs font-medium text-muted-foreground">
-          Total Value: <strong className="text-foreground">{group.totalValue}</strong>
+          {t("customerLifecycle.rn.totalValue", "Total Value:")} <strong className="text-foreground">{group.totalValue}</strong>
         </span>
       </div>
       <SharedTablePaginated
         columns={columns}
         data={group.entries}
         className={cn("border", urgencyStyles[group.urgency])}
-        emptyMessage="No renewals in this window"
+        emptyMessage={t("customerLifecycle.rn.empty", "No renewals in this window")}
         currentPage={1}
         totalPages={1}
       />
@@ -91,6 +93,7 @@ function RenewalSection({
 /* ── Main RenewalsView ──────────────────────────────────────────────────── */
 
 export default function RenewalsView() {
+  const { t } = useTranslation();
   const statsQ = useQuery<RenewalStats>({
     queryKey: ["cl-renewal-stats"],
     queryFn: fetchRenewalStats,
@@ -109,7 +112,7 @@ export default function RenewalsView() {
     () => [
       {
         key: "customerName",
-        header: "Customer Name",
+        header: t("customerLifecycle.rn.customerName", "Customer Name"),
         render: (row) => (
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
@@ -124,36 +127,36 @@ export default function RenewalsView() {
       },
       {
         key: "currentPackage",
-        header: "Current Package",
+        header: t("customerLifecycle.rn.currentPackage", "Current Package"),
         render: (row) => (
           <span className="text-sm text-foreground">{row.currentPackage}</span>
         ),
       },
       {
         key: "expiryDate",
-        header: "Expiry Date",
+        header: t("customerLifecycle.rn.expiryDate", "Expiry Date"),
         render: (row) => (
           <div>
             <p className="text-sm text-foreground">{row.expiryDate}</p>
             <p className={cn(
               "text-[10px] font-medium",
-              row.daysLeft <= 7 ? "text-rose-500" : row.daysLeft <= 14 ? "text-amber-500" : "text-muted-foreground"
+              row.daysLeft <= 7 ? "text-[var(--status-danger)]" : row.daysLeft <= 14 ? "text-[var(--status-warning)]" : "text-muted-foreground"
             )}>
-              {row.daysLeft} days left
+              {t("customerLifecycle.rn.daysLeft", "{{n}} days left", { n: row.daysLeft })}
             </p>
           </div>
         ),
       },
       {
         key: "status",
-        header: "Status",
+        header: t("customerLifecycle.common.status", "Status"),
         render: (row) => (
           <span className="text-xs font-medium text-muted-foreground">{row.status}</span>
         ),
       },
       {
         key: "riskScore",
-        header: "Risk Score",
+        header: t("customerLifecycle.rn.riskScore", "Risk Score"),
         render: (row) => (
           <Badge
             variant="outline"
@@ -165,7 +168,7 @@ export default function RenewalsView() {
       },
       {
         key: "action",
-        header: "Action",
+        header: t("customerLifecycle.rn.action", "Action"),
         render: (row) => (
           <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-primary">
             {row.action}
@@ -185,20 +188,20 @@ export default function RenewalsView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Renewal Center
+            {t("customerLifecycle.rn.title", "Renewal Center")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Proactive contract renewal management and churn prevention
+            {t("customerLifecycle.rn.subtitle", "Proactive contract renewal management and churn prevention")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
-            Export CSV
+            {t("customerLifecycle.rn.exportCsv", "Export CSV")}
           </Button>
           <Button size="sm" className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
-            New Quote
+            {t("customerLifecycle.rn.newQuote", "New Quote")}
           </Button>
         </div>
       </div>
@@ -221,12 +224,12 @@ export default function RenewalsView() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Health Score
+                      {t("customerLifecycle.rn.healthScore", "Health Score")}
                     </p>
-                    <Heart className="h-4 w-4 text-emerald-500" />
+                    <Heart className="h-4 w-4 text-[var(--status-success)]" />
                   </div>
                   <p className="mt-1 text-2xl font-bold text-foreground">{s?.healthScore}%</p>
-                  <p className="mt-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <p className="mt-1 text-[10px] text-[var(--status-success)]">
                     {s?.healthTrend}
                   </p>
                 </CardContent>
@@ -235,9 +238,9 @@ export default function RenewalsView() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Upcoming Renewals
+                      {t("customerLifecycle.rn.upcomingRenewals", "Upcoming Renewals")}
                     </p>
-                    <CalendarClock className="h-4 w-4 text-blue-500" />
+                    <CalendarClock className="h-4 w-4 text-[var(--status-info)]" />
                   </div>
                   <p className="mt-1 text-2xl font-bold text-foreground">{s?.upcomingRenewals}</p>
                   <p className="mt-1 text-[10px] text-muted-foreground">{s?.upcomingRenewalsLabel}</p>
@@ -247,12 +250,12 @@ export default function RenewalsView() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Forecasted Revenue
+                      {t("customerLifecycle.rn.forecastedRevenue", "Forecasted Revenue")}
                     </p>
-                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                    <DollarSign className="h-4 w-4 text-[var(--status-success)]" />
                   </div>
                   <p className="mt-1 text-2xl font-bold text-foreground">{s?.forecastedRevenue}</p>
-                  <p className="mt-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <p className="mt-1 text-[10px] text-[var(--status-success)]">
                     {s?.forecastedRevenueTrend}
                   </p>
                 </CardContent>
@@ -261,12 +264,12 @@ export default function RenewalsView() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      High Risk Attrition
+                      {t("customerLifecycle.rn.highRiskAttrition", "High Risk Attrition")}
                     </p>
-                    <AlertTriangle className="h-4 w-4 text-rose-500" />
+                    <AlertTriangle className="h-4 w-4 text-[var(--status-danger)]" />
                   </div>
                   <p className="mt-1 text-2xl font-bold text-foreground">{s?.highRiskAttrition}</p>
-                  <p className="mt-1 text-[10px] text-rose-600 dark:text-rose-400">
+                  <p className="mt-1 text-[10px] text-[var(--status-danger)]">
                     {s?.highRiskAttritionLabel}
                   </p>
                 </CardContent>

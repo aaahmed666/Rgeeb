@@ -98,12 +98,12 @@ export default function IntegrationsView() {
           </p>
         </div>
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("common.searchPlaceholder", "Search...")}
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9 h-[40px]"
+            className="ps-9 h-[40px]"
           />
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function IntegrationsView() {
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-bold text-foreground">12</span>
-            <span className="text-emerald-500 text-xs font-bold flex items-center">↑ 2</span>
+            <span className="text-[var(--status-success)] text-xs font-bold flex items-center">↑ 2</span>
           </div>
         </Card>
         <Card className="p-6 border border-border">
@@ -157,7 +157,7 @@ export default function IntegrationsView() {
               {isError && (
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-[0.5px] flex items-center justify-center z-10">
                   <div className="bg-background border border-border p-4 rounded-xl shadow-xl text-center transform -rotate-2">
-                    <AlertTriangle className="h-6 w-6 text-amber-500 mx-auto mb-1 animate-pulse" />
+                    <AlertTriangle className="h-6 w-6 text-[var(--status-warning)] mx-auto mb-1 animate-pulse" />
                     <p className="font-bold text-foreground text-sm">{t("integrations.disconnected", "Disconnected")}</p>
                     <p className="text-xs text-muted-foreground">{t("integrations.actionRequired", "Action Required")}</p>
                   </div>
@@ -177,11 +177,11 @@ export default function IntegrationsView() {
                     className={cn(
                       "text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 border-0 flex items-center gap-1",
                       isError
-                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        ? "bg-[var(--status-danger)]/10 text-[var(--status-danger)]"
+                        : "bg-[var(--status-success)]/10 text-[var(--status-success)]"
                     )}
                   >
-                    <span className={cn("w-1.5 h-1.5 rounded-full", isError ? "bg-rose-500" : "bg-emerald-500")} />
+                    <span className={cn("w-1.5 h-1.5 rounded-full", isError ? "bg-[var(--status-danger)]" : "bg-[var(--status-success)]")} />
                     {isError ? t("integrations.errorStatus", "Error") : t("integrations.connectedStatus", "Connected")}
                   </Badge>
                 </div>
@@ -207,7 +207,7 @@ export default function IntegrationsView() {
                   </div>
                   <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                     <div
-                      className={cn("h-full transition-all duration-500", isError ? "bg-rose-500" : "bg-emerald-500")}
+                      className={cn("h-full transition-all duration-500", isError ? "bg-[var(--status-danger)]" : "bg-[var(--status-success)]")}
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>
@@ -260,7 +260,7 @@ export default function IntegrationsView() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-start border-collapse text-xs">
             <thead>
               <tr className="bg-muted/40 border-b border-border">
                 <th className="px-6 py-3 font-semibold text-muted-foreground uppercase tracking-wider">{t("common.date", "Timestamp")}</th>
@@ -280,7 +280,7 @@ export default function IntegrationsView() {
                     <td className="px-6 py-4 font-semibold text-foreground">{log.source}</td>
                     <td className="px-6 py-4 text-foreground">{log.eventType}</td>
                     <td className="px-6 py-4">
-                      <span className={cn("flex items-center gap-1 font-medium", isFailed ? "text-rose-500" : "text-emerald-500")}>
+                      <span className={cn("flex items-center gap-1 font-medium", isFailed ? "text-[var(--status-danger)]" : "text-[var(--status-success)]")}>
                         {isFailed ? (
                           <XCircle className="h-4 w-4 shrink-0" />
                         ) : (
@@ -290,7 +290,7 @@ export default function IntegrationsView() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">{log.payloadSize}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-end">
                       <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-muted-foreground">
                         <MoreVertical className="h-4 w-4" />
                       </Button>

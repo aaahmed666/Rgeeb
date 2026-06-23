@@ -24,6 +24,7 @@ import { SharedTablePaginated } from "@/components/SharedTablePaginated";
 import { type DataTableColumn } from "@/components/ui/data-table";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 import {
   Dialog,
@@ -55,18 +56,19 @@ import type { Customer, DashboardStats } from "@/services/customerLifecycleMockS
 /* ── Status Badge ───────────────────────────────────────────────────────── */
 
 const STATUS_STYLES: Record<string, string> = {
-  Active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-  Onboarding: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-  Warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-  Suspended: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800",
-  Churned: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800",
+  Active: "bg-[var(--status-success)]/10 text-[var(--status-success)] border-[var(--status-success)]",
+  Onboarding: "bg-[var(--status-info)]/10 text-[var(--status-info)] border-[var(--status-info)]",
+  Warning: "bg-[var(--status-warning)]/10 text-[var(--status-warning)] border-[var(--status-warning)]",
+  Suspended: "bg-muted/10 text-muted-foreground dark:text-muted-foreground border-border dark:border-border",
+  Churned: "bg-[var(--status-danger)]/10 text-[var(--status-danger)] border-[var(--status-danger)]",
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   return (
     <Badge variant="outline" className={cn("text-[10px] font-semibold uppercase", STATUS_STYLES[status])}>
       <span className="me-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
+      {t("customerLifecycle.status." + status.toLowerCase(), status)}
     </Badge>
   );
 }
@@ -103,7 +105,7 @@ function StatCard({
     <Card className="transition-shadow hover:shadow-md">
       <CardContent className="flex items-center gap-4 p-4">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", bgColor)}>
-          <Icon className="h-5 w-5 text-white" />
+          <Icon className="h-5 w-5 text-primary-foreground" />
         </div>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-semibold">
@@ -121,6 +123,7 @@ function StatCard({
 /* ── Main CustomersView ─────────────────────────────────────────────────── */
 
 export default function CustomersView() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [businessType, setBusinessType] = useState("All");
 
@@ -265,7 +268,7 @@ export default function CustomersView() {
     () => [
       {
         key: "name",
-        header: "Customer Name",
+        header: t("customerLifecycle.cust.customerName", "Customer Name"),
         render: (row) => (
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -282,19 +285,19 @@ export default function CustomersView() {
       },
       {
         key: "businessType",
-        header: "Business Type",
+        header: t("customerLifecycle.cust.businessType", "Business Type"),
         render: (row) => (
           <span className="text-sm text-foreground">{row.businessType}</span>
         ),
       },
       {
         key: "status",
-        header: "Status",
+        header: t("customerLifecycle.common.status", "Status"),
         render: (row) => <StatusBadge status={row.status} />,
       },
       {
         key: "branches",
-        header: "Branches",
+        header: t("customerLifecycle.cust.branches", "Branches"),
         render: (row) => (
           <span className="text-sm font-medium text-foreground">{row.branches}</span>
         ),
@@ -303,7 +306,7 @@ export default function CustomersView() {
       },
       {
         key: "cameras",
-        header: "Cameras",
+        header: t("customerLifecycle.cust.cameras", "Cameras"),
         render: (row) => (
           <span className="text-sm font-medium text-foreground">
             {row.cameras.toLocaleString()}
@@ -314,7 +317,7 @@ export default function CustomersView() {
       },
       {
         key: "aiServices",
-        header: "AI Services",
+        header: t("customerLifecycle.cust.aiServices", "AI Services"),
         render: (row) => (
           <span className="text-sm font-medium text-foreground">{row.aiServices}</span>
         ),
@@ -323,7 +326,7 @@ export default function CustomersView() {
       },
       {
         key: "package",
-        header: "Package",
+        header: t("customerLifecycle.cust.package", "Package"),
         render: (row) => (
           <Badge
             variant="outline"
@@ -335,27 +338,27 @@ export default function CustomersView() {
       },
       {
         key: "endDate",
-        header: "End Date",
+        header: t("customerLifecycle.cust.endDate", "End Date"),
         render: (row) => (
           <span className="text-sm text-muted-foreground">{row.endDate}</span>
         ),
       },
       {
         key: "actions",
-        header: "Actions",
+        header: t("customerLifecycle.cust.actions", "Actions"),
         render: (row) => (
           <div className="flex items-center gap-1.5 justify-center">
             <Link href={`/dashboard/customer-lifecycle/customers/${row.id}`}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="View 360° Profile">
+              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title={t("customerLifecycle.cust.view360", "View 360° Profile")}>
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 cursor-pointer text-blue-500"
+              className="h-8 w-8 cursor-pointer text-[var(--status-info)]"
               onClick={() => handleOpenEdit(row)}
-              title="Edit Customer"
+              title={t("customerLifecycle.cust.editCustomer", "Edit Customer")}
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -364,7 +367,7 @@ export default function CustomersView() {
               size="icon"
               className="h-8 w-8 cursor-pointer text-destructive"
               onClick={() => handleOpenDelete(row)}
-              title="Delete Customer"
+              title={t("customerLifecycle.cust.deleteCustomer", "Delete Customer")}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -385,46 +388,46 @@ export default function CustomersView() {
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Customer Management
+            {t("customerLifecycle.cust.title", "Customer Management")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            View and manage all registered enterprise customers
+            {t("customerLifecycle.cust.subtitle", "View and manage all registered enterprise customers")}
           </p>
         </div>
         <Button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="gap-1.5 cursor-pointer">
           <Plus className="h-4 w-4" />
-          Add Customer
+          {t("customerLifecycle.cust.addCustomer", "Add Customer")}
         </Button>
       </div>
 
       {/* ── Stats Row ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Customers"
+          title={t("customerLifecycle.cust.totalCustomers", "Total Customers")}
           value={statsQ.data?.totalCustomers ?? 0}
           icon={Users}
-          bgColor="bg-slate-800 dark:bg-slate-700"
+          bgColor="bg-muted dark:bg-muted"
           isLoading={statsQ.isLoading}
         />
         <StatCard
-          title="Total Cameras"
+          title={t("customerLifecycle.cust.totalCameras", "Total Cameras")}
           value={statsQ.data?.totalCameras ?? 0}
           icon={Camera}
-          bgColor="bg-purple-500"
+          bgColor="bg-[var(--chart-5)]"
           isLoading={statsQ.isLoading}
         />
         <StatCard
-          title="Active AI Services"
+          title={t("customerLifecycle.cust.activeAiServices", "Active AI Services")}
           value={statsQ.data?.activeAiServices ?? 0}
           icon={Cpu}
-          bgColor="bg-cyan-500"
+          bgColor="bg-[var(--status-info)]"
           isLoading={statsQ.isLoading}
         />
         <StatCard
-          title="Avg Risk Score"
-          value="Low"
+          title={t("customerLifecycle.cust.avgRisk", "Avg Risk Score")}
+          value={t("customerLifecycle.cust.riskLow", "Low")}
           icon={AlertTriangle}
-          bgColor="bg-emerald-500"
+          bgColor="bg-[var(--status-success)]"
           isLoading={statsQ.isLoading}
         />
       </div>
@@ -432,9 +435,9 @@ export default function CustomersView() {
       {/* ── Filters ── */}
       <Tabs value={businessType} onValueChange={(val) => { setBusinessType(val); setPage(1); }}>
         <TabsList className="h-auto flex-wrap">
-          {BUSINESS_TYPES.map((t) => (
-            <TabsTrigger key={t} value={t} className="text-xs">
-              {t}
+          {BUSINESS_TYPES.map((bt) => (
+            <TabsTrigger key={bt} value={bt} className="text-xs">
+              {bt === "All" ? t("customerLifecycle.cust.allTypes", "All") : t("customerLifecycle.bizType." + bt.toLowerCase(), bt)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -446,14 +449,14 @@ export default function CustomersView() {
         data={customersQ.data?.data ?? []}
         isLoading={customersQ.isLoading}
         isError={customersQ.isError}
-        errorMessage="Failed to load customers"
-        emptyMessage="No customers found"
-        emptyDescription="Try adjusting your search or filters to find what you're looking for."
+        errorMessage={t("customerLifecycle.cust.errLoad", "Failed to load customers")}
+        emptyMessage={t("customerLifecycle.cust.empty", "No customers found")}
+        emptyDescription={t("customerLifecycle.cust.emptyDesc", "Try adjusting your search or filters to find what you're looking for.")}
         searchValue={searchValue}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Search customers by name or ID…"
+        searchPlaceholder={t("customerLifecycle.cust.searchPlaceholder", "Search customers by name or ID…")}
         onRefresh={() => customersQ.refetch()}
-        title="All Customers"
+        title={t("customerLifecycle.cust.allCustomers", "All Customers")}
         currentPage={page}
         totalPages={customersQ.data?.totalPages ?? 1}
         onPageChange={setPage}
@@ -465,23 +468,23 @@ export default function CustomersView() {
         <DialogContent className="sm:max-w-[480px]">
           <form onSubmit={handleCreateSubmit}>
             <DialogHeader>
-              <DialogTitle>Add Enterprise Customer</DialogTitle>
-              <DialogDescription>Create a new customer profile. New credentials will be auto-generated.</DialogDescription>
+              <DialogTitle>{t("customerLifecycle.cust.addDialogTitle", "Add Enterprise Customer")}</DialogTitle>
+              <DialogDescription>{t("customerLifecycle.cust.addDialogDesc", "Create a new customer profile. New credentials will be auto-generated.")}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="create-name" className="text-right">Name</Label>
+                <Label htmlFor="create-name" className="text-end">{t("customerLifecycle.cust.fName", "Name")}</Label>
                 <Input id="create-name" value={formName} onChange={(e) => setFormName(e.target.value)} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Industry</Label>
+                <Label className="text-end">{t("customerLifecycle.cust.fIndustry", "Industry")}</Label>
                 <div className="col-span-3">
                   <Select value={formBusinessType} onValueChange={setFormBusinessType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Business Type" />
+                      <SelectValue placeholder={t("customerLifecycle.cust.selectBizType", "Select Business Type")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {BUSINESS_TYPES.filter(t => t !== "All").map((type) => (
+                      {BUSINESS_TYPES.filter((bt) => bt !== "All").map((type) => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
                     </SelectContent>
@@ -489,47 +492,47 @@ export default function CustomersView() {
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Status</Label>
+                <Label className="text-end">{t("customerLifecycle.common.status", "Status")}</Label>
                 <div className="col-span-3">
                   <Select value={formStatus} onValueChange={(val) => setFormStatus(val as Customer["status"])}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Status" />
+                      <SelectValue placeholder={t("customerLifecycle.cust.selectStatus", "Select Status")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Onboarding">Onboarding</SelectItem>
-                      <SelectItem value="Warning">Warning</SelectItem>
-                      <SelectItem value="Suspended">Suspended</SelectItem>
+                      <SelectItem value="Active">{t("customerLifecycle.status.active", "Active")}</SelectItem>
+                      <SelectItem value="Onboarding">{t("customerLifecycle.status.onboarding", "Onboarding")}</SelectItem>
+                      <SelectItem value="Warning">{t("customerLifecycle.status.warning", "Warning")}</SelectItem>
+                      <SelectItem value="Suspended">{t("customerLifecycle.status.suspended", "Suspended")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="create-branches" className="text-right">Branches</Label>
+                <Label htmlFor="create-branches" className="text-end">{t("customerLifecycle.cust.branches", "Branches")}</Label>
                 <Input id="create-branches" type="number" min={1} value={formBranches} onChange={(e) => setFormBranches(Number(e.target.value))} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="create-cameras" className="text-right">Cameras</Label>
+                <Label htmlFor="create-cameras" className="text-end">{t("customerLifecycle.cust.cameras", "Cameras")}</Label>
                 <Input id="create-cameras" type="number" min={1} value={formCameras} onChange={(e) => setFormCameras(Number(e.target.value))} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="create-ai" className="text-right">AI Services</Label>
+                <Label htmlFor="create-ai" className="text-end">{t("customerLifecycle.cust.aiServices", "AI Services")}</Label>
                 <Input id="create-ai" type="number" min={0} value={formAiServices} onChange={(e) => setFormAiServices(Number(e.target.value))} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="create-package" className="text-right">Package</Label>
+                <Label htmlFor="create-package" className="text-end">{t("customerLifecycle.cust.package", "Package")}</Label>
                 <Input id="create-package" value={formPackage} onChange={(e) => setFormPackage(e.target.value)} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="create-end" className="text-right">End Date</Label>
+                <Label htmlFor="create-end" className="text-end">{t("customerLifecycle.cust.endDate", "End Date")}</Label>
                 <Input id="create-end" value={formEndDate} onChange={(e) => setFormEndDate(e.target.value)} required className="col-span-3" />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>{t("customerLifecycle.common.cancel", "Cancel")}</Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Customer
+                {createMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {t("customerLifecycle.cust.addCustomer", "Add Customer")}
               </Button>
             </DialogFooter>
           </form>
@@ -541,23 +544,23 @@ export default function CustomersView() {
         <DialogContent className="sm:max-w-[480px]">
           <form onSubmit={handleEditSubmit}>
             <DialogHeader>
-              <DialogTitle>Edit Enterprise Customer</DialogTitle>
-              <DialogDescription>Update the details for this enterprise customer profile.</DialogDescription>
+              <DialogTitle>{t("customerLifecycle.cust.editDialogTitle", "Edit Enterprise Customer")}</DialogTitle>
+              <DialogDescription>{t("customerLifecycle.cust.editDialogDesc", "Update the details for this enterprise customer profile.")}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name" className="text-right">Name</Label>
+                <Label htmlFor="edit-name" className="text-end">{t("customerLifecycle.cust.fName", "Name")}</Label>
                 <Input id="edit-name" value={formName} onChange={(e) => setFormName(e.target.value)} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Industry</Label>
+                <Label className="text-end">{t("customerLifecycle.cust.fIndustry", "Industry")}</Label>
                 <div className="col-span-3">
                   <Select value={formBusinessType} onValueChange={setFormBusinessType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Business Type" />
+                      <SelectValue placeholder={t("customerLifecycle.cust.selectBizType", "Select Business Type")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {BUSINESS_TYPES.filter(t => t !== "All").map((type) => (
+                      {BUSINESS_TYPES.filter((bt) => bt !== "All").map((type) => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
                     </SelectContent>
@@ -565,47 +568,47 @@ export default function CustomersView() {
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Status</Label>
+                <Label className="text-end">{t("customerLifecycle.common.status", "Status")}</Label>
                 <div className="col-span-3">
                   <Select value={formStatus} onValueChange={(val) => setFormStatus(val as Customer["status"])}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Status" />
+                      <SelectValue placeholder={t("customerLifecycle.cust.selectStatus", "Select Status")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Onboarding">Onboarding</SelectItem>
-                      <SelectItem value="Warning">Warning</SelectItem>
-                      <SelectItem value="Suspended">Suspended</SelectItem>
+                      <SelectItem value="Active">{t("customerLifecycle.status.active", "Active")}</SelectItem>
+                      <SelectItem value="Onboarding">{t("customerLifecycle.status.onboarding", "Onboarding")}</SelectItem>
+                      <SelectItem value="Warning">{t("customerLifecycle.status.warning", "Warning")}</SelectItem>
+                      <SelectItem value="Suspended">{t("customerLifecycle.status.suspended", "Suspended")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-branches" className="text-right">Branches</Label>
+                <Label htmlFor="edit-branches" className="text-end">{t("customerLifecycle.cust.branches", "Branches")}</Label>
                 <Input id="edit-branches" type="number" min={1} value={formBranches} onChange={(e) => setFormBranches(Number(e.target.value))} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-cameras" className="text-right">Cameras</Label>
+                <Label htmlFor="edit-cameras" className="text-end">{t("customerLifecycle.cust.cameras", "Cameras")}</Label>
                 <Input id="edit-cameras" type="number" min={1} value={formCameras} onChange={(e) => setFormCameras(Number(e.target.value))} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-ai" className="text-right">AI Services</Label>
+                <Label htmlFor="edit-ai" className="text-end">{t("customerLifecycle.cust.aiServices", "AI Services")}</Label>
                 <Input id="edit-ai" type="number" min={0} value={formAiServices} onChange={(e) => setFormAiServices(Number(e.target.value))} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-package" className="text-right">Package</Label>
+                <Label htmlFor="edit-package" className="text-end">{t("customerLifecycle.cust.package", "Package")}</Label>
                 <Input id="edit-package" value={formPackage} onChange={(e) => setFormPackage(e.target.value)} required className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-end" className="text-right">End Date</Label>
+                <Label htmlFor="edit-end" className="text-end">{t("customerLifecycle.cust.endDate", "End Date")}</Label>
                 <Input id="edit-end" value={formEndDate} onChange={(e) => setFormEndDate(e.target.value)} required className="col-span-3" />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>{t("customerLifecycle.common.cancel", "Cancel")}</Button>
               <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                {updateMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {t("customerLifecycle.common.saveChanges", "Save Changes")}
               </Button>
             </DialogFooter>
           </form>
@@ -618,14 +621,14 @@ export default function CustomersView() {
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Delete Customer Profile
+              {t("customerLifecycle.cust.deleteDialogTitle", "Delete Customer Profile")}
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{selectedCustomer?.name}</strong>? This action cannot be undone.
+              {t("customerLifecycle.cust.deleteConfirm1", "Are you sure you want to delete")} <strong>{selectedCustomer?.name}</strong>? {t("customerLifecycle.cust.deleteConfirm2", "This action cannot be undone.")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>{t("customerLifecycle.common.cancel", "Cancel")}</Button>
             <Button
               variant="destructive"
               onClick={() => {
@@ -633,8 +636,8 @@ export default function CustomersView() {
               }}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Yes, Delete
+              {deleteMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {t("customerLifecycle.cust.yesDelete", "Yes, Delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

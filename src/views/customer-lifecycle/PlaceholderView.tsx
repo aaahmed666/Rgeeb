@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Construction } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Empty,
   EmptyHeader,
@@ -21,8 +22,10 @@ interface PlaceholderViewProps {
  */
 export default function PlaceholderView({
   title,
-  description = "This section is under development and will be available soon.",
+  description,
 }: PlaceholderViewProps) {
+  const { t } = useTranslation();
+  const desc = description ?? t("customerLifecycle.common.underDevelopment", "This section is under development and will be available soon.");
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-6">
       <Empty className="max-w-md">
@@ -31,7 +34,7 @@ export default function PlaceholderView({
             <Construction className="h-6 w-6" />
           </EmptyMedia>
           <EmptyTitle>{title}</EmptyTitle>
-          <EmptyDescription>{description}</EmptyDescription>
+          <EmptyDescription>{desc}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     </div>

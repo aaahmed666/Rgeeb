@@ -659,4 +659,26 @@ export const endpoints = {
     stale: "/orchestrator/stale", // GET  workers past the heartbeat threshold
     stopList: "/orchestrator/stop-list", // GET  camera-services flagged to stop
   },
+
+  // ── Customer Lifecycle (CRM) ────────────────────────────────────────────────
+  // Frontend-only today (mock fallbacks in customerLifecycleMockService). When
+  // the backend ships these routes, the service already calls them via the
+  // central `api` client — just confirm/adjust the paths here. Reads only for
+  // now; customers also has create/update/delete.
+  customerLifecycle: {
+    dashboardStats: "/customer-lifecycle/dashboard-stats",
+    customerGrowth: "/customer-lifecycle/customer-growth",
+    subscriptionTiers: "/customer-lifecycle/subscription-tiers",
+    statusDistribution: "/customer-lifecycle/status-distribution",
+    onboardingEfficiency: "/customer-lifecycle/onboarding-efficiency",
+    customerDistribution: "/customer-lifecycle/distribution",
+    lifecycleStatus: "/customer-lifecycle/lifecycle-status",
+    customers: "/customer-lifecycle/customers", // GET list · POST create
+    customer: (id?: string) => `/customer-lifecycle/customers/${id ?? ""}`, // GET profile · PUT · DELETE
+    lifecycle: (customerId?: string) => `/customer-lifecycle/lifecycle/${customerId ?? ""}`,
+    timeline: (customerId?: string) => `/customer-lifecycle/timeline/${customerId ?? ""}`,
+    subscriptionOverview: (id?: string) => `/customer-lifecycle/subscriptions/${id ?? ""}`,
+    renewalStats: "/customer-lifecycle/renewals/stats",
+    renewalGroups: "/customer-lifecycle/renewals/groups",
+  },
 } as const;

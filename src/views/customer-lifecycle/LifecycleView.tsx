@@ -52,7 +52,7 @@ function StagePipeline({ stages }: { stages: LifecycleStage[] }) {
       <CardContent>
         <div className="relative flex items-start justify-between overflow-x-auto pb-4 scrollbar-thin">
           {/* Connector line */}
-          <div className="absolute left-4 right-4 top-5 h-0.5 bg-border" />
+          <div className="absolute start-4 end-4 top-5 h-0.5 bg-border" />
           {stages.map((stage, i) => {
             const isCompleted = stage.status === "completed";
             const isCurrent = stage.status === "current";
@@ -110,10 +110,10 @@ function StagePipeline({ stages }: { stages: LifecycleStage[] }) {
 /* ── Milestone status styles ─────────────────────────────────────────────── */
 
 const MILESTONE_STATUS: Record<string, string> = {
-  Completed: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  "In Progress": "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  Scheduled: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
-  Blocked: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  Completed: "bg-[var(--status-success)]/10 text-[var(--status-success)]",
+  "In Progress": "bg-[var(--status-info)]/10 text-[var(--status-info)]",
+  Scheduled: "bg-muted/10 text-muted-foreground dark:text-muted-foreground",
+  Blocked: "bg-[var(--status-danger)]/10 text-[var(--status-danger)]",
 };
 
 /* ── Onboarding Checklist Roadmap Step type ──────────────────────────────── */
@@ -220,7 +220,7 @@ export default function LifecycleView() {
             {activeTab === "tracker" ? t("customerLifecycle.lifecycle", "Lifecycle Tracker") : t("onboarding.title", "Onboarding Roadmap")}
           </h1>
           <div className="mt-2 flex flex-wrap gap-2 items-center">
-            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-xs font-semibold">
+            <Badge variant="outline" className="bg-[var(--status-info)]/10 text-[var(--status-info)] border-[var(--status-info)] text-xs font-semibold">
               {data?.statusLabel}
             </Badge>
             <span className="text-xs text-muted-foreground">
@@ -264,7 +264,7 @@ export default function LifecycleView() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <Heart className="h-4 w-4 text-rose-500" />
+                    <Heart className="h-4 w-4 text-[var(--status-danger)]" />
                     {t("lifecycle.healthTitle", "Engagement Health")}
                   </CardTitle>
                 </CardHeader>
@@ -280,7 +280,7 @@ export default function LifecycleView() {
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                      className="h-full rounded-full bg-[var(--status-success)] transition-all duration-700"
                       style={{
                         width: `${((data?.engagementHealth.score ?? 0) / (data?.engagementHealth.maxScore ?? 10)) * 100}%`,
                       }}
@@ -288,16 +288,16 @@ export default function LifecycleView() {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1 text-muted-foreground">
-                      <TrendingUp className="h-3 w-3 text-emerald-500" />
+                      <TrendingUp className="h-3 w-3 text-[var(--status-success)]" />
                       {t("lifecycle.velocity", "Onboarding Velocity")}
                     </span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="font-semibold text-[var(--status-success)]">
                       {data?.engagementHealth.onboardingVelocity}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1 text-muted-foreground">
-                      <Ticket className="h-3 w-3 text-amber-500" />
+                      <Ticket className="h-3 w-3 text-[var(--status-warning)]" />
                       {t("lifecycle.tickets", "Support Tickets")}
                     </span>
                     <span className="font-semibold text-foreground">
@@ -307,24 +307,24 @@ export default function LifecycleView() {
                 </CardContent>
               </Card>
 
-              {/* Account Specialist Specialist Info */}
-              <Card>
+              {/* Account Specialist — emphasized navy panel per design */}
+              <Card className="bg-sidebar text-sidebar-foreground border-sidebar-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-sidebar-foreground">
                     <UserCircle className="h-4 w-4 text-primary" />
                     {t("lifecycle.specialist", "Account Specialist")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
                       {data?.accountSpecialist.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="text-sm font-semibold text-sidebar-foreground">
                         {data?.accountSpecialist.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-sidebar-foreground/70">
                         {data?.accountSpecialist.role}
                       </p>
                     </div>
@@ -338,8 +338,8 @@ export default function LifecycleView() {
           <div className="grid gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="flex items-center gap-3 p-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
-                  <Timer className="h-4 w-4 text-blue-500" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--status-info)]/10">
+                  <Timer className="h-4 w-4 text-[var(--status-info)]" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -348,7 +348,7 @@ export default function LifecycleView() {
                   <p className="text-sm font-bold text-foreground">
                     {data?.timeInStage.days} {t("common.days", "days")}
                   </p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <p className="text-[10px] text-[var(--status-success)]">
                     {data?.timeInStage.trend}
                   </p>
                 </div>
@@ -356,8 +356,8 @@ export default function LifecycleView() {
             </Card>
             <Card>
               <CardContent className="flex items-center gap-3 p-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <Rocket className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--status-success)]/10">
+                  <Rocket className="h-4 w-4 text-[var(--status-success)]" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -366,7 +366,7 @@ export default function LifecycleView() {
                   <p className="text-sm font-bold text-foreground">
                     {data?.projectedGoLive.date}
                   </p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <p className="text-[10px] text-[var(--status-success)]">
                     {data?.projectedGoLive.status}
                   </p>
                 </div>
@@ -374,8 +374,8 @@ export default function LifecycleView() {
             </Card>
             <Card>
               <CardContent className="flex items-center gap-3 p-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <Shield className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--status-success)]/10">
+                  <Shield className="h-4 w-4 text-[var(--status-success)]" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -433,7 +433,7 @@ export default function LifecycleView() {
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                       <CheckCircle2 className="h-6 w-6" />
                     </div>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-0 text-xs font-semibold">
+                    <Badge variant="outline" className="bg-[var(--status-success)]/10 text-[var(--status-success)] border-0 text-xs font-semibold">
                       {t("onboarding.activeNow", "Active now")}
                     </Badge>
                   </div>
@@ -443,14 +443,14 @@ export default function LifecycleView() {
                   <p className="text-3xl font-bold text-foreground">0{completedStepsCount}</p>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden mt-6">
-                  <div className="h-full bg-emerald-500" style={{ width: `${overallPercentage}%` }} />
+                  <div className="h-full bg-[var(--status-success)]" style={{ width: `${overallPercentage}%` }} />
                 </div>
               </Card>
 
               <Card className="p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--chart-1)]/10 flex items-center justify-center text-[var(--chart-1)]">
                       <Clock className="h-6 w-6" />
                     </div>
                   </div>
@@ -460,7 +460,7 @@ export default function LifecycleView() {
                   <p className="text-3xl font-bold text-foreground">0{onboardingSteps.length - completedStepsCount}</p>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden mt-6">
-                  <div className="h-full bg-orange-500" style={{ width: `${100 - overallPercentage}%` }} />
+                  <div className="h-full bg-[var(--chart-1)]" style={{ width: `${100 - overallPercentage}%` }} />
                 </div>
               </Card>
             </div>
@@ -476,8 +476,8 @@ export default function LifecycleView() {
             {/* High Density Timeline Checklist */}
             <div className="relative">
               {/* Desktop Horizontal Line */}
-              <div className="absolute top-6 left-12 right-12 h-[2px] bg-muted hidden lg:block" />
-              <div className="absolute top-6 left-12 h-[2px] bg-primary hidden lg:block" style={{ width: "70%" }} />
+              <div className="absolute top-6 start-12 end-12 h-[2px] bg-muted hidden lg:block" />
+              <div className="absolute top-6 start-12 h-[2px] bg-primary hidden lg:block" style={{ width: "70%" }} />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-9 gap-6 relative">
                 {onboardingSteps.map((step) => {
@@ -491,7 +491,7 @@ export default function LifecycleView() {
                         className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center z-10 mb-3 shadow-sm transition-transform group-hover:scale-105",
                           isCompleted && "bg-primary text-primary-foreground",
-                          isCurrent && "bg-secondary-container text-on-secondary-container ring-4 ring-orange-100 dark:ring-orange-950/40",
+                          isCurrent && "bg-secondary-container text-on-secondary-container ring-4 ring-[var(--chart-1)] dark:ring-[var(--chart-1)]/40",
                           !isCompleted && !isCurrent && "bg-muted text-muted-foreground/60 border border-border"
                         )}
                       >
@@ -505,8 +505,8 @@ export default function LifecycleView() {
                         {t("onboarding.step", "Step")} {step.step}
                       </span>
                       <h5 className="font-semibold text-xs mt-1 text-foreground">{step.label}</h5>
-                      {step.date && <span className="text-[9px] text-emerald-500 font-bold mt-1">{step.date}</span>}
-                      {isCurrent && <span className="text-[9px] text-orange-500 font-bold mt-1 uppercase tracking-wide">{t("common.inProgress", "In Progress")}</span>}
+                      {step.date && <span className="text-[9px] text-[var(--status-success)] font-bold mt-1">{step.date}</span>}
+                      {isCurrent && <span className="text-[9px] text-[var(--chart-1)] font-bold mt-1 uppercase tracking-wide">{t("common.inProgress", "In Progress")}</span>}
                     </div>
                   );
                 })}
@@ -516,7 +516,7 @@ export default function LifecycleView() {
             {/* Onboarding Checklist Details Footer Cards */}
             <div className="mt-12 pt-8 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex gap-4 p-4 rounded-xl border border-border bg-muted/20">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-[var(--status-success)]/10 flex items-center justify-center text-[var(--status-success)] shrink-0">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <div>
@@ -525,7 +525,7 @@ export default function LifecycleView() {
                 </div>
               </div>
               <div className="flex gap-4 p-4 rounded-xl border border-border bg-muted/20">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-[var(--status-success)]/10 flex items-center justify-center text-[var(--status-success)] shrink-0">
                   <Camera className="h-5 w-5" />
                 </div>
                 <div>
@@ -534,7 +534,7 @@ export default function LifecycleView() {
                 </div>
               </div>
               <div className="flex gap-4 p-4 rounded-xl border border-border bg-muted/20">
-                <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-[var(--chart-1)]/10 flex items-center justify-center text-[var(--chart-1)] shrink-0">
                   <Layers className="h-5 w-5 animate-spin-slow" />
                 </div>
                 <div>

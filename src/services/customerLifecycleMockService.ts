@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
 
 /**
  * Customer Lifecycle Mock Service
@@ -11,6 +12,27 @@ import { api } from "@/lib/api";
  */
 
 const delay = (ms = 600) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Theme-aware colour tokens for chart/data series.
+ *
+ * These resolve to CSS custom properties defined in globals.css and switch
+ * automatically between light and dark mode. Recharts and inline `style`
+ * backgrounds accept `var(--token)` strings. Do NOT replace these with raw
+ * hex values — that breaks dark mode (e.g. navy was previously invisible).
+ */
+export const CL_COLOR = {
+  brand: "var(--chart-1)",
+  navy: "var(--chart-2)",
+  series3: "var(--chart-3)",
+  series4: "var(--chart-4)",
+  series5: "var(--chart-5)",
+  success: "var(--status-success)",
+  warning: "var(--status-warning)",
+  danger: "var(--status-danger)",
+  info: "var(--status-info)",
+  neutral: "var(--muted-foreground)",
+} as const;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -303,21 +325,21 @@ const MOCK_DASHBOARD_STATS: DashboardStats = {
 };
 
 const MOCK_CUSTOMER_DISTRIBUTION: CustomerDistribution[] = [
-  { name: "Retail", value: 38, color: "#f97316" },
-  { name: "Healthcare", value: 22, color: "#3b82f6" },
-  { name: "Logistics", value: 18, color: "#22c55e" },
-  { name: "Manufacturing", value: 12, color: "#a855f7" },
-  { name: "Technology", value: 6, color: "#06b6d4" },
-  { name: "Other", value: 4, color: "#64748b" },
+  { name: "Retail", value: 38, color: CL_COLOR.brand },
+  { name: "Healthcare", value: 22, color: CL_COLOR.info },
+  { name: "Logistics", value: 18, color: CL_COLOR.success },
+  { name: "Manufacturing", value: 12, color: CL_COLOR.series5 },
+  { name: "Technology", value: 6, color: CL_COLOR.series3 },
+  { name: "Other", value: 4, color: CL_COLOR.neutral },
 ];
 
 const MOCK_LIFECYCLE_STATUS: LifecycleStatusItem[] = [
-  { stage: "Active", count: 842, color: "#22c55e", percentage: 57 },
-  { stage: "Onboarding", count: 234, color: "#3b82f6", percentage: 16 },
-  { stage: "Implementation", count: 178, color: "#f97316", percentage: 12 },
-  { stage: "Renewal Pending", count: 124, color: "#eab308", percentage: 8 },
-  { stage: "At Risk", count: 68, color: "#ef4444", percentage: 5 },
-  { stage: "Churned", count: 36, color: "#64748b", percentage: 2 },
+  { stage: "Active", count: 842, color: CL_COLOR.success, percentage: 57 },
+  { stage: "Onboarding", count: 234, color: CL_COLOR.info, percentage: 16 },
+  { stage: "Implementation", count: 178, color: CL_COLOR.brand, percentage: 12 },
+  { stage: "Renewal Pending", count: 124, color: CL_COLOR.warning, percentage: 8 },
+  { stage: "At Risk", count: 68, color: CL_COLOR.danger, percentage: 5 },
+  { stage: "Churned", count: 36, color: CL_COLOR.neutral, percentage: 2 },
 ];
 
 const MOCK_GROWTH_DATA: GrowthDataPoint[] = [
@@ -336,16 +358,16 @@ const MOCK_GROWTH_DATA: GrowthDataPoint[] = [
 ];
 
 const MOCK_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
-  { name: "Enterprise", value: 62, color: "#1a1f2e" },
-  { name: "Pro", value: 24, color: "#f97316" },
-  { name: "Basic", value: 14, color: "#2dd4bf" },
+  { name: "Enterprise", value: 62, color: CL_COLOR.navy },
+  { name: "Pro", value: 24, color: CL_COLOR.brand },
+  { name: "Basic", value: 14, color: CL_COLOR.series3 },
 ];
 
 const MOCK_STATUS_DISTRIBUTION: StatusDistribution[] = [
-  { label: "Active Deployment", count: 842, color: "#22c55e" },
-  { label: "Setting Up", count: 118, color: "#3b82f6" },
-  { label: "At Risk / Attention", count: 24, color: "#ef4444" },
-  { label: "Suspended", count: 12, color: "#1e293b" },
+  { label: "Active Deployment", count: 842, color: CL_COLOR.success },
+  { label: "Setting Up", count: 118, color: CL_COLOR.info },
+  { label: "At Risk / Attention", count: 24, color: CL_COLOR.danger },
+  { label: "Suspended", count: 12, color: CL_COLOR.neutral },
 ];
 
 const MOCK_ONBOARDING_EFFICIENCY: OnboardingEfficiency = {
@@ -728,7 +750,7 @@ const MOCK_CUSTOMER_PROFILE: CustomerProfile = {
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   try {
-    return await api.get<DashboardStats>("/customer-lifecycle/dashboard-stats");
+    return await api.get<DashboardStats>(endpoints.customerLifecycle.dashboardStats);
   } catch (e) {
     console.warn("Using mock fallback for fetchDashboardStats", e);
     await delay(300);
@@ -738,7 +760,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 
 export async function fetchCustomerGrowth(): Promise<GrowthDataPoint[]> {
   try {
-    return await api.get<GrowthDataPoint[]>("/customer-lifecycle/customer-growth");
+    return await api.get<GrowthDataPoint[]>(endpoints.customerLifecycle.customerGrowth);
   } catch (e) {
     console.warn("Using mock fallback for fetchCustomerGrowth", e);
     await delay(300);
@@ -748,7 +770,7 @@ export async function fetchCustomerGrowth(): Promise<GrowthDataPoint[]> {
 
 export async function fetchSubscriptionTiers(): Promise<SubscriptionTier[]> {
   try {
-    return await api.get<SubscriptionTier[]>("/customer-lifecycle/subscription-tiers");
+    return await api.get<SubscriptionTier[]>(endpoints.customerLifecycle.subscriptionTiers);
   } catch (e) {
     console.warn("Using mock fallback for fetchSubscriptionTiers", e);
     await delay(200);
@@ -758,7 +780,7 @@ export async function fetchSubscriptionTiers(): Promise<SubscriptionTier[]> {
 
 export async function fetchStatusDistribution(): Promise<StatusDistribution[]> {
   try {
-    return await api.get<StatusDistribution[]>("/customer-lifecycle/status-distribution");
+    return await api.get<StatusDistribution[]>(endpoints.customerLifecycle.statusDistribution);
   } catch (e) {
     console.warn("Using mock fallback for fetchStatusDistribution", e);
     await delay(200);
@@ -768,7 +790,7 @@ export async function fetchStatusDistribution(): Promise<StatusDistribution[]> {
 
 export async function fetchOnboardingEfficiency(): Promise<OnboardingEfficiency> {
   try {
-    return await api.get<OnboardingEfficiency>("/customer-lifecycle/onboarding-efficiency");
+    return await api.get<OnboardingEfficiency>(endpoints.customerLifecycle.onboardingEfficiency);
   } catch (e) {
     console.warn("Using mock fallback for fetchOnboardingEfficiency", e);
     await delay(200);
@@ -784,7 +806,7 @@ export async function fetchCustomerList(params?: {
   businessType?: string;
 }): Promise<{ data: Customer[]; total: number; page: number; totalPages: number }> {
   try {
-    return await api.get<{ data: Customer[]; total: number; page: number; totalPages: number }>("/customer-lifecycle/customers", { query: params });
+    return await api.get<{ data: Customer[]; total: number; page: number; totalPages: number }>(endpoints.customerLifecycle.customers, { query: params });
   } catch (e) {
     console.warn("Using mock fallback for fetchCustomerList", e);
     await delay(400);
@@ -815,7 +837,7 @@ export async function fetchCustomerList(params?: {
 
 export async function fetchCustomerProfile(id?: string): Promise<CustomerProfile> {
   try {
-    return await api.get<CustomerProfile>(`/customer-lifecycle/customers/${id}`);
+    return await api.get<CustomerProfile>(endpoints.customerLifecycle.customer(id));
   } catch (e) {
     console.warn("Using mock fallback for fetchCustomerProfile", e);
     await delay(400);
@@ -849,7 +871,7 @@ export async function fetchCustomerProfile(id?: string): Promise<CustomerProfile
 
 export async function fetchLifecycleProgress(customerId?: string): Promise<LifecycleProgress> {
   try {
-    return await api.get<LifecycleProgress>(`/customer-lifecycle/lifecycle/${customerId}`);
+    return await api.get<LifecycleProgress>(endpoints.customerLifecycle.lifecycle(customerId));
   } catch (e) {
     console.warn("Using mock fallback for fetchLifecycleProgress", e);
     await delay(400);
@@ -868,7 +890,7 @@ export async function fetchLifecycleProgress(customerId?: string): Promise<Lifec
 
 export async function fetchTimelineData(customerId?: string): Promise<TimelineData> {
   try {
-    return await api.get<TimelineData>(`/customer-lifecycle/timeline/${customerId}`);
+    return await api.get<TimelineData>(endpoints.customerLifecycle.timeline(customerId));
   } catch (e) {
     console.warn("Using mock fallback for fetchTimelineData", e);
     await delay(300);
@@ -887,7 +909,7 @@ export async function fetchTimelineData(customerId?: string): Promise<TimelineDa
 
 export async function fetchRenewalStats(): Promise<RenewalStats> {
   try {
-    return await api.get<RenewalStats>("/customer-lifecycle/renewals/stats");
+    return await api.get<RenewalStats>(endpoints.customerLifecycle.renewalStats);
   } catch (e) {
     console.warn("Using mock fallback for fetchRenewalStats", e);
     await delay(200);
@@ -897,7 +919,7 @@ export async function fetchRenewalStats(): Promise<RenewalStats> {
 
 export async function fetchRenewalGroups(): Promise<RenewalGroup[]> {
   try {
-    return await api.get<RenewalGroup[]>("/customer-lifecycle/renewals/groups");
+    return await api.get<RenewalGroup[]>(endpoints.customerLifecycle.renewalGroups);
   } catch (e) {
     console.warn("Using mock fallback for fetchRenewalGroups", e);
     await delay(400);
@@ -907,7 +929,7 @@ export async function fetchRenewalGroups(): Promise<RenewalGroup[]> {
 
 export async function fetchSubscriptionOverview(customerId?: string): Promise<SubscriptionOverview> {
   try {
-    return await api.get<SubscriptionOverview>(`/customer-lifecycle/subscriptions/${customerId}`);
+    return await api.get<SubscriptionOverview>(endpoints.customerLifecycle.subscriptionOverview(customerId));
   } catch (e) {
     console.warn("Using mock fallback for fetchSubscriptionOverview", e);
     await delay(300);
@@ -930,7 +952,7 @@ export async function fetchSubscriptionOverview(customerId?: string): Promise<Su
 
 export async function fetchCustomerDistribution(): Promise<CustomerDistribution[]> {
   try {
-    return await api.get<CustomerDistribution[]>("/customer-lifecycle/distribution");
+    return await api.get<CustomerDistribution[]>(endpoints.customerLifecycle.customerDistribution);
   } catch (e) {
     console.warn("Using mock fallback for fetchCustomerDistribution", e);
     await delay(200);
@@ -940,7 +962,7 @@ export async function fetchCustomerDistribution(): Promise<CustomerDistribution[
 
 export async function fetchLifecycleStatus(): Promise<LifecycleStatusItem[]> {
   try {
-    return await api.get<LifecycleStatusItem[]>("/customer-lifecycle/lifecycle-status");
+    return await api.get<LifecycleStatusItem[]>(endpoints.customerLifecycle.lifecycleStatus);
   } catch (e) {
     console.warn("Using mock fallback for fetchLifecycleStatus", e);
     await delay(200);
@@ -950,7 +972,7 @@ export async function fetchLifecycleStatus(): Promise<LifecycleStatusItem[]> {
 
 export async function createCustomer(customer: Omit<Customer, "id" | "initials" | "customerId">): Promise<Customer> {
   try {
-    return await api.post<Customer>("/customer-lifecycle/customers", customer);
+    return await api.post<Customer>(endpoints.customerLifecycle.customers, customer);
   } catch (e) {
     console.warn("Using mock fallback for createCustomer", e);
     await delay(300);
@@ -980,7 +1002,7 @@ export async function createCustomer(customer: Omit<Customer, "id" | "initials" 
 
 export async function updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer> {
   try {
-    return await api.put<Customer>(`/customer-lifecycle/customers/${id}`, updates);
+    return await api.put<Customer>(endpoints.customerLifecycle.customer(id), updates);
   } catch (e) {
     console.warn("Using mock fallback for updateCustomer", e);
     await delay(300);
@@ -994,7 +1016,7 @@ export async function updateCustomer(id: string, updates: Partial<Customer>): Pr
 
 export async function deleteCustomer(id: string): Promise<boolean> {
   try {
-    await api.delete(`/customer-lifecycle/customers/${id}`);
+    await api.delete(endpoints.customerLifecycle.customer(id));
     return true;
   } catch (e) {
     console.warn("Using mock fallback for deleteCustomer", e);

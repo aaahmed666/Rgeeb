@@ -16,14 +16,22 @@ const DashboardView = dynamic(() => import("@/views/DashboardView"), {
 });
 
 export default function DashboardIndexPage() {
-  const { isAdmin, isLoading } = useAuth();
+  const { isAdmin, isLoading, hasPermission } = useAuth();
   const router = useRouter();
 
+  // CRM-scoped accounts (e.g. the CRM demo login) have no access to the
+  // generic dashboard modules — send them to their own dashboard.
+  const crmOnly =
+    !isAdmin && hasPermission("customer_lifecycle") && !hasPermission("insights");
+
   useEffect(() => {
-    if (!isLoading && isAdmin) {
+    if (isLoading) return;
+    if (isAdmin) {
       router.replace("/dashboard/admin");
+    } else if (crmOnly) {
+      router.replace("/dashboard/customer-lifecycle");
     }
-  }, [isAdmin, isLoading, router]);
+  }, [isAdmin, crmOnly, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -33,8 +41,8 @@ export default function DashboardIndexPage() {
     );
   }
 
-  // Admin will be redirected above — render nothing while redirect happens
-  if (isAdmin) return null;
+  // Admin / CRM-only will be redirected above — render nothing during redirect
+  if (isAdmin || crmOnly) return null;
 
   return <DashboardView />;
 }

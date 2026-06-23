@@ -53,6 +53,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --color-status-info: var(--status-info);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -103,6 +107,12 @@
   --chart-4: oklch(0.7 0.16 145);
   --chart-5: oklch(0.65 0.2 25);
 
+  /* Status hues — light mode (legible on light surfaces) */
+  --status-success: oklch(0.6 0.16 150);
+  --status-warning: oklch(0.7 0.16 70);
+  --status-danger: oklch(0.58 0.22 27);
+  --status-info: oklch(0.58 0.16 240);
+
   --sidebar: var(--brand-navy);
   --sidebar-foreground: oklch(0.97 0.005 250);
   --sidebar-primary: var(--brand-orange);
@@ -151,6 +161,12 @@
   --chart-3: oklch(0.7 0.16 145);
   --chart-4: oklch(0.65 0.2 25);
   --chart-5: oklch(0.65 0.15 295);
+
+  /* Status hues — dark mode (brighter so they pop on navy surfaces) */
+  --status-success: oklch(0.78 0.15 150);
+  --status-warning: oklch(0.82 0.15 75);
+  --status-danger: oklch(0.7 0.19 25);
+  --status-info: oklch(0.72 0.13 235);
 
   --sidebar: oklch(0.326 0.053 263); /* #263450 — sidebar (darker) */
   --sidebar-foreground: oklch(0.97 0.005 80);

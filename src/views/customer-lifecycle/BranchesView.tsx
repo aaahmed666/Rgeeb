@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 interface Branch {
   id: string;
@@ -83,6 +85,8 @@ const MOCK_BRANCHES: Branch[] = [
 ];
 
 export default function BranchesView() {
+  const { t } = useTranslation();
+  const isRtl = (i18n.resolvedLanguage ?? i18n.language) === "ar";
   const [search, setSearch] = useState("");
 
   const filteredBranches = useMemo(() => {
@@ -99,63 +103,63 @@ export default function BranchesView() {
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Branches Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage and monitor branch configurations and camera nodes</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("customerLifecycle.br.title", "Branches Overview")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("customerLifecycle.br.subtitle", "Manage and monitor branch configurations and camera nodes")}</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-80 sm:flex-initial">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search specific branches..."
+              placeholder={t("customerLifecycle.br.searchPlaceholder", "Search specific branches...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-[40px]"
+              className="ps-9 h-[40px]"
             />
           </div>
           <Button className="gap-2 h-[40px] px-4 font-semibold active:scale-95 transition-transform shrink-0">
             <Plus className="h-4 w-4" />
-            New Branch
+            {t("customerLifecycle.br.newBranch", "New Branch")}
           </Button>
         </div>
       </div>
 
       {/* Statistics Banner */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-surface border border-border shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">Total Branches</p>
+            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">{t("customerLifecycle.br.totalBranches", "Total Branches")}</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-foreground leading-none">124</span>
-              <span className="text-xs font-semibold text-emerald-500 flex items-center mb-0.5">
-                <TrendingUp className="h-3.5 w-3.5 mr-0.5" /> 12%
+              <span className="text-xs font-semibold text-[var(--status-success)] flex items-center mb-0.5">
+                <TrendingUp className="h-3.5 w-3.5 me-0.5" /> 12%
               </span>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-surface border border-border shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">Online Now</p>
+            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">{t("customerLifecycle.br.onlineNow", "Online Now")}</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-foreground leading-none">118</span>
               <span className="text-xs font-semibold text-muted-foreground mb-0.5">/ 124</span>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-surface border border-border shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">Total Cameras</p>
+            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">{t("customerLifecycle.br.totalCameras", "Total Cameras")}</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-foreground leading-none">2,842</span>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-surface border border-border shadow-sm">
+        <Card className="bg-card border border-border shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">AI Utilization</p>
+            <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase mb-1">{t("customerLifecycle.br.aiUtilization", "AI Utilization")}</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-foreground leading-none">84%</span>
-              <div className="flex-1 h-2 bg-muted rounded-full ml-4 mb-1 overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full" style={{ width: "84%" }}></div>
+              <div className="flex-1 h-2 bg-muted rounded-full ms-4 mb-1 overflow-hidden">
+                <div className="h-full bg-[var(--chart-1)] rounded-full" style={{ width: "84%" }}></div>
               </div>
             </div>
           </CardContent>
@@ -173,15 +177,15 @@ export default function BranchesView() {
                 style={{ backgroundImage: `url('${branch.bgUrl}')` }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-4">
+              <div className="absolute bottom-4 start-4">
                 <Badge
                   className={cn(
                     "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 text-white flex items-center gap-1 border-0",
-                    branch.status === "Online" ? "bg-emerald-500" : "bg-rose-500"
+                    branch.status === "Online" ? "bg-[var(--status-success)]" : "bg-[var(--status-danger)]"
                   )}
                 >
                   <span className={cn("w-1.5 h-1.5 bg-white rounded-full", branch.status === "Online" && "animate-pulse")} />
-                  {branch.status}
+                  {t("customerLifecycle.status." + branch.status.toLowerCase(), branch.status)}
                 </Badge>
               </div>
             </div>
@@ -206,11 +210,11 @@ export default function BranchesView() {
               {/* Data boxes */}
               <div className="grid grid-cols-2 gap-4 mt-auto">
                 <div className="bg-muted/40 p-3 rounded-lg border border-border/30">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Cameras</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{t("customerLifecycle.br.cameras", "Cameras")}</p>
                   <p className="text-lg font-bold text-foreground">{branch.camerasCount}</p>
                 </div>
                 <div className="bg-muted/40 p-3 rounded-lg border border-border/30">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Active AI</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{t("customerLifecycle.br.activeAi", "Active AI")}</p>
                   <p className="text-lg font-bold text-foreground">{branch.activeServicesCount}</p>
                 </div>
               </div>
@@ -233,11 +237,11 @@ export default function BranchesView() {
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border shadow-sm mt-8">
-        <p className="text-xs text-muted-foreground">Showing 6 of 124 branches</p>
+      <div className="flex justify-between items-center bg-card p-4 rounded-xl border border-border shadow-sm mt-8">
+        <p className="text-xs text-muted-foreground">{t("customerLifecycle.br.showing", "Showing {{shown}} of {{total}} branches", { shown: 6, total: 124 })}</p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-8 w-8" disabled>
-            <ChevronLeft className="h-4 w-4" />
+            {isRtl ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
           <Button size="sm" className="h-8 w-8 p-0 font-semibold">1</Button>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">2</Button>
@@ -245,7 +249,7 @@ export default function BranchesView() {
           <span className="px-1 text-muted-foreground text-xs">...</span>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">21</Button>
           <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronRight className="h-4 w-4" />
+            {isRtl ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
         </div>
       </div>

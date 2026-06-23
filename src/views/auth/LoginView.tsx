@@ -72,9 +72,9 @@ export default function LoginView() {
     try {
       // login() returns { isAdmin } from the resolved user — no React
       // re-render needed before we can navigate to the right dashboard.
-      const { isAdmin: resolvedAdmin } = await login(email, password, remember);
+      const { landingPath } = await login(email, password, remember);
       showToast(t("auth.login.successToast"), true);
-      router.push(resolvedAdmin ? "/dashboard/admin" : "/dashboard");
+      router.push(landingPath);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Sign in failed", false);
     } finally {

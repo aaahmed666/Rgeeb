@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 import { fetchTimelineData } from "@/services/customerLifecycleMockService";
 import type { TimelineData, ActivityEvent } from "@/services/customerLifecycleMockService";
@@ -34,13 +35,13 @@ const EVENT_CONFIG: Record<
   string,
   { icon: React.ElementType; bg: string; text: string }
 > = {
-  subscription: { icon: CreditCard, bg: "bg-emerald-500/15", text: "text-emerald-600 dark:text-emerald-400" },
-  system: { icon: Zap, bg: "bg-blue-500/15", text: "text-blue-600 dark:text-blue-400" },
-  training: { icon: GraduationCap, bg: "bg-purple-500/15", text: "text-purple-600 dark:text-purple-400" },
-  ai: { icon: Shield, bg: "bg-cyan-500/15", text: "text-cyan-600 dark:text-cyan-400" },
-  integration: { icon: Plug, bg: "bg-amber-500/15", text: "text-amber-600 dark:text-amber-400" },
-  asset: { icon: HardDrive, bg: "bg-indigo-500/15", text: "text-indigo-600 dark:text-indigo-400" },
-  account: { icon: UserPlus, bg: "bg-slate-500/15", text: "text-slate-600 dark:text-slate-400" },
+  subscription: { icon: CreditCard, bg: "bg-[var(--status-success)]/15", text: "text-[var(--status-success)]" },
+  system: { icon: Zap, bg: "bg-[var(--status-info)]/15", text: "text-[var(--status-info)]" },
+  training: { icon: GraduationCap, bg: "bg-[var(--chart-5)]/15", text: "text-[var(--chart-5)] dark:text-[var(--chart-5)]" },
+  ai: { icon: Shield, bg: "bg-[var(--status-info)]/15", text: "text-[var(--status-info)]" },
+  integration: { icon: Plug, bg: "bg-[var(--status-warning)]/15", text: "text-[var(--status-warning)]" },
+  asset: { icon: HardDrive, bg: "bg-[var(--status-info)]/15", text: "text-[var(--status-info)]" },
+  account: { icon: UserPlus, bg: "bg-muted/15", text: "text-muted-foreground dark:text-muted-foreground" },
 };
 
 /* ── Timeline Event Card ────────────────────────────────────────────────── */
@@ -52,7 +53,7 @@ function TimelineEvent({ event }: { event: ActivityEvent }) {
   return (
     <div className="group relative flex gap-4 pb-8 last:pb-0">
       {/* Vertical connector line */}
-      <div className="absolute left-5 top-12 bottom-0 w-px bg-border group-last:hidden" />
+      <div className="absolute start-5 top-12 bottom-0 w-px bg-border group-last:hidden" />
 
       {/* Dot */}
       <div
@@ -116,6 +117,7 @@ function TimelineEvent({ event }: { event: ActivityEvent }) {
 /* ── Main TimelineView ──────────────────────────────────────────────────── */
 
 export default function TimelineView() {
+  const { t } = useTranslation();
   const timelineQ = useQuery<TimelineData>({
     queryKey: ["cl-timeline-data"],
     queryFn: () => fetchTimelineData(),
@@ -148,20 +150,20 @@ export default function TimelineView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs text-muted-foreground">
-            Customers &gt; {data?.customerName}
+            {t("customerLifecycle.customers", "Customers")} &gt; {data?.customerName}
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-            Customer Timeline
+            {t("customerLifecycle.tl.title", "Customer Timeline")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5">
             <Filter className="h-3.5 w-3.5" />
-            Filter View
+            {t("customerLifecycle.tl.filterView", "Filter View")}
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5">
             <Download className="h-3.5 w-3.5" />
-            Export CSV
+            {t("customerLifecycle.tl.exportCsv", "Export CSV")}
           </Button>
         </div>
       </div>
@@ -170,15 +172,15 @@ export default function TimelineView() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-              <Calendar className="h-5 w-5 text-blue-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--status-info)]/10">
+              <Calendar className="h-5 w-5 text-[var(--status-info)]" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Days Since Launch
+                {t("customerLifecycle.tl.daysSinceLaunch", "Days Since Launch")}
               </p>
               <p className="text-xl font-bold text-foreground">{data?.daysSinceLaunch}</p>
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+              <p className="text-[10px] text-[var(--status-success)]">
                 {data?.daysTrend}
               </p>
             </div>
@@ -186,12 +188,12 @@ export default function TimelineView() {
         </Card>
         <Card className="transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
-              <Camera className="h-5 w-5 text-purple-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--chart-5)]/10">
+              <Camera className="h-5 w-5 text-[var(--chart-5)]" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Active Cameras
+                {t("customerLifecycle.tl.activeCameras", "Active Cameras")}
               </p>
               <p className="text-xl font-bold text-foreground">
                 {data?.activeCameras.toLocaleString()}
@@ -202,12 +204,12 @@ export default function TimelineView() {
         </Card>
         <Card className="transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-              <DollarSign className="h-5 w-5 text-emerald-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--status-success)]/10">
+              <DollarSign className="h-5 w-5 text-[var(--status-success)]" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Annualized Value
+                {t("customerLifecycle.tl.annualizedValue", "Annualized Value")}
               </p>
               <p className="text-xl font-bold text-foreground">{data?.annualizedValue}</p>
               <p className="text-[10px] text-muted-foreground">
