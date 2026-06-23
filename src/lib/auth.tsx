@@ -95,6 +95,22 @@ function collectFromRoles(roles: AuthUserRaw["roles"]): {
   return { roleNames, perms };
 }
 
+// ── CRM (Customer Lifecycle) demo account ──────────────────────────────────
+// The Customer Lifecycle module is frontend-only (mock data); the backend has
+// NO real user for it. `toAuthUser` scopes this email to CRM-only permissions,
+// and `login()` short-circuits these credentials WITHOUT calling the API (a
+// real login request would fail because the account doesn't exist server-side).
+// When the backend ships real RBAC, drop this and grant `customer_lifecycle.*`.
+const CRM_DEMO_EMAILS = ["crm-admin@admin.com"];
+const CRM_DEMO_PASSWORD = "admin123";
+
+function isCrmDemoCredentials(email: string, password: string): boolean {
+  return (
+    CRM_DEMO_EMAILS.includes((email ?? "").trim().toLowerCase()) &&
+    password === CRM_DEMO_PASSWORD
+  );
+}
+
 function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
   const email = raw?.email ?? fallbackEmail ?? "";
 
@@ -119,7 +135,6 @@ function toAuthUser(raw: AuthUserRaw | null, fallbackEmail?: string): AuthUser {
   // all of its pages, with the same shell/styling as the normal & admin
   // dashboards, but none of the other modules. When the backend ships real
   // RBAC, drop this block and grant `customer_lifecycle.*` server-side instead.
-  const CRM_DEMO_EMAILS = ["crm-admin@admin.com"];
   const isCrmDemo = !!email && CRM_DEMO_EMAILS.includes(email.toLowerCase());
 
   // Admin detection:
@@ -268,6 +283,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     rememberMe = false
   ) => {
     if (!email || !password) throw new Error("Email and password are required");
+
+    // CRM demo account is frontend-only — the backend has no such user, so a
+    // real login request would fail (401/404). Short-circuit into a local,
+    // CRM-scoped session with no API call. Customer Lifecycle pages run on mock
+    // data, so no backend token is needed (a placeholder keeps route guards,
+    // which only check for a token's presence, satisfied).
+    if (isCrmDemoCredentials(email, password)) {
+      const demoUser = toAuthUser({ name: "CRM Admin", email }, email);
+      setAuthToken("crm-demo-session", rememberMe);
+      setAuthRole(demoUser.role);
+      applyUser(demoUser);
+      return { isAdmin: false, landingPath: "/dashboard/customer-lifecycle" };
+    }
+
     const { token, user: rawUser } = await loginRequest(
       email,
       password,
