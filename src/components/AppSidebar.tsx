@@ -940,14 +940,15 @@ export function AppSidebar() {
   const settingsVisible = isAdmin
     ? []
     : (settingsGroup.map(filterGroup).filter(Boolean) as GroupItem[]);
-  // Customer Lifecycle appears ONLY alongside the admin dashboard — i.e. for
-  // admins only; regular users don't see it in the nav. It is itself PUBLIC:
-  // its items carry no `permission`, so any admin sees it without needing a
-  // `customer_lifecycle` grant (the admin dashboard keeps its own role/permission
-  // gating; the CRM route guard stays auth-only / public).
-  const customerLifecycleVisible = isAdmin
-    ? (customerLifecycleGroup.map(filterGroup).filter(Boolean) as GroupItem[])
-    : [];
+  // The standalone CRM (Customer Lifecycle) dashboard is now shown PER CLIENT
+  // via the admin Clients table → row menu → "Preview" dialog. So the standalone
+  // Customer Lifecycle nav group is turned OFF for now. To bring it back, set
+  // SHOW_CRM_NAV to true (it then shows for admins only, as before).
+  const SHOW_CRM_NAV: boolean = false;
+  const customerLifecycleVisible: GroupItem[] =
+    SHOW_CRM_NAV && isAdmin
+      ? (customerLifecycleGroup.map(filterGroup).filter(Boolean) as GroupItem[])
+      : [];
 
   // ── Collapsed hover flyout (Portal-based to escape overflow:hidden) ────────
   const CollapsedFlyout = ({
@@ -1422,9 +1423,7 @@ export function AppSidebar() {
               {t("sidebar.customerLifecycle", "Customer Lifecycle")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {customerLifecycleVisible.map(renderGroupItem)}
-              </SidebarMenu>
+              <SidebarMenu>{customerLifecycleVisible.map(renderGroupItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

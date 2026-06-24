@@ -587,6 +587,10 @@ export const endpoints = {
     subscriptions: "/admin/subscriptions",
     subscriptionSingle: "/admin/subscriptions/single",
     subscriptionsActive: "/admin/subscriptions/active",
+    // OLD project contract: POST create/update (full body), POST delete { id }.
+    subscriptionCreate: "/admin/subscriptions/create",
+    subscriptionUpdate: "/admin/subscriptions/update",
+    subscriptionDelete: "/admin/subscriptions/delete",
 
     // Cities
     // NOTE: Postman collection shows /api/admin/cities for POST/PUT/DELETE but

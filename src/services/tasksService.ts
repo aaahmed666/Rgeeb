@@ -373,9 +373,7 @@ export const tasksService = {
       const summary: TaskSummary = {
         total: num(summaryRaw.total ?? total, total),
         inProgress: num(
-          summaryRaw.in_progress ??
-            summaryRaw.inProgress ??
-            byStatus.in_progress
+          summaryRaw.in_progress ?? summaryRaw.inProgress ?? byStatus.in_progress
         ),
         completed: num(summaryRaw.completed ?? byStatus.completed),
         overdue: num(

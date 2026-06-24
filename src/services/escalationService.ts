@@ -5,13 +5,7 @@
  */
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import {
-  pickArray as _pickArr,
-  str,
-  bool,
-  id,
-  type RawObject,
-} from "@/lib/raw-response";
+import { pickArray as _pickArr, str, bool, id, type RawObject } from "@/lib/raw-response";
 
 export interface EscalationRule {
   id: string;
@@ -70,8 +64,7 @@ function pickArray(raw: unknown): RawObject[] {
 }
 
 function mapRule(r: RawObject): EscalationRule {
-  const minutes =
-    r.trigger_minutes ?? r.triggerMinutes ?? r.minutes ?? r.delay_minutes;
+  const minutes = r.trigger_minutes ?? r.triggerMinutes ?? r.minutes ?? r.delay_minutes;
   const trigger =
     str(r, "trigger") ??
     (minutes != null ? `+${minutes} min` : (str(r, "trigger_label") ?? ""));
@@ -80,8 +73,7 @@ function mapRule(r: RawObject): EscalationRule {
     level: str(r, "level", "severity") ?? "L1",
     name: str(r, "name", "title", "description") ?? "",
     trigger,
-    action:
-      str(r, "action_label", "actionLabel", "action", "action_type") ?? "",
+    action: str(r, "action_label", "actionLabel", "action", "action_type") ?? "",
     actionType: str(r, "action_type", "actionType"),
     active: bool(r, "active", "is_active", "enabled"),
   };
@@ -104,8 +96,7 @@ function mapLog(l: RawObject): EscalationLogItem {
   return {
     id: id(l),
     taskId: str(l, "task_id", "taskId"),
-    taskTitle:
-      str(l, "task_title", "taskTitle") ?? (task && str(task, "title")),
+    taskTitle: str(l, "task_title", "taskTitle") ?? (task && str(task, "title")),
     level: str(l, "level", "severity"),
     action: str(l, "action", "action_label"),
     triggeredAt: str(l, "triggered_at", "created_at", "createdAt"),

@@ -2,11 +2,7 @@ import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 
 export type RulePriority = "low" | "medium" | "high" | "critical";
-export type RuleTaskType =
-  | "ai_generated"
-  | "violation_response"
-  | "manual"
-  | string;
+export type RuleTaskType = "ai_generated" | "violation_response" | "manual" | string;
 
 export interface AiService {
   id: string;
@@ -59,8 +55,7 @@ function n(v: unknown) {
 function b(v: unknown) {
   if (typeof v === "boolean") return v;
   if (typeof v === "number") return v !== 0;
-  if (typeof v === "string")
-    return ["1", "true", "yes"].includes(v.toLowerCase());
+  if (typeof v === "string") return ["1", "true", "yes"].includes(v.toLowerCase());
   return false;
 }
 
@@ -115,9 +110,7 @@ export async function fetchTaskRules(): Promise<TaskRule[]> {
 export async function fetchTaskRuleStats(): Promise<TaskRuleStats> {
   try {
     // /customer/task-rules/stats does not exist — derive stats from the rules list
-    const res = await apiFetch<Record<string, unknown>>(
-      endpoints.taskRules.list
-    );
+    const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.list);
     const data = (res?.data as Record<string, unknown>) ?? res ?? {};
     // If backend returns stats directly, use them; otherwise compute from list
     if ("total_processed" in data || "totalProcessed" in data) {
@@ -127,17 +120,11 @@ export async function fetchTaskRuleStats(): Promise<TaskRuleStats> {
         totalProcessed: total,
         tasksCreated: n(data.tasks_created ?? data.tasksCreated),
         deduplicated: dedup,
-        dedupRate: n(
-          data.dedup_rate ??
-            data.dedupRate ??
-            (total > 0 ? (dedup / total) * 100 : 0)
-        ),
+        dedupRate: n(data.dedup_rate ?? data.dedupRate ?? (total > 0 ? (dedup / total) * 100 : 0)),
       };
     }
     // Derive from rules list
-    const arr = Array.isArray(data)
-      ? data
-      : ((data as { data?: unknown[] }).data ?? []);
+    const arr = Array.isArray(data) ? data : ((data as { data?: unknown[] }).data ?? []);
     const total = (arr as unknown[]).length;
     return {
       totalProcessed: total,
@@ -146,12 +133,7 @@ export async function fetchTaskRuleStats(): Promise<TaskRuleStats> {
       dedupRate: 0,
     };
   } catch {
-    return {
-      totalProcessed: 0,
-      tasksCreated: 0,
-      deduplicated: 0,
-      dedupRate: 0,
-    };
+    return { totalProcessed: 0, tasksCreated: 0, deduplicated: 0, dedupRate: 0 };
   }
 }
 
@@ -166,8 +148,7 @@ function toSaveBody(input: Partial<TaskRuleInput>): Record<string, unknown> {
   if (input.enabled !== undefined) body.enabled = input.enabled;
   if (input.task_type !== undefined) body.task_type = input.task_type;
   if (input.priority !== undefined) body.priority = input.priority;
-  if (input.sla_minutes !== undefined)
-    body.response_minutes = input.sla_minutes;
+  if (input.sla_minutes !== undefined) body.response_minutes = input.sla_minutes;
   if (input.dedup_minutes !== undefined)
     body.dedup_window_minutes = input.dedup_minutes;
   if (input.auto_assign !== undefined) body.auto_assign = input.auto_assign;
@@ -176,27 +157,21 @@ function toSaveBody(input: Partial<TaskRuleInput>): Record<string, unknown> {
 }
 
 export async function createTaskRule(input: TaskRuleInput): Promise<TaskRule> {
-  const res = await apiFetch<Record<string, unknown>>(
-    endpoints.taskRules.save,
-    {
-      method: "POST",
-      body: toSaveBody(input),
-    }
-  );
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.save, {
+    method: "POST",
+    body: toSaveBody(input),
+  });
   return mapRule((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
 export async function updateTaskRule(
   id: string,
-  input: Partial<TaskRuleInput>
+  input: Partial<TaskRuleInput>,
 ): Promise<TaskRule> {
-  const res = await apiFetch<Record<string, unknown>>(
-    endpoints.taskRules.save,
-    {
-      method: "POST",
-      body: { id, ...toSaveBody(input) },
-    }
-  );
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.save, {
+    method: "POST",
+    body: { id, ...toSaveBody(input) },
+  });
   return mapRule((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
@@ -210,7 +185,7 @@ export async function updateTaskRule(
  */
 export async function toggleTaskRule(
   rule: TaskRule,
-  enabled: boolean
+  enabled: boolean,
 ): Promise<TaskRule> {
   const body: Record<string, unknown> = {
     id: rule.id,
@@ -224,46 +199,31 @@ export async function toggleTaskRule(
   };
   // Preserve fields that aren't surfaced in the toggle UI so the save doesn't
   // blank them out.
-  if (rule.titleTemplate !== undefined)
-    body.title_template = rule.titleTemplate;
+  if (rule.titleTemplate !== undefined) body.title_template = rule.titleTemplate;
   if (rule.descriptionTemplate !== undefined)
     body.description_template = rule.descriptionTemplate;
   if (rule.assigneeId) body.assignee_id = rule.assigneeId;
 
-  const res = await apiFetch<Record<string, unknown>>(
-    endpoints.taskRules.save,
-    {
-      method: "POST",
-      body,
-    }
-  );
+  const res = await apiFetch<Record<string, unknown>>(endpoints.taskRules.save, {
+    method: "POST",
+    body,
+  });
   return mapRule((res?.data as Record<string, unknown>) ?? res ?? {});
 }
 
 export async function deleteTaskRule(id: string): Promise<void> {
   try {
-    await apiFetch(endpoints.taskRules.delete(id), {
-      method: "POST",
-      body: { id },
-    });
+    await apiFetch(endpoints.taskRules.delete(id), { method: "POST", body: { id } });
   } catch {
     // OLD production contract fallback: POST /customer/task-rules/delete { id }
-    await apiFetch(endpoints.taskRules.legacyDelete, {
-      method: "POST",
-      body: { id },
-    });
+    await apiFetch(endpoints.taskRules.legacyDelete, { method: "POST", body: { id } });
   }
 }
 
 /** Deduplication statistics — present in OLD production (task rules page). */
-export async function getTaskRuleDedupStats(): Promise<Record<
-  string,
-  unknown
-> | null> {
+export async function getTaskRuleDedupStats(): Promise<Record<string, unknown> | null> {
   try {
-    return await apiFetch<Record<string, unknown>>(
-      endpoints.taskRules.dedupStats
-    );
+    return await apiFetch<Record<string, unknown>>(endpoints.taskRules.dedupStats);
   } catch {
     return null;
   }

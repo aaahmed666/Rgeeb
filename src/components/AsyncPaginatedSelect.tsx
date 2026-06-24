@@ -72,9 +72,9 @@ function unwrapPagination(
     );
     const totalPages = Number(
       pagination.total_pages ??
-        pagination.totalPages ??
-        pagination.last_page ??
-        1
+      pagination.totalPages ??
+      pagination.last_page ??
+      1
     );
     return { hasMore: current < totalPages, nextPage: current + 1 };
   }
@@ -263,10 +263,10 @@ export function AuthPaginatedSelect({
             value: String(match[valueKey] ?? match.id ?? value),
             label: String(
               match[labelKey] ??
-                match.name ??
-                match.name_en ??
-                match.title ??
-                value
+              match.name ??
+              match.name_en ??
+              match.title ??
+              value
             ),
             raw: match,
           });
@@ -326,11 +326,11 @@ export function AuthPaginatedSelect({
           value: String(item[valueKey] ?? item.id ?? ""),
           label: String(
             item[labelKey] ??
-              item.name ??
-              item.name_en ??
-              item.title ??
-              item[valueKey] ??
-              ""
+            item.name ??
+            item.name_en ??
+            item.title ??
+            item[valueKey] ??
+            ""
           ),
           raw: item,
         }));

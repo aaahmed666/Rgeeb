@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Pencil, Trash2, MoreVertical, Loader2 } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, MoreVertical, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { DataTable  } from "@/components/ui/data-table";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ClientLifecyclePreviewDialog } from "@/components/admin/ClientLifecyclePreviewDialog";
 // right= prop (not action=)
 import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader";
 import {
@@ -54,6 +55,7 @@ export default function AdminClientsView() {
   const [editing,  setEditing]  = useState<AdminUser | null>(null);
   const [form,     setForm]     = useState<Partial<AdminUserInput>>(EMPTY);
   const [toDelete, setToDelete] = useState<AdminUser | null>(null);
+  const [preview,  setPreview]  = useState<AdminUser | null>(null);
 
   const q = useQuery({ queryKey: ["admin", "clients"], queryFn: fetchAdminClients });
 
@@ -205,6 +207,9 @@ export default function AdminClientsView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setPreview(u)}>
+                    <Eye className="me-2 h-4 w-4" /> {t("common.preview", "Preview")}
+                  </DropdownMenuItem>
                   {can.update && <DropdownMenuItem onClick={() => openEdit(u)}>
                     <Pencil className="me-2 h-4 w-4" /> {t("common.edit")}
                   </DropdownMenuItem>
@@ -278,6 +283,18 @@ export default function AdminClientsView() {
         description={`${t("admin.common.confirmDelete")} "${toDelete?.name}"?`}
         onConfirm={() => toDelete && deleteMut.mutate(toDelete.id)}
         isLoading={deleteMut.isPending}
+      />
+
+      <ClientLifecyclePreviewDialog
+        open={!!preview}
+        onOpenChange={(o) => !o && setPreview(null)}
+        client={
+          preview
+            ? {
+                name: preview.nameEn || preview.name || preview.nameAr || "Customer",
+              }
+            : null
+        }
       />
     </div>
   );

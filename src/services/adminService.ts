@@ -596,9 +596,12 @@ export interface AdminSubscription {
   id: string;
   userName?: string;
   userEmail?: string;
+  clientId?: string;
   package?: string;
   packageId?: string;
   status?: string;
+  type?: string;
+  paymentStatus?: string;
   startDate?: string;
   endDate?: string;
   daysRemaining?: number;
@@ -608,16 +611,25 @@ export interface AdminSubscription {
 
 function mapSubscription(s: RawObject): AdminSubscription {
   const user = (s.user ?? s.customer) as RawObject | undefined;
+  const client = s.client as RawObject | undefined;
   const pkg = s.package as RawObject | undefined;
   return {
     id: id(s),
     userName:
       (user && str(user, "name_en", "name")) ??
+      (client && str(client, "name_en", "name")) ??
       str(s, "user_name", "customer_name"),
-    userEmail: (user && str(user, "email")) ?? str(s, "user_email"),
+    userEmail:
+      (user && str(user, "email")) ??
+      (client && str(client, "email")) ??
+      str(s, "user_email"),
+    clientId:
+      str(s, "client_id") ?? (client && id(client)) ?? (user && id(user)),
     package: (pkg && str(pkg, "name_en", "name")) ?? str(s, "package_name"),
-    packageId: (pkg && id(pkg)) ?? str(s, "package_id"),
+    packageId: str(s, "package_id") ?? (pkg && id(pkg)),
     status: str(s, "status"),
+    type: str(s, "type"),
+    paymentStatus: str(s, "payment_status"),
     startDate: str(s, "start_date", "starts_at"),
     endDate: str(s, "end_date", "ends_at"),
     daysRemaining: num(s, "days_remaining"),
@@ -650,6 +662,52 @@ export async function fetchAdminSubscriptionSingle(
       })
     )
   );
+}
+
+/**
+ * Create / update / delete an admin subscription.
+ * Mirrors the OLD project contract:
+ *   POST /admin/subscriptions/create  { type, payment_status, client_id, package_id, amount, start_date, end_date }
+ *   POST /admin/subscriptions/update  { id, ...same fields }
+ *   POST /admin/subscriptions/delete  { id }
+ */
+export interface AdminSubscriptionInput {
+  id?: string | number;
+  type?: string;
+  payment_status?: string;
+  client_id: string | number;
+  package_id: string | number;
+  amount: number | string;
+  start_date: string;
+  end_date: string;
+}
+
+export async function createAdminSubscription(
+  input: AdminSubscriptionInput
+): Promise<AdminSubscription> {
+  return mapSubscription(
+    unwrap(await api.post<unknown>(endpoints.admin.subscriptionCreate, input))
+  );
+}
+
+export async function updateAdminSubscription(
+  subId: string | number,
+  input: Partial<AdminSubscriptionInput>
+): Promise<AdminSubscription> {
+  return mapSubscription(
+    unwrap(
+      await api.post<unknown>(endpoints.admin.subscriptionUpdate, {
+        id: subId,
+        ...input,
+      })
+    )
+  );
+}
+
+export async function deleteAdminSubscription(
+  subId: string | number
+): Promise<void> {
+  await api.post<unknown>(endpoints.admin.subscriptionDelete, { id: subId });
 }
 
 // ─── Countries ────────────────────────────────────────────────────────────────
