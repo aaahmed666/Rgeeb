@@ -787,73 +787,66 @@ export function AppSidebar() {
   ];
 
   // ── Customer Lifecycle (CRM) ──
+  // Customer Lifecycle (CRM) is intentionally PUBLIC to every signed-in user:
+  // no `permission` is set on these items, so `canSee` always returns true and
+  // the group renders for admins and non-admins alike. (The route guard in
+  // app/dashboard/customer-lifecycle/layout.tsx is likewise permission-free.)
   const customerLifecycleGroup: GroupItem[] = [
     {
       href: "/dashboard/customer-lifecycle",
       icon: HeartHandshake,
       label: t("customerLifecycle.title", "Customer Lifecycle"),
-      permission: "customer_lifecycle",
       children: [
         {
           href: "/dashboard/customer-lifecycle",
           icon: LayoutDashboard,
           label: t("customerLifecycle.dashboard", "Dashboard"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/customers",
           icon: Users,
           label: t("customerLifecycle.customers", "Customers"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/lifecycle",
           icon: TrendingUp,
           label: t("customerLifecycle.lifecycle", "Lifecycle"),
           badge: { text: "NEW", tone: "new" },
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/subscriptions",
           icon: Crown,
           label: t("customerLifecycle.subscriptions", "Subscriptions"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/branches",
           icon: Building,
           label: t("customerLifecycle.branches", "Branches"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/cameras",
           icon: Camera,
           label: t("customerLifecycle.cameras", "Cameras"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/ai-services",
           icon: Cpu,
           label: t("customerLifecycle.aiServices", "AI Services"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/modules",
           icon: Package,
           label: t("customerLifecycle.modules", "Modules"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/integrations",
           icon: Plug,
           label: t("customerLifecycle.integrations", "Integrations"),
-          permission: "customer_lifecycle",
         },
         {
           href: "/dashboard/customer-lifecycle/renewals",
           icon: RotateCcw,
           label: t("customerLifecycle.renewals", "Renewals"),
-          permission: "customer_lifecycle",
         },
       ],
     },
@@ -947,15 +940,14 @@ export function AppSidebar() {
   const settingsVisible = isAdmin
     ? []
     : (settingsGroup.map(filterGroup).filter(Boolean) as GroupItem[]);
-  // Customer Lifecycle is a mock module hidden from real platform admins by
-  // default. It becomes visible when the account carries an explicit
-  // `customer_lifecycle` grant (e.g. the CRM demo account) — regardless of
-  // admin classification — or for any non-admin that passes the permission.
-  const crmExplicitlyGranted = hasPermission("customer_lifecycle");
-  const customerLifecycleVisible =
-    isAdmin && !crmExplicitlyGranted
-      ? []
-      : (customerLifecycleGroup.map(filterGroup).filter(Boolean) as GroupItem[]);
+  // Customer Lifecycle appears ONLY alongside the admin dashboard — i.e. for
+  // admins only; regular users don't see it in the nav. It is itself PUBLIC:
+  // its items carry no `permission`, so any admin sees it without needing a
+  // `customer_lifecycle` grant (the admin dashboard keeps its own role/permission
+  // gating; the CRM route guard stays auth-only / public).
+  const customerLifecycleVisible = isAdmin
+    ? (customerLifecycleGroup.map(filterGroup).filter(Boolean) as GroupItem[])
+    : [];
 
   // ── Collapsed hover flyout (Portal-based to escape overflow:hidden) ────────
   const CollapsedFlyout = ({
@@ -1430,7 +1422,9 @@ export function AppSidebar() {
               {t("sidebar.customerLifecycle", "Customer Lifecycle")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>{customerLifecycleVisible.map(renderGroupItem)}</SidebarMenu>
+              <SidebarMenu>
+                {customerLifecycleVisible.map(renderGroupItem)}
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
