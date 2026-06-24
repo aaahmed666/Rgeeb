@@ -288,13 +288,13 @@ export default function AdminClientsView() {
       <ClientLifecyclePreviewDialog
         open={!!preview}
         onOpenChange={(o) => !o && setPreview(null)}
-        client={
-          preview
-            ? {
-                name: preview.nameEn || preview.name || preview.nameAr || "Customer",
-              }
-            : null
-        }
+        clientId={preview?.id ?? null}
+        clientName={preview ? (preview.nameEn || preview.name || preview.nameAr || "Customer") : undefined}
+        onEdit={() => {
+          const p = preview;
+          setPreview(null);
+          if (p) openEdit(p);
+        }}
       />
     </div>
   );

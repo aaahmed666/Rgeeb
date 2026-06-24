@@ -1137,3 +1137,187 @@ export async function deleteAdminDetection(
 ): Promise<void> {
   await api.post<unknown>(endpoints.admin.detectionDelete, { id: detectionId });
 }
+
+// ─── Client lifecycle view (per-client Preview) ───────────────────────────────
+//
+// GET /admin/clients/single?id={id}  →  { status, message, data: {
+//   header, summary, lifecycle[], branches[], onboarding_checklist,
+//   active_ai_services[], integrations[], activity_logs[] } }
+//
+// Powers the admin Clients → Preview dialog. Mapped defensively so empty/missing
+// arrays render as graceful empty states.
+
+export interface ClientViewBranch {
+  id: string;
+  name: string;
+  area?: string;
+  cameras?: number;
+  streams?: number;
+  status?: string;
+}
+export interface ClientViewService {
+  name: string;
+  meta?: string;
+  cameras?: number;
+  status?: string;
+}
+export interface ClientViewIntegration {
+  key?: string;
+  name: string;
+  connected: boolean;
+  connectedAt?: string;
+  enabled: boolean;
+}
+export interface ClientViewStep {
+  key: string;
+  label: string;
+  completed: boolean;
+}
+export interface ClientViewActivity {
+  when?: string;
+  title: string;
+  body?: string;
+}
+export interface AdminClientView {
+  header: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    avatar?: string;
+    active: boolean;
+    status?: string;
+    category?: string;
+    country?: string;
+    city?: string;
+    memberSince?: string;
+    mainAdminName?: string;
+    mainAdminEmail?: string;
+    subscription: {
+      packageName?: string;
+      isTrial: boolean;
+      isActive: boolean;
+      hasActive: boolean;
+      startDate?: string;
+      endDate?: string;
+      daysRemaining?: number;
+      maxCameras?: number;
+      maxBranches?: number;
+      currentCameras?: number;
+      currentBranches?: number;
+    };
+  };
+  summary: {
+    branches: number;
+    cameras: number;
+    aiServices: number;
+    modules: number;
+    integrations: number;
+  };
+  lifecycle: ClientViewStep[];
+  branches: ClientViewBranch[];
+  onboarding: { percentage: number; completed: number; total: number; items: ClientViewStep[] };
+  aiServices: ClientViewService[];
+  integrations: ClientViewIntegration[];
+  activity: ClientViewActivity[];
+}
+
+function mapClientView(d: RawObject): AdminClientView {
+  const header = pickObject(d.header);
+  const sub = pickObject(header.subscription);
+  const summary = pickObject(d.summary);
+  const onboarding = pickObject(d.onboarding_checklist);
+  const category = pickObject(header.category);
+  const country = pickObject(header.country);
+  const city = pickObject(header.city);
+  const mainAdmin = pickObject(header.main_admin);
+
+  const step = (s: RawObject): ClientViewStep => ({
+    key: str(s, "key") ?? "",
+    label: str(s, "label", "label_en") ?? "",
+    completed: s.completed === true || s.completed === 1,
+  });
+
+  return {
+    header: {
+      id: id(header),
+      name: str(header, "name_en", "name") ?? "Customer",
+      email: str(header, "email"),
+      phone: str(header, "phone"),
+      avatar: str(header, "avatar"),
+      active: header.active !== false && header.active !== 0,
+      status: str(header, "status"),
+      category: str(category, "name", "name_en"),
+      country: str(country, "name", "name_en"),
+      city: str(city, "name", "name_en"),
+      memberSince: str(header, "member_since"),
+      mainAdminName: str(mainAdmin, "name", "name_en"),
+      mainAdminEmail: str(mainAdmin, "email"),
+      subscription: {
+        packageName: str(sub, "package_name"),
+        isTrial: sub.is_trial === true || sub.is_trial === 1,
+        isActive: sub.subscription_is_active === true || sub.subscription_is_active === 1,
+        hasActive: sub.has_active_subscription === true || sub.has_active_subscription === 1,
+        startDate: str(sub, "subscription_start_date"),
+        endDate: str(sub, "subscription_end_date"),
+        daysRemaining: num(sub, "days_remaining"),
+        maxCameras: num(sub, "max_cameras"),
+        maxBranches: num(sub, "max_branches"),
+        currentCameras: num(sub, "current_cameras"),
+        currentBranches: num(sub, "current_branches"),
+      },
+    },
+    summary: {
+      branches: num(summary, "branches_count") ?? 0,
+      cameras: num(summary, "cameras_count") ?? 0,
+      aiServices: num(summary, "ai_services_active_count") ?? 0,
+      modules: num(summary, "modules_active_count") ?? 0,
+      integrations: num(summary, "integrations_active_count") ?? 0,
+    },
+    lifecycle: pickArray(d.lifecycle).map(step),
+    branches: pickArray(d.branches).map((b) => ({
+      id: id(b),
+      name: str(b, "name_en", "name") ?? "—",
+      area: str(b, "address", "area", "location", "city"),
+      cameras: num(b, "cameras_count", "cameras"),
+      streams: num(b, "ai_streams_count", "ai_streams", "streams"),
+      status: str(b, "status"),
+    })),
+    onboarding: {
+      percentage: num(onboarding, "completion_percentage") ?? 0,
+      completed: num(onboarding, "completed_count") ?? 0,
+      total: num(onboarding, "total_count") ?? 0,
+      items: pickArray(onboarding.items).map(step),
+    },
+    aiServices: pickArray(d.active_ai_services).map((s) => ({
+      name: str(s, "name_en", "name") ?? "—",
+      meta: str(s, "meta", "description", "branch_name"),
+      cameras: num(s, "cameras_count", "cameras_assigned", "cameras"),
+      status: str(s, "status") ?? "Running",
+    })),
+    integrations: pickArray(d.integrations).map((i) => ({
+      key: str(i, "key"),
+      name: str(i, "name") ?? "—",
+      connected: i.connected === true || i.connected === 1,
+      connectedAt: str(i, "connected_at"),
+      enabled: i.enabled === true || i.enabled === 1,
+    })),
+    activity: pickArray(d.activity_logs).map((a) => ({
+      when: str(a, "created_at", "date", "time", "happened_at"),
+      title: str(a, "title", "action", "event", "type") ?? "Activity",
+      body: str(a, "description", "body", "message", "notes"),
+    })),
+  };
+}
+
+export async function fetchAdminClientView(
+  clientId: string | number
+): Promise<AdminClientView> {
+  return mapClientView(
+    unwrap(
+      await api.get<unknown>(endpoints.admin.clientSingle, {
+        query: { id: clientId },
+      })
+    )
+  );
+}
