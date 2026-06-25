@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -40,9 +41,14 @@ export function AppHeader() {
 
       {user && (
         <div className="hidden items-center gap-2 sm:flex">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
+          <Avatar className="h-9 w-9">
+            {user.avatar ? (
+              <AvatarImage src={user.avatar} alt={user.name} />
+            ) : null}
+            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+              {user.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <div className="hidden text-sm leading-tight md:block">
             <div className="font-medium">{user.name}</div>
             <div className="text-xs text-muted-foreground">

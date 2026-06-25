@@ -314,6 +314,7 @@ export async function deleteDepartment(id: string): Promise<void> {
 export interface Employee {
   id: string;
   name: string;
+  nameAr?: string;
   email?: string;
   phone?: string;
   avatar?: string;
@@ -328,6 +329,12 @@ export interface Employee {
   isMainAdmin?: boolean;
   nationalId?: string;
   employeeCode?: string;
+  /** Health certificate (Postman: health_cert_*) */
+  healthCertNumber?: string;
+  healthCertAuthority?: string;
+  healthCertIssueDate?: string;
+  healthCertEndDate?: string;
+  healthCertImage?: string;
 }
 
 export interface WorkingHourDay {
@@ -357,8 +364,12 @@ export interface EmployeeInput {
   /** Postman: code (employee code) */
   code?: string;
   employee_code?: string;
-  certificate_number?: string;
-  certificate_end_date?: string;
+  /** Health certificate fields — Postman: health_cert_* */
+  health_cert_number?: string;
+  health_cert_issue_date?: string;
+  health_cert_authority?: string;
+  health_cert_end_date?: string;
+  health_cert_file?: File | null;
   /** File upload */
   avatar_file?: File | null;
   /** Working schedule: working_hours[N][day/is_day_off/start_time/end_time] */
@@ -397,10 +408,18 @@ function buildEmployeeFormData(
   // code (was employee_code)
   const code = input.code ?? input.employee_code;
   if (code) fd.append("code", code);
-  if (input.certificate_number)
-    fd.append("certificate_number", input.certificate_number);
-  if (input.certificate_end_date)
-    fd.append("certificate_end_date", input.certificate_end_date);
+  // Health certificate — backend expects the health_cert_* field names
+  // (verified against the Postman collection: Customer/Employees/Create).
+  if (input.health_cert_number)
+    fd.append("health_cert_number", input.health_cert_number);
+  if (input.health_cert_issue_date)
+    fd.append("health_cert_issue_date", input.health_cert_issue_date);
+  if (input.health_cert_authority)
+    fd.append("health_cert_authority", input.health_cert_authority);
+  if (input.health_cert_end_date)
+    fd.append("health_cert_end_date", input.health_cert_end_date);
+  if (input.health_cert_file instanceof File)
+    fd.append("health_cert_file", input.health_cert_file);
   if (input.avatar_file) fd.append("avatar_file", input.avatar_file);
   // working_hours[N][day], [is_day_off], [start_time], [end_time]
   // Matches the legacy project exactly:
@@ -452,6 +471,12 @@ function mapEmployee(r: Record<string, unknown>): Employee {
     isMainAdmin: b(r.is_main_admin ?? r.is_admin ?? false),
     nationalId: s(r.national_id) ?? s(r.iqama),
     employeeCode: s(r.employee_code) ?? s(r.code),
+    nameAr: s(r.name_ar),
+    healthCertNumber: s(r.health_cert_number),
+    healthCertAuthority: s(r.health_cert_authority),
+    healthCertIssueDate: s(r.health_cert_issue_date),
+    healthCertEndDate: s(r.health_cert_end_date),
+    healthCertImage: s(r.health_cert_image) ?? s(r.health_cert_file),
   };
 }
 

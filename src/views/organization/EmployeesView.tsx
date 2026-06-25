@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Users,
   Plus,
   Loader2,
@@ -22,6 +24,7 @@ import {
   IdCard,
   ShieldCheck,
   ShieldAlert,
+  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -33,6 +36,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
@@ -98,9 +106,6 @@ interface ExtendedEmployeeInput extends Omit<EmployeeInput, "working_hours"> {
   national_id?: string;
   employee_code?: string;
   is_main_admin?: boolean;
-  certificate_number?: string;
-  certificate_end_date?: string;
-  certificate_image?: File | null;
   working_hours?: WorkingHours;
   photo?: File | null;
 }
@@ -525,6 +530,7 @@ function EmployeeDrawer({
   const photoRef = useRef<HTMLInputElement>(null);
   const certRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [healthCertExpanded, setHealthCertExpanded] = useState(false);
 
   const [form, setForm] = useState<ExtendedEmployeeInput>({
     name: "",
@@ -539,9 +545,11 @@ function EmployeeDrawer({
     is_main_admin: false,
     national_id: "",
     employee_code: "",
-    certificate_number: "",
-    certificate_end_date: "",
-    certificate_image: null,
+    health_cert_number: "",
+    health_cert_authority: "",
+    health_cert_issue_date: "",
+    health_cert_end_date: "",
+    health_cert_file: null,
     photo: null,
     working_hours: defaultWorkingHours(),
   });
@@ -560,9 +568,10 @@ function EmployeeDrawer({
   useEffect(() => {
     if (open) {
       setPhotoPreview(employee?.avatar ?? null);
+      setHealthCertExpanded(false);
       setForm({
         name: employee?.name ?? "",
-        name_ar: "",
+        name_ar: employee?.nameAr ?? "",
         email: employee?.email ?? "",
         phone: employee?.phone ?? "",
         password: "",
@@ -573,9 +582,11 @@ function EmployeeDrawer({
         is_main_admin: employee?.isMainAdmin ?? false,
         national_id: employee?.nationalId ?? "",
         employee_code: employee?.employeeCode ?? "",
-        certificate_number: "",
-        certificate_end_date: "",
-        certificate_image: null,
+        health_cert_number: employee?.healthCertNumber ?? "",
+        health_cert_authority: employee?.healthCertAuthority ?? "",
+        health_cert_issue_date: employee?.healthCertIssueDate ?? "",
+        health_cert_end_date: employee?.healthCertEndDate ?? "",
+        health_cert_file: null,
         photo: null,
         working_hours: defaultWorkingHours(),
       });
@@ -586,6 +597,7 @@ function EmployeeDrawer({
     mutationFn: () => {
       const payload: Partial<EmployeeInput> = {
         name: form.name,
+        name_ar: form.name_ar || undefined,
         email: form.email,
         phone: form.phone || undefined,
         active: form.active,
@@ -603,6 +615,19 @@ function EmployeeDrawer({
         payload.main_admin = form.is_main_admin;
       // photo avatar
       if (form.photo) payload.avatar_file = form.photo;
+      // Health certificate (Postman: health_cert_*). Matches the OLD
+      // AddUserDrawer, which collected these under a dedicated Health
+      // Certificate section and submitted them as health_cert_* fields.
+      if (form.health_cert_number)
+        payload.health_cert_number = form.health_cert_number;
+      if (form.health_cert_authority)
+        payload.health_cert_authority = form.health_cert_authority;
+      if (form.health_cert_issue_date)
+        payload.health_cert_issue_date = form.health_cert_issue_date;
+      if (form.health_cert_end_date)
+        payload.health_cert_end_date = form.health_cert_end_date;
+      if (form.health_cert_file instanceof File)
+        payload.health_cert_file = form.health_cert_file;
       // working hours - convert the day-keyed object into the array shape
       // the API/service expects: [{ day, is_day_off, start_time, end_time }].
       // `day` MUST be the lowercase full name ("sunday".."saturday") — the
@@ -933,59 +958,6 @@ function EmployeeDrawer({
                   </p>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>
-                  {t("employees.certificateNumber", "Certificate Number")}
-                </Label>
-                <Input
-                  value={form.certificate_number}
-                  onChange={(e) =>
-                    setForm({ ...form, certificate_number: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>
-                  {t("employees.certificateEndDate", "Certificate End Date")}
-                </Label>
-                <SharedDateRangePicker
-                  single
-                  date={form.certificate_end_date}
-                  onDateChange={(v) =>
-                    setForm({ ...form, certificate_end_date: v })
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>
-                  {t("employees.certificateImage", "Certificate Image")}
-                </Label>
-                <input
-                  ref={certRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      certificate_image: e.target.files?.[0] ?? null,
-                    })
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => certRef.current?.click()}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 p-3 text-sm text-muted-foreground transition hover:border-primary hover:text-primary"
-                >
-                  <Upload className="h-4 w-4" />
-                  {form.certificate_image
-                    ? form.certificate_image.name
-                    : t(
-                        "employees.uploadCertificate",
-                        "Upload Certificate Image"
-                      )}
-                </button>
-              </div>
             </div>
           </div>
 
@@ -1032,6 +1004,130 @@ function EmployeeDrawer({
               </div>
             </div>
           </div>
+
+          <Separator />
+
+          {/* Health Certificate — collapsible, mirrors the OLD AddUserDrawer.
+              Optional certificate details and copy. */}
+          <Collapsible
+            open={healthCertExpanded}
+            onOpenChange={setHealthCertExpanded}
+          >
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-3 text-left transition hover:bg-muted/50">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300">
+                  <Award className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {t("employees.healthCertificate", "Health Certificate")}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {t(
+                      "employees.healthCertificateSubtitle",
+                      "Optional certificate details and copy"
+                    )}
+                  </div>
+                </div>
+              </div>
+              {healthCertExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>
+                    {t("employees.certificateNumber", "Certificate Number")}
+                  </Label>
+                  <Input
+                    placeholder={t(
+                      "employees.placeholder_certificateNumber",
+                      "Enter certificate number"
+                    )}
+                    value={form.health_cert_number ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, health_cert_number: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    {t("employees.issuingAuthority", "Issuing Authority")}
+                  </Label>
+                  <Input
+                    placeholder={t(
+                      "employees.placeholder_issuingAuthority",
+                      "Enter issuing authority"
+                    )}
+                    value={form.health_cert_authority ?? ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        health_cert_authority: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    {t("employees.certificateIssueDate", "Certificate Issue Date")}
+                  </Label>
+                  <SharedDateRangePicker
+                    single
+                    date={form.health_cert_issue_date}
+                    onDateChange={(v) =>
+                      setForm({ ...form, health_cert_issue_date: v })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    {t("employees.certificateEndDate", "Certificate End Date")}
+                  </Label>
+                  <SharedDateRangePicker
+                    single
+                    date={form.health_cert_end_date}
+                    onDateChange={(v) =>
+                      setForm({ ...form, health_cert_end_date: v })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    {t("employees.certificateImage", "Certificate Image")}
+                  </Label>
+                  <input
+                    ref={certRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        health_cert_file: e.target.files?.[0] ?? null,
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => certRef.current?.click()}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 p-3 text-sm text-muted-foreground transition hover:border-primary hover:text-primary"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {form.health_cert_file
+                      ? form.health_cert_file.name
+                      : t(
+                          "employees.uploadCertificate",
+                          "Upload Certificate Image"
+                        )}
+                  </button>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <Separator />
 

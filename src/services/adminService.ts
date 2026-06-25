@@ -110,6 +110,8 @@ export interface AdminUser {
   mainAdmin?: boolean;
   clientId?: string;
   clientName?: string;
+  roleId?: string;
+  roleName?: string;
   country?: string;
   city?: string;
   avatar?: string | null;
@@ -130,6 +132,10 @@ function mapUser(u: RawObject): AdminUser {
     mainAdmin: bool(u, "main_admin"),
     clientId: str(u, "client_id"),
     clientName: str(u, "client_name", "client"),
+    roleId: str(u, "role_id") ?? ((u.role as RawObject | undefined)?.id != null ? String((u.role as RawObject).id) : undefined),
+    roleName:
+      str(u, "role_name") ??
+      ((u.role as RawObject | undefined) && str(u.role as RawObject, "name")),
     country:
       (country && str(country, "name_en", "name")) ?? str(u, "country_name"),
     city: (city && str(city, "name_en", "name")) ?? str(u, "city_name"),
@@ -165,6 +171,8 @@ export interface AdminUserInput {
   active?: boolean;
   main_admin?: boolean;
   client_id?: string | number;
+  /** Required by the backend: "The role id field is required". */
+  role_id?: string | number;
 }
 
 export async function createAdminUser(
@@ -202,16 +210,32 @@ export interface AdminCategory {
   description?: string;
   image?: string | null;
   active?: boolean;
+  /**
+   * The backend returns additional structural properties on a category
+   * (e.g. `type`, `slug`, nested service/type collections). The OLD project
+   * preserved every raw field via `[key: string]: any`, so the UI could bind
+   * them. The previous narrow mapping dropped them, which is why those
+   * "structural category type data properties" never rendered. We keep a
+   * passthrough index signature to restore that parity.
+   */
+  type?: string;
+  [key: string]: unknown;
 }
 
 function mapCategory(c: RawObject): AdminCategory {
   return {
+    // Preserve every raw field first (matches the OLD store, which returned
+    // the unmodified API objects), then layer normalized camelCase aliases on
+    // top so existing callers keep working AND any extra structural/type
+    // properties survive to the UI.
+    ...c,
     id: id(c),
     nameAr: str(c, "name_ar"),
     nameEn: str(c, "name_en", "name"),
     description: str(c, "description"),
     image: str(c, "image", "category_image") ?? null,
     active: bool(c, "active"),
+    type: str(c, "type", "category_type"),
   };
 }
 
@@ -889,6 +913,11 @@ export interface AdminClientInput {
   password?: string;
   active?: boolean;
   main_admin?: boolean;
+  /**
+   * Required by the backend on create: "The package id field is required".
+   * The client must be assigned a subscription package.
+   */
+  package_id?: string | number;
 }
 
 export async function createAdminClient(
@@ -903,12 +932,15 @@ export async function updateAdminClient(
   clientId: string | number,
   input: Partial<AdminClientInput>
 ): Promise<AdminClient> {
+  // POST, not PUT — the backend only supports POST on /admin/clients/update
+  // ("The PUT method is not supported for route api/admin/clients/update.
+  // Supported methods: POST.").
   return mapClient(
     unwrap(
-      await api.put<unknown>(
-        endpoints.admin.clientUpdate,
-        { id: clientId, ...input }
-      )
+      await api.post<unknown>(endpoints.admin.clientUpdate, {
+        id: clientId,
+        ...input,
+      })
     )
   );
 }
@@ -916,8 +948,8 @@ export async function updateAdminClient(
 export async function deleteAdminClient(
   clientId: string | number
 ): Promise<void> {
-  const deleteFn = endpoints.admin.clientDelete as (id: string | number) => string;
-  await api.delete<unknown>(deleteFn(clientId));
+  // POST /admin/clients/delete with { id } (matches every other admin entity).
+  await api.post<unknown>(endpoints.admin.clientDelete, { id: clientId });
 }
 
 // ─── Roles (admin) ────────────────────────────────────────────────────────────

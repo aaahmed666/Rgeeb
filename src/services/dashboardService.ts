@@ -164,6 +164,19 @@ function inferServiceKey(
 
 /* ------------------------- helpers ------------------------- */
 
+// Palette used by the OLD production AI Detection Breakdown card. Colors are
+// assigned to services by index so the new dashboard renders identical hues.
+const BREAKDOWN_COLORS = [
+  "#667eea",
+  "#4caf50",
+  "#ff9800",
+  "#f44336",
+  "#2196f3",
+  "#9c27b0",
+  "#00bcd4",
+  "#e91e63",
+];
+
 function pickNum(
   d: Record<string, unknown> | undefined,
   ...keys: string[]
@@ -236,6 +249,45 @@ function fetchDashboard(
 }
 
 /**
+ * Fetch per-branch camera online state from the realtime pulse
+ * (`/customer/realtime/pulse`). Returns one entry per camera with its branch
+ * name and online flag. On failure it returns an empty array — never demo
+ * cameras — so branch stats stay honest (no fabricated online cameras).
+ */
+type PulseCamFlag = { branch: string; online: boolean };
+let pulseCamsCache: { at: number; promise: Promise<PulseCamFlag[]> } | null =
+  null;
+
+function fetchPulseCameras(): Promise<PulseCamFlag[]> {
+  const now = Date.now();
+  if (pulseCamsCache && now - pulseCamsCache.at < 15_000) {
+    return pulseCamsCache.promise;
+  }
+  const promise = api
+    .get<Record<string, unknown>>(endpoints.monitoring.pulse)
+    .then((raw) => {
+      const d = ((raw?.data as Record<string, unknown>) ?? raw) as Record<
+        string,
+        unknown
+      >;
+      const cams = pickArr(d, "cameras");
+      return cams.map((c) => {
+        const o = (c ?? {}) as Record<string, unknown>;
+        const isOnline =
+          o.is_online === true ||
+          (o.is_online !== false && o.status === "online");
+        return {
+          branch: String(o.branch ?? "—"),
+          online: Boolean(isOnline),
+        };
+      });
+    })
+    .catch(() => [] as PulseCamFlag[]);
+  pulseCamsCache = { at: now, promise };
+  return promise;
+}
+
+/**
  * Manually invalidate all cached dashboard entries (call before a forced refresh).
  */
 export function invalidateDashboardCache(
@@ -247,6 +299,7 @@ export function invalidateDashboardCache(
   } else {
     inflight.clear();
   }
+  pulseCamsCache = null;
 }
 
 /* ------------------------- public service api ------------------------- */
@@ -464,46 +517,118 @@ export const dashboardService = {
     f: DashboardFilters = {}
   ): Promise<DetectionBreakdownItem[]> => {
     const d = await fetchDashboard(f);
-    const arr = pickArr(
-      d ?? undefined,
-      "detections_breakdown",
-      "detectionsBreakdown",
-      "breakdown"
-    );
-    if (!arr.length) return [];
-    return arr.map((b) => {
+    if (!d) return [];
+
+    // Parity with OLD production dashboard (DetectionBreakdown component):
+    // the unified /customer/dashboard payload exposes detections as
+    //   detections: { total, by_service: [{ service, count }] }
+    // The previous implementation looked for a non-existent
+    // `detections_breakdown` field, so the card always rendered empty
+    // ("No detections today"). We read `detections.by_service` first, then
+    // fall back to grouping `recent_detections` by type when it is absent.
+    const detections = (d.detections ?? {}) as Record<string, unknown>;
+    let rows = pickArr(detections, "by_service", "byService").map((b) => {
       const o = (b ?? {}) as Record<string, unknown>;
       return {
-        key: String(o.key ?? o.slug ?? ""),
-        label: String(o.label ?? o.name ?? "—"),
+        service: String(o.service ?? o.label ?? o.name ?? ""),
         count: pickNum(o, "count"),
-        percent: pickNum(o, "percent", "percentage"),
-        color: String(o.color ?? "#6366f1"),
+      };
+    });
+
+    // Fallback: derive the breakdown from recent_detections grouped by type.
+    if (!rows.length) {
+      const recent = pickArr(
+        d ?? undefined,
+        "recent_detections",
+        "recentDetections"
+      );
+      const grouped: Record<string, number> = {};
+      for (const r of recent) {
+        const ro = (r ?? {}) as Record<string, unknown>;
+        const type = String(ro.type ?? "Unknown");
+        grouped[type] = (grouped[type] ?? 0) + 1;
+      }
+      rows = Object.entries(grouped)
+        .map(([service, count]) => ({ service, count }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    if (!rows.length) return [];
+
+    const total = rows.reduce((s, r) => s + r.count, 0) || 1;
+    return rows.slice(0, 8).map((r, i) => {
+      const label = r.service
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      return {
+        key: r.service || String(i),
+        label: label || "—",
+        count: r.count,
+        percent: Math.round((r.count / total) * 100),
+        color: BREAKDOWN_COLORS[i % BREAKDOWN_COLORS.length],
       };
     });
   },
 
   getBranches: async (f: DashboardFilters = {}): Promise<BranchSummary[]> => {
-    const d = await fetchDashboard(f);
-    const arr = pickArr(
-      d ?? undefined,
-      "branches_summary",
-      "branchesSummary",
-      "branches"
-    );
+    // Parity with OLD production dashboard (Branch Comparison Heatmap):
+    // the /customer/dashboard payload only carries branches as
+    //   branches: [{ id, name, cameras_count }]
+    // Per-branch *detections* are derived from `recent_detections` (matched by
+    // branch name), per-branch *cameras online* from the realtime pulse, and
+    // the letter *grade* from the camera-health percentage. The previous
+    // implementation expected `detections`/`cameras_online`/`grade` fields that
+    // the backend never sends, so every branch showed "0 detections" / "—".
+    const [d, pulseCams] = await Promise.all([
+      fetchDashboard(f),
+      fetchPulseCameras(),
+    ]);
+    const arr = pickArr(d ?? undefined, "branches");
     if (!arr.length) return [];
+
+    const recent = pickArr(
+      d ?? undefined,
+      "recent_detections",
+      "recentDetections"
+    );
+
     return arr.map((b, i) => {
       const o = (b ?? {}) as Record<string, unknown>;
-      const camCount = (o.cameras_count as number) ?? 0;
+      const name = String(o.name ?? o.name_en ?? o.name_ar ?? "—");
+
+      const branchCams = pulseCams.filter((c) => c.branch === name);
+      const online = branchCams.filter((c) => c.online).length;
+      const offline = branchCams.length - online;
+      const camerasTotal =
+        pickNum(o, "cameras_count", "cameras_total", "camerasTotal") ||
+        online + offline ||
+        0;
+
+      const detections = recent.filter((r) => {
+        const ro = (r ?? {}) as Record<string, unknown>;
+        return String(ro.branch ?? ro.branch_name ?? "") === name;
+      }).length;
+
+      const healthPct =
+        camerasTotal > 0 ? Math.round((online / camerasTotal) * 100) : 0;
+      const grade =
+        healthPct >= 90
+          ? "A"
+          : healthPct >= 70
+            ? "B"
+            : healthPct >= 50
+              ? "C"
+              : healthPct >= 1
+                ? "D"
+                : "F";
+
       return {
         id: String(o.id ?? i),
-        name: String(o.name ?? o.name_en ?? "—"),
-        camerasOnline: pickNum(o, "cameras_online", "camerasOnline"),
-        camerasTotal:
-          pickNum(o, "cameras_total", "camerasTotal", "cameras_count") ||
-          camCount,
-        detections: pickNum(o, "detections"),
-        grade: String(o.grade ?? "—"),
+        name,
+        camerasOnline: online,
+        camerasTotal,
+        detections,
+        grade,
       };
     });
   },

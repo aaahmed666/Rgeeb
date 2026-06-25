@@ -23,7 +23,7 @@ export interface CameraServicePoint {
 }
 
 export interface CameraServiceConfig {
-  service_id: string | number;
+  service_id?: string | number;
   points?: CameraServicePoint[];
 }
 
@@ -126,9 +126,11 @@ function buildCameraFormData(input: CameraInput & { id?: string }): FormData {
     fd.append("min_conf", String(input.min_conf));
   if (input.direction_in)
     fd.append("direction_in", input.direction_in);
-  // services[i][service_id], services[i][points][j][x/y]
+  // services[i][service_id] (optional — ROI shapes without a service just send
+  // their points), services[i][points][j][x/y]
   (input.services ?? []).forEach((svc, i) => {
-    fd.append(`services[${i}][service_id]`, String(svc.service_id));
+    if (svc.service_id !== undefined && svc.service_id !== null && svc.service_id !== "")
+      fd.append(`services[${i}][service_id]`, String(svc.service_id));
     (svc.points ?? []).forEach((pt, j) => {
       fd.append(`services[${i}][points][${j}][x]`, String(pt.x));
       fd.append(`services[${i}][points][${j}][y]`, String(pt.y));

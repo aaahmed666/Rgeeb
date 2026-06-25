@@ -615,7 +615,11 @@ export const endpoints = {
     clientSingle: "/admin/clients/single",
     clientCreate: "/admin/clients/create",
     clientUpdate: "/admin/clients/update",
-    clientDelete: (id: string | number) => `/admin/clients/${id}`,
+    // Delete is a POST to /admin/clients/delete with { id } — consistent with
+    // every other admin entity (categories, users, packages…). The previous
+    // `/admin/clients/{id}` REST route does not exist on the backend
+    // ("route api/admin/clients/63 could not be found").
+    clientDelete: "/admin/clients/delete",
     clientToggle: (id: string | number) => `/admin/clients/${id}/toggle-status`,
   },
 

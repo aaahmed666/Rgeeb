@@ -15,6 +15,46 @@ export const normPerm = (s: string): string =>
   s.toLowerCase().replace(/[-_.]/g, "_");
 
 /**
+ * Granular AI-service / Customer-Island feature namespaces.
+ *
+ * In the OLD project each AI-service page was gated on its own subject
+ * (helmet_detection, queue_management, people_counting, …). The NEW UI groups
+ * them all under the single "island" (Store) menu, so holding ANY of these
+ * backend grants must reveal the Island menu and open its pages — otherwise a
+ * user provisioned with only granular feature permissions would see nothing
+ * here. (Ported from old_extract navigation/vertical/index.ts subjects.)
+ */
+export const STORE_AI_FEATURES: string[] = [
+  "helmet_detection",
+  "kitchen_ppe",
+  "fire_detection",
+  "face_detection",
+  "mask_detection",
+  "age_gender_analytics",
+  "behavior_analysis",
+  "cash_register_monitoring",
+  "clean_tables",
+  "cup_counting",
+  "customer_traffic",
+  "delivery_tracking",
+  "drive_thru_monitoring",
+  "gate_monitoring",
+  "license_plate_recognition",
+  "motion_detection",
+  "object_detection",
+  "overcrowd_violation",
+  "people_counting",
+  "person_detection",
+  "queue_management",
+  "receipt_detection",
+  "sandwich_counting",
+  "smoking_detection",
+  "spill_detection",
+  "vehicle_tracking",
+  "waiting_customer",
+];
+
+/**
  * Maps sidebar/view route keys → real backend permission namespaces.
  * A single route key can map to several backend namespaces (ANY match grants).
  */
@@ -29,6 +69,9 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   ],
   // ── AI Services ──
   ai_services: ["detections", "analytics", "service_monitor"],
+  // OLD project gated the whole "AI Services" group on the `services` subject
+  // (services.read). Map it to the same namespaces plus the Island/Store group.
+  services: ["services", "detections", "analytics", "service_monitor", "store", "island", ...STORE_AI_FEATURES],
   detection_feed: ["detections"],
   live_feeds: ["detections", "cameras"],
   system_monitoring: ["detections", "cameras", "service_monitor"],
@@ -61,9 +104,9 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   // store.settings.read) with NO bare `store`/`store.read` — the read-prefix
   // rule in permissionMatchesAction lets any `store.*` grant reveal the menu and
   // open every page (sidebar ↔ guard both call hasPermission("island")).
-  island: ["island", "customer_island", "store"],
-  customer_island: ["island", "customer_island", "store"],
-  store: ["store", "island", "customer_island"],
+  island: ["island", "customer_island", "store", ...STORE_AI_FEATURES],
+  customer_island: ["island", "customer_island", "store", ...STORE_AI_FEATURES],
+  store: ["store", "island", "customer_island", ...STORE_AI_FEATURES],
   // ── Preferences ──
   preferences: ["roles", "notification_settings", "settings"],
   roles: ["roles"],
@@ -125,6 +168,21 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   crm_integrations: ["customer_lifecycle", "crm"],
   crm_renewals: ["customer_lifecycle", "crm"],
 };
+
+// Each granular AI-service feature also resolves to the Island/Store group, so a
+// page or sidebar item keyed by the specific feature (e.g. "queue_management")
+// opens for a user holding that grant — and the Island menu reveals too.
+for (const feature of STORE_AI_FEATURES) {
+  if (!PERMISSION_ALIASES[feature]) {
+    PERMISSION_ALIASES[feature] = [
+      feature,
+      "store",
+      "island",
+      "customer_island",
+      "services",
+    ];
+  }
+}
 
 /** Resolve a route key to the list of namespaces that grant access to it. */
 export function resolvePermissionCandidates(resource: string): string[] {

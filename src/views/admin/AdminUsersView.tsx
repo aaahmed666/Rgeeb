@@ -119,6 +119,7 @@ function UserDialog({
   const [active, setActive] = useState(user?.active !== false);
   const [mainAdmin, setMainAdmin] = useState(user?.mainAdmin ?? false);
   const [clientId, setClientId] = useState<string>(user?.clientId ?? "");
+  const [roleId, setRoleId] = useState<string>(user?.roleId ?? "");
 
   // useEffect (not useState callback — that never runs) to reset when dialog opens
   useEffect(() => {
@@ -131,6 +132,7 @@ function UserDialog({
       setActive(user?.active !== false);
       setMainAdmin(user?.mainAdmin ?? false);
       setClientId(user?.clientId ?? "");
+      setRoleId(user?.roleId ?? "");
     }
   }, [open, user]);
 
@@ -143,6 +145,7 @@ function UserDialog({
       active,
       main_admin: mainAdmin,
       client_id: clientId || undefined,
+      role_id: roleId || undefined,
     };
     if (password) inp.password = password;
     return inp;
@@ -237,6 +240,25 @@ function UserDialog({
             />
           </div>
           <div className="space-y-1.5">
+            <Label>{t("admin.users.role", "Role")} *</Label>
+            <AsyncPaginatedSelect
+              endpoint="/admin/roles"
+              labelKey="name"
+              valueKey="id"
+              value={roleId || null}
+              onChange={(v) => setRoleId(v ?? "")}
+              defaultOption={
+                user?.roleId
+                  ? {
+                      value: user.roleId,
+                      label: user.roleName ?? user.roleId,
+                    }
+                  : undefined
+              }
+              placeholder={t("admin.users.selectRole", "Select a role…")}
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label>
               {isEdit
                 ? t(
@@ -279,6 +301,7 @@ function UserDialog({
               !nameEn ||
               !email ||
               !clientId ||
+              !roleId ||
               (!isEdit && !password) ||
               mut.isPending
             }

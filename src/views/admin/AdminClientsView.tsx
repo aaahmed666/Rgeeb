@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { DataTable  } from "@/components/ui/data-table";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ClientLifecyclePreviewDialog } from "@/components/admin/ClientLifecyclePreviewDialog";
+import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
 // right= prop (not action=)
 import { AdminPageHeader, StatusPill } from "@/components/admin/AdminPageHeader";
 import {
@@ -110,6 +111,7 @@ export default function AdminClientsView() {
       updateMut.mutate({ id: editing.id, v: payload });
     } else {
       if (!form.password) { toast.error(t("admin.clients.passwordRequired", "Password is required")); return; }
+      if (!form.package_id) { toast.error(t("admin.clients.packageRequired", "Package is required")); return; }
       createMut.mutate(form as AdminUserInput);
     }
   };
@@ -246,6 +248,19 @@ export default function AdminClientsView() {
             <div className="space-y-1.5">
               <Label>{t("admin.clients.phone")}</Label>
               <Input value={form.phone ?? ""} onChange={f("phone")} placeholder="+971 5xx xxx xxx" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("admin.clients.package", "Package")} *</Label>
+              <AsyncPaginatedSelect
+                endpoint="/admin/packages"
+                labelKey="name_en"
+                valueKey="id"
+                value={form.package_id ? String(form.package_id) : null}
+                onChange={(v) =>
+                  setForm((p) => ({ ...p, package_id: v ?? undefined }))
+                }
+                placeholder={t("admin.clients.selectPackage", "Select a package…")}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>{editing ? t("admin.users.password") + " (" + t("common.cancel").toLowerCase() + ")" : t("admin.users.password") + " *"}</Label>

@@ -62,6 +62,7 @@ import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { usePermission } from "@/hooks/usePermission";
 import { useTranslation } from "react-i18next";
 import { AsyncPaginatedSelect } from "@/components/AsyncPaginatedSelect";
+import { DrawingCanvas, type Shape as RoiShape } from "@/components/DrawingCanvas";
 
 const EMPTY: CameraInput = {
   name: "",
@@ -92,6 +93,7 @@ export default function CamerasView() {
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<CameraType | null>(null);
   const [form, setForm] = React.useState<CameraInput>(EMPTY);
+  const [roiShapes, setRoiShapes] = React.useState<RoiShape[]>([]);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
   const {
@@ -153,10 +155,20 @@ export default function CamerasView() {
   function openCreate() {
     setEditing(null);
     setForm(EMPTY);
+    setRoiShapes([]);
     setOpen(true);
   }
   function openEdit(cam: CameraType) {
     setEditing(cam);
+    // Load existing ROI shapes from the camera's services[].points
+    setRoiShapes(
+      (cam.services ?? [])
+        .filter((s) => Array.isArray(s.points) && s.points!.length >= 2)
+        .map((s, i) => ({
+          id: `roi-${i}`,
+          points: (s.points ?? []).map((p) => ({ x: p.x, y: p.y })),
+        }))
+    );
     setForm({
       name: cam.name,
       code: cam.code ?? "",
@@ -405,7 +417,7 @@ export default function CamerasView() {
         open={open}
         onOpenChange={setOpen}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {editing ? t("cameras.editCamera") : t("cameras.addCamera")}
@@ -534,6 +546,27 @@ export default function CamerasView() {
                 <Label>{t("cameras.enableCounter", "Enable People Counter")}</Label>
               </div>
             </div>
+
+            {/* ROI Configuration */}
+            <div className="grid gap-2 border-t pt-4">
+              <div>
+                <Label className="text-sm font-semibold">
+                  {t("cameras.roiConfiguration", "ROI Configuration")}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    "cameras.roiConfigurationHint",
+                    "Draw detection lines or zones for this camera. Lines (2 points) count crossings; areas (3+ points) define regions of interest."
+                  )}
+                </p>
+              </div>
+              <DrawingCanvas
+                initialShapes={roiShapes}
+                onShapesChange={setRoiShapes}
+                canvasWidth={600}
+                canvasHeight={400}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -543,7 +576,20 @@ export default function CamerasView() {
               {t("common.cancel")}
             </Button>
             <Button
-              onClick={() => saveMut.mutate(form)}
+              onClick={() => {
+                // Persist ROI shapes as services[].points (matches the OLD
+                // CameraForm contract; the builder serializes them as
+                // services[i][points][j][x/y]).
+                const services = roiShapes
+                  .filter((s) => s.points.length >= 2)
+                  .map((s) => ({
+                    points: s.points.map((p) => ({
+                      x: Math.round(p.x),
+                      y: Math.round(p.y),
+                    })),
+                  }));
+                saveMut.mutate({ ...form, services });
+              }}
               disabled={saveMut.isPending || !form.name.trim()}
             >
               {saveMut.isPending ? t("validation.saving") : t("common.save")}

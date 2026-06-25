@@ -59,12 +59,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus } from "lucide-react";
@@ -464,14 +464,24 @@ export default function TasksView() {
 
   // Prefer the list payload's aggregates: data.pagination.total +
   // data.by_status are the full, correct counts (the values in the API
-  // response). The /customer/tasks/dashboard endpoint is scoped differently
-  // and under-reports here, so it's only a fallback — and supplies `overdue`
-  // when the list payload doesn't include an overdue count.
+  // response). The /customer/tasks/dashboard endpoint is scoped to the current
+  // user and under-reports here (e.g. shows 3/3/0/3 for a sub-user while the
+  // list returns 1237 total, 14 in-progress, 7 completed), so it is ONLY a
+  // fallback — and supplies `overdue`, which the list `by_status` doesn't carry.
   const listSummary = dataQ.data?.summary;
-  const summary: TaskSummary = listSummary
+  // "Real" list aggregates = a positive total or a populated by_status map.
+  // Without this check an empty/loading list-summary (total 0) would mask the
+  // dashboard fallback and show zeros.
+  const hasListAggregates =
+    !!listSummary &&
+    (listSummary.total > 0 ||
+      Object.keys(listSummary.byStatus ?? {}).length > 0);
+  const summary: TaskSummary = hasListAggregates
     ? {
-        ...listSummary,
-        overdue: listSummary.overdue || dashQ.data?.overdue || 0,
+        ...listSummary!,
+        // by_status has no "overdue" bucket → take it from the dashboard
+        // endpoint (or the list payload if it ever includes one).
+        overdue: listSummary!.overdue || dashQ.data?.overdue || 0,
       }
     : (dashQ.data ?? {
         total: 0,
@@ -566,12 +576,17 @@ export default function TasksView() {
       render: (task) => {
         const initial = task.assignedTo?.name?.charAt(0)?.toUpperCase() ?? "?";
         return task.assignedTo ? (
-          <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDetailTask(task)}
+            title={t("tasksUi.openTaskInfo", "Open task info & activity log")}
+            className="inline-flex items-center gap-2 rounded-full px-1 py-0.5 -mx-1 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
               {initial}
             </span>
-            <span className="text-sm">{task.assignedTo.name}</span>
-          </span>
+            <span className="text-sm hover:underline">{task.assignedTo.name}</span>
+          </button>
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
         );
@@ -900,22 +915,25 @@ export default function TasksView() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Create / Edit Task Dialog ── */}
-      <Dialog
+      {/* ── Create / Edit Task drawer (right-side, matches old design) ── */}
+      <Sheet
         open={taskOpen}
         onOpenChange={(o) => {
           if (!saveMutation.isPending) setTaskOpen(o);
         }}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
+        >
+          <SheetHeader className="border-b px-6 py-4 text-start">
+            <SheetTitle>
               {editingTask
                 ? t("tasks.editTask", "Edit Task")
                 : t("tasks.newTask", "New Task")}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[65vh] space-y-4 overflow-y-auto py-2 pr-1">
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
             {/* Name */}
             <div className="space-y-1.5">
               <Label>
@@ -1154,7 +1172,7 @@ export default function TasksView() {
               </label>
             </div>
           </div>
-          <DialogFooter>
+          <SheetFooter className="flex-row justify-end gap-2 border-t px-6 py-4">
             <Button
               variant="outline"
               onClick={() => setTaskOpen(false)}
@@ -1173,9 +1191,9 @@ export default function TasksView() {
                 ? t("common.save", "Save")
                 : t("tasks.createTask", "Create Task")}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

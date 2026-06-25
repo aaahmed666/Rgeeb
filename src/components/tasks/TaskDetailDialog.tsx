@@ -83,7 +83,7 @@ export default function TaskDetailDialog({ task, onOpenChange }: TaskDetailDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="truncate">{task?.title ?? ""}</span>
@@ -94,11 +94,56 @@ export default function TaskDetailDialog({ task, onOpenChange }: TaskDetailDialo
             )}
           </DialogTitle>
           {task?.description ? (
-            <DialogDescription className="line-clamp-3 text-start">
+            <DialogDescription className="line-clamp-3 text-start break-words">
               {task.description}
             </DialogDescription>
           ) : null}
         </DialogHeader>
+
+        {task && (
+          <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-3 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {t("tasks.col.branch", "Branch")}
+              </p>
+              <p className="font-medium">{task.branch?.name ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {t("tasks.col.assignedTo", "Assigned To")}
+              </p>
+              <p className="font-medium">
+                {task.assignedTo?.name ?? t("tasks.unassigned", "Unassigned")}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {t("tasks.form.dueDate", "Due Date")}
+              </p>
+              <p className="font-medium">
+                {task.dueDate || task.scheduledDate || "—"}
+              </p>
+            </div>
+            <div className="flex items-start gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("tasks.form.priority", "Priority")}
+                </p>
+                <Badge variant="outline" className="mt-0.5 capitalize">
+                  {task.priority}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("tasks.form.type", "Type")}
+                </p>
+                <Badge variant="outline" className="mt-0.5 capitalize">
+                  {String(task.type).replace(/_/g, " ")}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Tabs defaultValue="comments">
           <TabsList className="grid w-full grid-cols-3">
@@ -123,6 +168,7 @@ export default function TaskDetailDialog({ task, onOpenChange }: TaskDetailDialo
               onChange={(e) => setComment(e.target.value)}
               placeholder={t("tasks.commentPlaceholder", "Write a comment…")}
               rows={3}
+              className="resize-none"
             />
             <div className="flex justify-end">
               <Button

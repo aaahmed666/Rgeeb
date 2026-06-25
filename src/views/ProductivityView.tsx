@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { getAuthToken } from "@/lib/api";
+import { exportRowsToExcel } from "@/lib/excelExport";
 import {
   BarChart3,
   Building2,
@@ -152,6 +152,53 @@ export default function ProductivityView() {
     }
   }, [exporting, leaderboard, t]);
 
+  // Excel export — generated entirely on the client from the leaderboard data
+  // already in memory. The backend has no productivity export endpoint (only
+  // task-reports does), so the previous fetch to
+  // `/api/customer/productivity/export-excel` always 404'd. This mirrors the
+  // client-side PDF export and works regardless of backend support.
+  const handleExportExcel = useCallback(() => {
+    const dir = i18n.dir(i18n.language) === "rtl" ? "rtl" : "ltr";
+    const headers = [
+      t("productivity.rank", "Rank"),
+      t("productivity.employee", "Employee"),
+      t("productivity.department", "Department"),
+      t("productivity.score", "Score"),
+      t("productivity.attendance", "Attendance") + " (%)",
+      t("productivity.punctuality", "Punctuality") + " (%)",
+      t("productivity.avgHours", "Avg Hours"),
+      t("productivity.late", "Late"),
+    ];
+    const rows = leaderboard.map((r) => [
+      r.rank,
+      r.name,
+      r.department ?? "",
+      r.score,
+      r.attendance,
+      r.punctuality,
+      r.avg_hours,
+      r.late_count,
+    ]);
+    if (rows.length === 0) {
+      toast.error(t("productivity.noDataToExport", "No data to export"));
+      return;
+    }
+    try {
+      exportRowsToExcel({
+        filename: `leaderboard-${new Date().toISOString().slice(0, 10)}`,
+        sheetName: t("productivity.leaderboard", "Leaderboard"),
+        headers,
+        rows,
+        dir,
+      });
+    } catch (e) {
+      console.error("Excel export failed:", e);
+      toast.error(
+        t("productivity.exportFailed", "Export failed. Please try again.")
+      );
+    }
+  }, [leaderboard, t]);
+
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     {
       key: "overview",
@@ -252,39 +299,7 @@ export default function ProductivityView() {
           </button>
           <button
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={async () => {
-              try {
-                const token = getAuthToken();
-                const params = dateFrom
-                  ? `?date_from=${dateFrom}&date_to=${dateTo ?? ""}`
-                  : "";
-                const res = await fetch(
-                  `/api/customer/productivity/export-excel${params}`,
-                  {
-                    headers: {
-                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                  }
-                );
-                if (!res.ok) throw new Error(`Export failed (${res.status})`);
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "productivity.xlsx";
-                a.click();
-                URL.revokeObjectURL(url);
-              } catch (e) {
-                console.error("Export failed:", e);
-                // Surface the failure — a silent no-op looks like a dead button.
-                toast.error(
-                  t(
-                    "productivity.exportFailed",
-                    "Export failed. Please try again."
-                  )
-                );
-              }
-            }}
+            onClick={() => handleExportExcel()}
             title={t("productivity.excel", "Excel")}
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
