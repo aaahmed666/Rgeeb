@@ -979,6 +979,7 @@
     "peopleCounting": "People Counting",
     "personDetection": "Person Detection",
     "vehicleTracking": "Vehicle Tracking",
+    "carWash": "Car Wash",
     "activeStatus": "Active",
     "inactiveStatus": "Inactive",
     "serviceNotFound": "Service not found",
@@ -3430,5 +3431,67 @@
   },
   "security2fa": {
     "qrCodeAlt": "2FA QR code"
+  },
+  "carWash": {
+    "title": "Car Wash",
+    "online": "Online",
+    "offline": "Offline",
+    "zonesCount": "{{count}} Zones",
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Real-time car wash monitoring"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "subtitle": "Vehicle service reports and statistics",
+      "serviceBreakdown": "Service Breakdown",
+      "vehicleClassification": "Vehicle Classification",
+      "vehicleLog": "Vehicle Log",
+      "records": "{{count}} records",
+      "searchPlaceholder": "Search plate, class, zone...",
+      "noResults": "No vehicles match your search",
+      "noData": "No data for this period"
+    },
+    "stats": {
+      "totalVehicles": "Total Vehicles",
+      "activeCameras": "Active Cameras",
+      "fullService": "Full Service",
+      "avgDuration": "Avg Duration",
+      "avgExtDuration": "Avg Ext Duration",
+      "avgIntDuration": "Avg Int Duration"
+    },
+    "cameras": {
+      "title": "Cameras",
+      "add": "Add Camera",
+      "empty": "No cameras configured yet."
+    },
+    "service": {
+      "noService": "No Service",
+      "internalOnly": "Internal Only",
+      "externalOnly": "External Only",
+      "fullService": "Full Service"
+    },
+    "table": {
+      "time": "Time",
+      "trackId": "Track ID",
+      "plate": "Plate",
+      "class": "Class",
+      "service": "Service",
+      "extTime": "Ext Time",
+      "intTime": "Int Time",
+      "totalTime": "Total Time",
+      "zones": "Zones",
+      "actions": "Actions"
+    },
+    "live": {
+      "stopAi": "Stop AI",
+      "startAi": "Start AI",
+      "testConnection": "Test Connection",
+      "editRoi": "Edit ROI Zones",
+      "detailZone": "DETAIL ZONE",
+      "zonesHint": "{{count}} ROI zones configured for this camera",
+      "title": "Live View"
+    },
+    "loadError": "Could not load car wash data."
   }
 }

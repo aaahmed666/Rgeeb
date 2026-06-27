@@ -1,0 +1,5 @@
+[
+  { "name": "Enterprise", "value": 62, "color": "var(--chart-2)" },
+  { "name": "Pro", "value": 24, "color": "var(--chart-1)" },
+  { "name": "Basic", "value": 14, "color": "var(--chart-3)" }
+]

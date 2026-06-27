@@ -30,6 +30,7 @@ import {
   PersonStandingIcon as PersonStanding,
   SearchPersonIcon as Search,
   BusIcon as Bus,
+  CarWashIcon as CarWash,
 } from "@/components/ai-service-icons";
 import type { AIServiceMeta } from "./aiServiceTypes";
 
@@ -569,6 +570,35 @@ export const ALL_SERVICES: AIServiceMeta[] = [
       uptime: 99.3,
       avgResponseMs: 52,
       cameras: 4,
+    },
+  },
+  {
+    id: "car-wash",
+    apiId: 31,
+    label: "Car Wash",
+    labelKey: "aiServices.carWash",
+    routeHref: "/dashboard/carwash",
+    category: "Operations",
+    categoryHref: "/dashboard/ai-services?tab=operations",
+    color: "#06b6d4",
+    bgColor: "#ecfeff",
+    icon: CarWash,
+    description: "Monitor car wash bays and track vehicle service flow.",
+    detailedDescription:
+      "Provides end-to-end visibility of the car wash process — from vehicle entry to service completion — tracking internal and external wash durations, vehicle classifications, and service types across all bays.",
+    useCases: [
+      "Car wash bay utilization tracking",
+      "Vehicle service time optimization",
+      "Service type analytics (internal/external/full)",
+      "Vehicle classification and plate recognition",
+    ],
+    stats: {
+      totalDetections: 18520,
+      todayDetections: 312,
+      accuracy: 96,
+      uptime: 99.4,
+      avgResponseMs: 48,
+      cameras: 6,
     },
   },
   {

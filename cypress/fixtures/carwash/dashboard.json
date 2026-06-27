@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "total_vehicles": 147,
+    "active_cameras": 4,
+    "total_cameras": 6,
+    "full_service": 52,
+    "avg_duration_min": 8,
+    "avg_ext_seconds": 195,
+    "avg_int_seconds": 285
+  },
+  "service_breakdown": [
+    { "type": "full", "count": 52 },
+    { "type": "external-only", "count": 41 },
+    { "type": "internal-only", "count": 33 },
+    { "type": "no-service", "count": 21 }
+  ],
+  "vehicle_classification": [
+    { "class": "Sedan", "count": 58 },
+    { "class": "SUV", "count": 42 },
+    { "class": "Truck", "count": 27 },
+    { "class": "Van", "count": 20 }
+  ],
+  "vehicles": [
+    {
+      "id": "v-001",
+      "time": "2025-06-27 14:32:10",
+      "plate": "KSA 1234 AB",
+      "track_id": 1001,
+      "vehicle_class": "Sedan",
+      "service": "full",
+      "ext_seconds": 210,
+      "int_seconds": 300,
+      "zones": ["BAY-1", "RINSE"]
+    },
+    {
+      "id": "v-002",
+      "time": "2025-06-27 14:28:05",
+      "plate": "KSA 5678 CD",
+      "track_id": 1002,
+      "vehicle_class": "SUV",
+      "service": "external-only",
+      "ext_seconds": 180,
+      "int_seconds": 0,
+      "zones": ["BAY-2"]
+    },
+    {
+      "id": "v-003",
+      "time": "2025-06-27 14:15:41",
+      "plate": "KSA 9012 EF",
+      "track_id": 1003,
+      "vehicle_class": "Truck",
+      "service": "internal-only",
+      "ext_seconds": 0,
+      "int_seconds": 420,
+      "zones": ["BAY-3", "DETAIL"]
+    }
+  ]
+}

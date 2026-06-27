@@ -7,6 +7,8 @@ export interface AIServiceMeta {
   label: string;
   /** i18n translation key for the label, e.g. "aiServices.helmetDetection" */
   labelKey?: string;
+  /** Override card navigation — opens a custom dashboard instead of the generic AIServiceDetailView */
+  routeHref?: string;
   category: string;
   categoryHref: string;
   color: string;

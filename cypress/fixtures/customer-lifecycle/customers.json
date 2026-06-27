@@ -1,0 +1,46 @@
+{
+  "data": [
+    {
+      "id": "RGE-10293",
+      "name": "Nexus Market",
+      "initials": "NM",
+      "customerId": "RGE-10293",
+      "businessType": "Retail",
+      "status": "Active",
+      "branches": 24,
+      "cameras": 1420,
+      "aiServices": 12,
+      "package": "Enterprise Pro",
+      "endDate": "Dec 14, 2025"
+    },
+    {
+      "id": "RGE-10294",
+      "name": "Global Logistics Co.",
+      "initials": "GL",
+      "customerId": "RGE-10294",
+      "businessType": "Logistics",
+      "status": "Onboarding",
+      "branches": 8,
+      "cameras": 512,
+      "aiServices": 4,
+      "package": "Advanced Tier",
+      "endDate": "Oct 20, 2025"
+    },
+    {
+      "id": "RGE-10295",
+      "name": "SafeVault Security",
+      "initials": "SV",
+      "customerId": "RGE-10295",
+      "businessType": "Security",
+      "status": "Warning",
+      "branches": 42,
+      "cameras": 3120,
+      "aiServices": 18,
+      "package": "Enterprise Pro",
+      "endDate": "Feb 02, 2025"
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "totalPages": 1
+}

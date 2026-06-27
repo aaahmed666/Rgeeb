@@ -382,6 +382,18 @@ export const endpoints = {
     dashboard: "/customer/drive-thru/dashboard",
   },
 
+  // ── Car Wash (vehicle service monitoring) ────────────────────────────────────
+  // Backed by the existing drive-thru / analytics / cameras feeds. No new
+  // backend routes are required: the screens compose these endpoints.
+  carWash: {
+    dashboard: "/customer/drive-thru/dashboard", // KPIs + vehicle log + breakdowns
+    cameras: "/customer/cameras",                 // camera grid
+    cameraStream: "/customer/cameras/stream",     // GET live stream URL/token
+    analyticsSummary: "/customer/analytics/summary",
+    analyticsByService: "/customer/analytics/by-service",
+    analyticsByCamera: "/customer/analytics/by-camera",
+  },
+
   // ── Service Monitor ──────────────────────────────────────────────────────────
   serviceMonitor: {
     dashboard: (serviceId: string | number) =>

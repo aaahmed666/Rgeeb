@@ -33,6 +33,7 @@ export const STORE_AI_FEATURES: string[] = [
   "age_gender_analytics",
   "behavior_analysis",
   "cash_register_monitoring",
+  "car_wash",
   "clean_tables",
   "cup_counting",
   "customer_traffic",

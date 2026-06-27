@@ -979,6 +979,7 @@
     "peopleCounting": "عدّ الأشخاص",
     "personDetection": "كشف الأشخاص",
     "vehicleTracking": "تتبع المركبات",
+    "carWash": "غسيل السيارات",
     "activeStatus": "نشط",
     "inactiveStatus": "غير نشط",
     "serviceNotFound": "الخدمة غير موجودة",
@@ -3430,5 +3431,67 @@
   },
   "security2fa": {
     "qrCodeAlt": "رمز QR للمصادقة الثنائية"
+  },
+  "carWash": {
+    "title": "مغسلة السيارات",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "zonesCount": "{{count}} مناطق",
+    "dashboard": {
+      "title": "لوحة التحكم",
+      "subtitle": "مراقبة مغسلة السيارات في الوقت الفعلي"
+    },
+    "analytics": {
+      "title": "التحليلات",
+      "subtitle": "تقارير وإحصائيات خدمة المركبات",
+      "serviceBreakdown": "توزيع الخدمات",
+      "vehicleClassification": "تصنيف المركبات",
+      "vehicleLog": "سجل المركبات",
+      "records": "{{count}} سجل",
+      "searchPlaceholder": "ابحث باللوحة، الفئة، المنطقة...",
+      "noResults": "لا توجد مركبات مطابقة لبحثك",
+      "noData": "لا توجد بيانات لهذه الفترة"
+    },
+    "stats": {
+      "totalVehicles": "إجمالي المركبات",
+      "activeCameras": "الكاميرات النشطة",
+      "fullService": "خدمة كاملة",
+      "avgDuration": "متوسط المدة",
+      "avgExtDuration": "متوسط المدة الخارجية",
+      "avgIntDuration": "متوسط المدة الداخلية"
+    },
+    "cameras": {
+      "title": "الكاميرات",
+      "add": "إضافة كاميرا",
+      "empty": "لا توجد كاميرات معدّة بعد."
+    },
+    "service": {
+      "noService": "بدون خدمة",
+      "internalOnly": "داخلي فقط",
+      "externalOnly": "خارجي فقط",
+      "fullService": "خدمة كاملة"
+    },
+    "table": {
+      "time": "الوقت",
+      "trackId": "معرّف التتبع",
+      "plate": "اللوحة",
+      "class": "الفئة",
+      "service": "الخدمة",
+      "extTime": "وقت خارجي",
+      "intTime": "وقت داخلي",
+      "totalTime": "الوقت الكلي",
+      "zones": "المناطق",
+      "actions": "إجراءات"
+    },
+    "live": {
+      "stopAi": "إيقاف الذكاء الاصطناعي",
+      "startAi": "تشغيل الذكاء الاصطناعي",
+      "testConnection": "اختبار الاتصال",
+      "editRoi": "تعديل مناطق ROI",
+      "detailZone": "منطقة التفصيل",
+      "zonesHint": "تم تكوين {{count}} منطقة ROI لهذه الكاميرا",
+      "title": "البث المباشر"
+    },
+    "loadError": "تعذّر تحميل بيانات مغسلة السيارات."
   }
 }

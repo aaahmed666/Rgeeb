@@ -1217,3 +1217,72 @@ export function SmokeDetectionIcon({ className, ...p }: IconProps) {
     </svg>
   );
 }
+
+// ── Car Wash (car + water drops) ──
+export function CarWashIcon({ className, ...p }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      {...p}
+    >
+      {/* Water drops */}
+      <path
+        d="M7 2C7 2 5 4.5 5 5.5a2 2 0 004 0C9 4.5 7 2 7 2z"
+        fill="currentColor"
+        opacity=".6"
+      />
+      <path
+        d="M12 1C12 1 10 3.5 10 4.5a2 2 0 004 0C14 3.5 12 1 12 1z"
+        fill="currentColor"
+        opacity=".8"
+      />
+      <path
+        d="M17 2C17 2 15 4.5 15 5.5a2 2 0 004 0C19 4.5 17 2 17 2z"
+        fill="currentColor"
+        opacity=".6"
+      />
+      {/* Car roof line */}
+      <path
+        d="M5 14l2-4h10l2 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Car body */}
+      <rect
+        x="2"
+        y="14"
+        width="20"
+        height="6"
+        rx="2"
+        fill="currentColor"
+        opacity=".9"
+      />
+      {/* Headlights */}
+      <rect
+        x="4"
+        y="15.5"
+        width="3.5"
+        height="2"
+        rx="1"
+        fill="white"
+        opacity=".5"
+      />
+      <rect
+        x="16.5"
+        y="15.5"
+        width="3.5"
+        height="2"
+        rx="1"
+        fill="white"
+        opacity=".5"
+      />
+      {/* Wheels */}
+      <circle cx="6.5" cy="21" r="1.8" fill="currentColor" />
+      <circle cx="17.5" cy="21" r="1.8" fill="currentColor" />
+    </svg>
+  );
+}

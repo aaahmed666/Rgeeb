@@ -93,6 +93,7 @@ import {
   PersonStandingIcon as PersonStanding,
   SearchPersonIcon as SearchPerson,
   BusIcon as Bus,
+  CarWashIcon as CarWashService,
 } from "@/components/ai-service-icons";
 // Re-alias AI service icons that conflict with lucide nav icons
 import {
@@ -317,6 +318,30 @@ export function AppSidebar() {
   ];
 
   const monitoring: GroupItem[] = [
+    {
+      href: "/dashboard/carwash",
+      icon: Droplets,
+      label: t("carWash.title", "Car Wash"),
+      badge: { text: "LIVE", tone: "live" },
+      permission: "car_wash",
+      children: [
+        {
+          href: "/dashboard/carwash",
+          icon: LayoutDashboard,
+          label: t("carWash.dashboard.title", "Dashboard"),
+        },
+        {
+          href: "/dashboard/carwash/analytics",
+          icon: BarChart3,
+          label: t("carWash.analytics.title", "Analytics"),
+        },
+        {
+          href: "/dashboard/carwash/live",
+          icon: Video,
+          label: t("carWash.live.title", "Live View"),
+        },
+      ],
+    },
     {
       href: "/dashboard/system-monitoring",
       icon: Radar,
@@ -556,6 +581,12 @@ export function AppSidebar() {
               href: "/dashboard/ai-services/operations/receipt-detection",
               icon: Receipt,
               label: t("aiServices.receiptDetection", "Receipt Detection"),
+              permission: "ai-services",
+            },
+            {
+              href: "/dashboard/ai-services/operations/car-wash",
+              icon: CarWashService,
+              label: t("aiServices.carWash", "Car Wash"),
               permission: "ai-services",
             },
             {

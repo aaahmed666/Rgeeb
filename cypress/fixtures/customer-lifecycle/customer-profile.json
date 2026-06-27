@@ -1,0 +1,43 @@
+{
+  "id": "RGE-10293",
+  "name": "Global Retail Corp",
+  "initials": "GR",
+  "tier": "Enterprise Partner",
+  "customerId": "GRC-8829-01",
+  "industry": "Multinational Retail",
+  "region": "North America & EMEA",
+  "annualRevenue": "$2.4M",
+  "healthScore": 98,
+  "totalBranches": 142,
+  "totalBranchesTrend": "+2 New",
+  "totalCameras": 3850,
+  "totalCamerasLabel": "Global",
+  "aiServices": 24,
+  "aiServicesTrend": "12 Active",
+  "activeIntegrations": 8,
+  "activeIntegrationsLabel": "Healthy",
+  "companyInfo": {
+    "legalName": "Global Retail Holdings LLC",
+    "businessType": "Enterprise / Retail Tech",
+    "accountManager": "Marcus Sterling",
+    "primaryContact": "sarah.j@globalretail.com",
+    "headquartersAddress": "1500 Broadway, New York, NY 10036",
+    "primaryPhone": "+1 (212) 555-0198",
+    "supportSla": "Tier 1 - 24/7 Priority"
+  },
+  "contacts": [
+    { "name": "Sarah Jenkins", "role": "VP of Retail Operations", "email": "sarah.j@globalretail.com", "phone": "+1 (212) 555-0198" }
+  ],
+  "subscription": {
+    "plan": "Enterprise Ultra",
+    "planEdition": "Pro Edition",
+    "status": "Active",
+    "startDate": "Jan 12, 2023",
+    "renewalDate": "Jan 11, 2025",
+    "daysRemaining": 342,
+    "features": ["Unlimited Historical Analytics", "Custom API Endpoints"]
+  },
+  "recentActivity": [
+    { "id": "pa1", "title": "New Branch Added: London Flagship", "type": "asset", "description": "12 new cameras configured.", "date": "2 hours ago" }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "id": "cam-cw-01",
+      "name": "Bay 1 — Entrance",
+      "code": "CW-BAY1",
+      "branch_name": "Riyadh - Al Olaya",
+      "is_online": true,
+      "zones": ["ENTRY", "WASH"]
+    },
+    {
+      "id": "cam-cw-02",
+      "name": "Bay 2 — Wash Zone",
+      "code": "CW-BAY2",
+      "branch_name": "Riyadh - Al Olaya",
+      "is_online": true,
+      "zones": ["WASH", "RINSE"]
+    },
+    {
+      "id": "cam-cw-03",
+      "name": "Bay 3 — Detail Zone",
+      "code": "CW-BAY3",
+      "branch_name": "Riyadh - Al Olaya",
+      "is_online": false,
+      "zones": ["DETAIL"]
+    },
+    {
+      "id": "cam-cw-04",
+      "name": "Exit Camera",
+      "code": "CW-EXIT",
+      "branch_name": "Jeddah - Corniche",
+      "is_online": true,
+      "zones": []
+    }
+  ]
+}

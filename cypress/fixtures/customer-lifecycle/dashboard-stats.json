@@ -1,0 +1,20 @@
+{
+  "totalCustomers": 1482,
+  "totalCustomersTrend": 12,
+  "activeCustomers": 1240,
+  "activeCustomersTrend": 5,
+  "inOnboarding": 42,
+  "inOnboardingLabel": "Stable",
+  "activeSubscriptions": 1186,
+  "activeSubscriptionsTrend": 6,
+  "upcomingRenewals": 18,
+  "upcomingRenewalsLabel": "Next 30 Days",
+  "totalBranches": 482,
+  "totalBranchesTrend": 9,
+  "totalCameras": 8500,
+  "totalCamerasTrend": 24,
+  "activeAiServices": 26,
+  "activeAiServicesTrend": 8,
+  "activeIntegrations": 34,
+  "activeIntegrationsTrend": 15
+}

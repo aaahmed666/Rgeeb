@@ -1,0 +1,10 @@
+{
+  "healthScore": 94.2,
+  "healthTrend": "↑ 1.2% vs last month",
+  "upcomingRenewals": 124,
+  "upcomingRenewalsLabel": "Total contracts in next 30 days",
+  "forecastedRevenue": "$4.2M",
+  "forecastedRevenueTrend": "↑ 8% target surplus",
+  "highRiskAttrition": 7,
+  "highRiskAttritionLabel": "Requires immediate action"
+}
